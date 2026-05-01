@@ -503,3 +503,80 @@ The 18-minute training output is **discarded**. None of the new embeddings
 are useful — they all point in the same direction. Re-running after the
 fix is necessary; cached `tokenizer_extended/embed_init.pt` should be
 deleted before the next run.
+
+---
+
+## L14 — Tokenizer training run #2 (the bottleneck shifts)
+
+### What happened
+
+Re-ran `train_tokenizer.py` with the BUG-001 smart-init fix. CPU, 41 minutes,
+5 epochs (default bumped from 2). Loss 8.30 → 6.55.
+
+### Three confirmations the fix worked
+
+```
+Smart init complete: 251 via subword avg, 0 via global mean fallback
+New token embedding norms — mean=0.7160 std=0.0770   # std no longer 0!
+init = mean(['kde','_','dialog','_','confirm'])      # actual subwords
+```
+
+Nearest neighbours are now meaningful instead of nonsense Kannada
+characters:
+```
+linux_memory_usage  → 'memory'(0.50), 'usage'(0.46), '_'(0.61), '__'(0.49)
+window_focus        → 'focus'(0.60), 'window'(0.60), 'Focus'(0.54)
+notifications_send  → 'send'(0.56), 'notifications'(0.52)
+```
+
+`same-tool forms` cosine = +0.78 (good clustering).
+
+### What's still wrong (the new bottleneck)
+
+| Probe | Result | Expected | Diagnosis |
+|---|---|---|---|
+| cross-domain cosine | 0.66 | < 0.3 | Templates make all tool tokens look alike |
+| `co-occurring ML libs` | 0.2937 → 0.2937 | should rise | **Probe measures frozen base-vocab tokens — can't move (BUG-005)** |
+| `co-occurring git ops` | 0.3615 → 0.3615 | should rise | Same root cause as above |
+| Loss plateau | 6.55 | 1-3 ideal | Corpus too repetitive |
+| Sustained grad norms 3-7 | yes | < 1 | Same root cause: monotonous gradient signal |
+
+### Root cause
+
+The corpus is 70% rotated templates like `"Call {token} to handle this
+request"`. Templates produce *monotonous* gradients — every new token
+gets pushed in similar directions because every sentence looks similar.
+Result: tool tokens cluster too tightly with each other instead of
+spreading into the meaningful geometry the model needs for actual dispatch.
+
+Also discovered BUG-005: 3 of our 9 probe pairs measure base-vocab
+tokens (`torch`, `transformers`, `merge`, `commit`) which we *freeze*
+via gradient hook. Those probes literally cannot move during training —
+they were giving us false signals about lack of progress.
+
+### Strategies → 20-lever roadmap
+
+Documented in [dataset-strategies.md](dataset-strategies.md). The five
+highest-priority moves identified:
+
+1. **A4** — mine `dispatch_pairs.jsonl` failures into corpus (trivial cost)
+2. **C1** — drop tokens already single-token in base vocab (-71 tokens)
+3. **E2** — fix BUG-005 probe pairs (so we can measure progress)
+4. **A3** — hard contrastive templates ("X is not Y") to fix cross-domain 0.66
+5. **A1** — replace templates with natural language from man pages / docs
+
+### What this means
+
+Run #2 is **kept** but not used. Embeddings are usable but not great —
+cross-domain similarity 0.66 means a query about disk could plausibly
+get routed to a memory tool. We can ship LoRA fine-tuning on top of run
+#2's embeddings as a baseline, but iteration #3 (with the dataset
+overhaul) should significantly outperform.
+
+Re-run procedure after iteration #3:
+```bash
+rm -rf training/tokenizer_extended/
+.fngemma-suryaos/bin/python training/build_tokenizer_dataset.py
+.fngemma-suryaos/bin/python training/train_tokenizer.py
+# Target: cross-domain 0.66 → < 0.4, loss plateau 6.55 → < 5.0
+```

@@ -81,14 +81,30 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added — comprehensive documentation
 - **`docs/bug-fixes.md`** — running log of every bug caught during
   real training runs. Each entry has Symptom → Root cause → Mental
-  model → Fix → Validation → Lesson.
+  model → Fix → Validation → Lesson. Currently logs BUG-001 through
+  BUG-005 plus 3 KNOWN issues.
 - **`docs/tokenizer-improvements.md`** — strategy register identifying
   5 tiers of improvements (bugs, corpus, token list, training procedure,
   validation) with prioritised recommendations.
-- **`docs/learnings.md` L13** — postmortem of the first (broken)
-  tokenizer training run.
+- **`docs/dataset-strategies.md`** — 20+ detailed dataset improvement
+  strategies in 5 categories (corpus content, diversity, token list,
+  generation pipeline, validation). Each strategy has Lever, Why it
+  works, Concrete example, Expected impact, Implementation cost. Plus
+  a priority matrix for the next iteration.
+- **`docs/learnings.md` L13/L14** — postmortems of training runs #1
+  and #2. L13 covers the smart-init clone bug; L14 covers the corpus-
+  quality bottleneck that became visible after fixing L13.
 - Inline comments throughout `train_tokenizer.py`, `finetune.py`, and
   `bootstrap.sh` explaining the WHY at every decision point.
+
+### Identified — BUG-005 in `train_tokenizer.py` PROBE_PAIRS
+- 3 of 9 cosine-probe pairs (`torch`/`transformers`, `merge`/`commit`,
+  `GGUF`/`ollama`) measure tokens that are in the base Gemma vocabulary.
+  These are frozen by our gradient hook and cannot move during training.
+- Run #2 confirmed: those probes returned identical values to 4 decimal
+  places across all 5 epochs. They are dead instrumentation.
+- Fix scheduled for iteration #3: replace with pairs that include at
+  least one new token (full diagnosis in bug-fixes.md BUG-005).
 
 ---
 

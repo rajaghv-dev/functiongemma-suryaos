@@ -325,6 +325,102 @@ of state checks pays back many times over.
 
 ---
 
+## BUG-005 — Probe pairs measure frozen tokens (May 2026)
+
+### Symptom
+
+Run #2 cosine probes for three pairs returned **identical** values
+across all 5 epochs:
+
+```
+co-occurring ML libs                     +0.2937   (epoch 1)
+co-occurring ML libs                     +0.2937   (epoch 2)
+co-occurring ML libs                     +0.2937   (epoch 3)
+co-occurring ML libs                     +0.2937   (epoch 4)
+co-occurring ML libs                     +0.2937   (epoch 5)
+```
+
+Same exact-to-4-digits value for `co-occurring git ops` and
+`co-occurring serving terms`. Other probes moved naturally.
+
+### Root cause
+
+The probe pairs were:
+- `("torch", "transformers", "co-occurring ML libs")`
+- `("merge", "commit", "co-occurring git ops")`
+- `("GGUF", "ollama", "co-occurring serving terms")`
+
+Both tokens in each pair are **already in the base Gemma vocabulary**
+(they're common English/CS words). Our training only updates new
+token embedding rows (rows 262145..262396); the base vocab rows are
+explicitly *frozen* via the gradient hook in `phase_corpus_train`:
+
+```python
+def _zero_base_rows(grad):
+    g = grad.clone()
+    g[:base_vocab_size] = 0.0   # base vocab gradients zeroed every step
+    return g
+```
+
+So the embeddings of `torch`, `transformers`, `merge`, etc. literally
+cannot change during our training. Their cosine similarity is fixed at
+whatever the pre-trained Gemma model assigned to them.
+
+### Mental model
+
+The probe was supposed to test "does corpus training cluster co-occurring
+domain terms?" But for that to work, at least one token in each pair
+must be a token *we're actually training*. The probe authors (us, in a
+previous session) assumed all probe pairs would change; we forgot that
+half of them reference frozen rows.
+
+A useful probe must be able to move when the thing it measures is being
+trained. A frozen-token probe is dead instrumentation.
+
+### Fix
+
+Update `PROBE_PAIRS` in `train_tokenizer.py` to ensure every pair
+includes **at least one new token** (one that's in our `new_tokens.json`
+list, hence trainable):
+
+```python
+PROBE_PAIRS = [
+    # NEW vs NEW (same-tool variants — high expected after training)
+    ("linux_memory_usage", "memory_usage", "same-tool forms"),
+    ("linux_disk_usage",   "disk_usage",   "same-tool forms"),
+    # NEW vs BASE (testing if new tokens learn association with related concepts)
+    ("linux_memory_usage", "memory",       "new tool vs base concept"),
+    ("krunner_launch",     "KRunner",      "new tool vs base name"),
+    # NEW vs NEW (sibling tools — moderate similarity expected)
+    ("linux_memory_usage", "linux_disk_usage", "sibling linux tools"),
+    # NEW vs NEW (cross-domain — should stay low)
+    ("linux_memory_usage", "brightness_set", "cross-domain (expected low)"),
+    # ... DELETE the torch/transformers, merge/commit, GGUF/ollama pairs
+]
+```
+
+### Validation
+
+After the fix, all probe pairs should have at least one trainable
+token. Across epochs, every pair should show non-zero movement (positive
+or negative — both are valid signals). No pair should be locked at
+exactly the same 4-digit value across multiple epochs.
+
+### Lesson
+
+**Telemetry must be testable against its own assumptions.** A probe
+that always returns the same value is signalling its own brokenness, not
+the system's state. Add a sanity check: at training start, verify that
+each probe involves at least one trainable parameter.
+
+This bug is a sibling of BUG-001 — both come from forgetting which
+tokens are/aren't trainable in our setup. The general lesson: when you
+have a "trainable subset" inside a larger frozen system, every piece
+of code that *measures* the trainable subset must verify it's actually
+looking at the right subset.
+
+---
+
 ## Open bugs / known issues
 
 These are caught but not yet fixed. Tracked here so we don't forget.
