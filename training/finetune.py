@@ -70,14 +70,15 @@ from typing import Optional
 # from scripts/training/.
 # ---------------------------------------------------------------------------
 
-ROOT         = Path(__file__).resolve().parent.parent.parent
-TRAINING_DIR = ROOT / "training"
-DATA_FILE    = TRAINING_DIR / "dispatch_pairs.jsonl"
-MODEL_HF_DIR = TRAINING_DIR / "model_hf"       # HF safetensors after convert
-MODEL_LORA   = TRAINING_DIR / "model_lora"     # LoRA adapter after train
-MODEL_MERGED = TRAINING_DIR / "model_merged"   # merged weights after export
-MODELFILE    = TRAINING_DIR / "Modelfile"      # for `ollama create`
+ROOT         = Path(__file__).resolve().parent.parent   # repo root
+TRAINING_DIR = Path(__file__).resolve().parent          # training/
+DATA_FILE    = ROOT / "dataset" / "dispatch_pairs.jsonl"
+MODEL_HF_DIR = TRAINING_DIR / "model_hf"               # HF safetensors after convert
+MODEL_LORA   = TRAINING_DIR / "model_lora"             # LoRA adapter after train
+MODEL_MERGED = TRAINING_DIR / "model_merged"           # merged weights after export
+MODELFILE    = TRAINING_DIR / "Modelfile"              # for `ollama create`
 GGUF_OUT     = TRAINING_DIR / "functiongemma-suryaos-270m.gguf"
+TOKENIZER_EXTENDED = TRAINING_DIR / "tokenizer_extended"  # output of train_tokenizer.py
 
 # The exact blob path for functiongemma:270m on this machine.
 # `ollama show functiongemma:270m --modelfile` shows which blob is the weights.
@@ -137,44 +138,238 @@ def _elapsed(start: float) -> str:
 
 
 # ===========================================================================
+# Dataset formatting helpers (module-level so callback can reuse them)
+# ===========================================================================
+
+def _fmt_example(ex: dict, tokenizer) -> Optional[str]:
+    """Full training string: user prompt + model response (for SFT loss)."""
+    messages = ex.get("messages", [])
+    tools    = ex.get("tools", [])
+    target   = ex.get("target", {})
+    if not messages or not target:
+        return None
+
+    system = next((m["content"] for m in messages if m["role"] == "system"),
+                  "Call the right tool.")
+    user   = next((m["content"] for m in messages if m["role"] == "user"), "")
+
+    tools_text  = json.dumps(tools,  separators=(",", ":"))
+    target_json = json.dumps(target, separators=(",", ":"))
+
+    turns = [
+        {"role": "user",  "content": f"{system}\n\nAvailable tools: {tools_text}\n\nUser request: {user}"},
+        {"role": "model", "content": target_json},
+    ]
+    try:
+        return tokenizer.apply_chat_template(turns, tokenize=False, add_generation_prompt=False)
+    except Exception:
+        return (f"<bos><start_of_turn>user\n{system}\n\nAvailable tools: {tools_text}\n\n"
+                f"User request: {user}\n<end_of_turn>\n<start_of_turn>model\n{target_json}\n<end_of_turn>")
+
+
+def _fmt_prompt_only(ex: dict, tokenizer) -> str:
+    """User-turn only with generation prompt (for probe: length of masked prefix)."""
+    messages = ex.get("messages", [])
+    tools    = ex.get("tools", [])
+    system = next((m["content"] for m in messages if m["role"] == "system"),
+                  "Call the right tool.")
+    user   = next((m["content"] for m in messages if m["role"] == "user"), "")
+    tools_text = json.dumps(tools, separators=(",", ":"))
+
+    turns = [{"role": "user", "content": f"{system}\n\nAvailable tools: {tools_text}\n\nUser request: {user}"}]
+    try:
+        return tokenizer.apply_chat_template(turns, tokenize=False, add_generation_prompt=True)
+    except Exception:
+        return (f"<bos><start_of_turn>user\n{system}\n\nAvailable tools: {tools_text}\n\n"
+                f"User request: {user}\n<end_of_turn>\n<start_of_turn>model\n")
+
+
+# ===========================================================================
+# DispatchCallback — telemetry and per-epoch accuracy probe
+# ===========================================================================
+
+try:
+    from transformers import TrainerCallback as _TrainerCallbackBase
+except ImportError:
+    _TrainerCallbackBase = object  # fallback when transformers not yet installed
+
+
+class DispatchCallback(_TrainerCallbackBase):
+    """
+    HuggingFace TrainerCallback that adds structured telemetry to LoRA training.
+
+    Per step (every logging_steps):
+      - Writes loss, learning_rate, grad_norm, memory_mb to training_log.jsonl
+
+    Per epoch end:
+      - Runs a fast response-loss probe on N sample examples
+      - Prints a per-tool loss table showing which tools the model is learning
+      - Loss going down = model is internalising the dispatch pattern
+
+    The probe is "response-only loss": we mask the prompt tokens so the loss
+    reflects only how well the model generates the correct tool-call JSON.
+    Lower = better.  Tracked per tool so you see which ones are still struggling.
+    """
+
+    def __init__(self, probe_data: list, tokenizer, log_path: Path) -> None:
+        # probe_data: list of (full_text, prompt_token_len, tool_name)
+        self.probe_data = probe_data
+        self.tokenizer  = tokenizer
+        self.log_path   = log_path
+        self._buf: list[dict] = []
+
+    # --- TrainerCallback interface ---
+
+    def on_log(self, args, state, control, logs=None, **kwargs) -> None:
+        if not logs:
+            return
+        try:
+            import psutil
+            mem_mb = psutil.Process(os.getpid()).memory_info().rss / 1e6
+        except ImportError:
+            mem_mb = None
+
+        entry = {
+            "event":         "step",
+            "step":          state.global_step,
+            "epoch":         round(state.epoch or 0, 3),
+            "loss":          logs.get("loss"),
+            "learning_rate": logs.get("learning_rate"),
+            "grad_norm":     logs.get("grad_norm"),
+            "memory_mb":     mem_mb,
+        }
+        self._buf.append(entry)
+        self._flush()
+
+    def on_epoch_end(self, args, state, control, model=None, **kwargs) -> None:
+        if model is None or not self.probe_data:
+            return
+        epoch = int(state.epoch or 0)
+        self._run_probe(model, epoch)
+
+    def on_train_end(self, args, state, control, model=None, **kwargs) -> None:
+        if model is None or not self.probe_data:
+            return
+        print("\n  [Callback] Final post-training probe:")
+        self._run_probe(model, epoch=-1)
+
+    # --- Internal ---
+
+    def _run_probe(self, model, epoch: int) -> None:
+        try:
+            import torch
+            from collections import defaultdict
+        except ImportError:
+            return
+
+        tokenizer = self.tokenizer
+        model.eval()
+        per_tool: dict[str, list[float]] = defaultdict(list)
+
+        with torch.no_grad():
+            for full_text, prompt_len, tool_name in self.probe_data:
+                try:
+                    enc = tokenizer(
+                        full_text, return_tensors="pt",
+                        truncation=True, max_length=512,
+                    )
+                    labels = enc.input_ids.clone()
+                    # Mask prompt positions: loss computed only on model response
+                    labels[0, :prompt_len] = -100
+                    # Mask any padding
+                    if "attention_mask" in enc:
+                        labels[enc.attention_mask == 0] = -100
+
+                    out = model(**enc, labels=labels)
+                    if not torch.isnan(out.loss) and not torch.isinf(out.loss):
+                        per_tool[tool_name].append(out.loss.item())
+                except Exception:
+                    pass
+
+        model.train()
+
+        if not per_tool:
+            return
+
+        all_losses = [v for vals in per_tool.values() for v in vals]
+        mean_all   = sum(all_losses) / len(all_losses)
+
+        label = f"Epoch {epoch}" if epoch >= 0 else "Final"
+        print(f"\n  [{label} probe — response loss per tool]")
+        print(f"  {'Tool':<30s} {'n':>4s}  {'mean loss':>10s}")
+        print(f"  {'-'*30} {'-'*4}  {'-'*10}")
+        for tool, losses in sorted(per_tool.items()):
+            mean_loss = sum(losses) / len(losses)
+            bar_len   = max(0, int(20 * (2.0 - mean_loss) / 2.0))  # rough visual
+            bar       = "█" * bar_len + "░" * (20 - bar_len)
+            print(f"  {tool:<30s} {len(losses):>4d}  {mean_loss:>10.4f}  {bar}")
+        print(f"  {'OVERALL':<30s} {len(all_losses):>4d}  {mean_all:>10.4f}")
+
+        self._buf.append({
+            "event":    "epoch_probe",
+            "epoch":    epoch,
+            "per_tool": {k: {"mean": sum(v)/len(v), "n": len(v)} for k, v in per_tool.items()},
+            "overall_mean_loss": mean_all,
+        })
+        self._flush()
+
+    def _flush(self) -> None:
+        try:
+            self.log_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.log_path, "a") as f:
+                for entry in self._buf:
+                    f.write(json.dumps(entry) + "\n")
+            self._buf.clear()
+        except Exception:
+            pass
+
+
+# ===========================================================================
 # MODE: setup
 # ===========================================================================
 
 def mode_setup() -> None:
-    """Print install commands — never auto-installs anything."""
-    _banner("SETUP — pip install commands for CPU fine-tuning")
+    """Print environment setup commands — never auto-installs anything."""
+    _banner("SETUP — Python environment for CPU fine-tuning")
 
-    print("""
-These commands install all Python dependencies for fine-tuning on CPU.
-Run them in your virtual environment before proceeding.
+    venv = Path(__file__).resolve().parent.parent / ".fngemma-suryaos"
+    pip  = venv / "bin" / "pip"
+    py   = venv / "bin" / "python3"
+    req  = Path(__file__).resolve().parent / "requirements.txt"
 
-# 1. PyTorch CPU-only build (~200 MB, avoids pulling CUDA libs)
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    print(f"""
+The project uses a dedicated virtual environment at:
+  {venv}
 
-# 2. HuggingFace ecosystem
-pip install transformers>=4.40.0 datasets>=2.18.0 accelerate>=0.29.0
+━━━ Quickstart (recommended) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# 3. LoRA adapter support
-pip install peft>=0.10.0
+  # Run the bootstrap script — creates venv if missing, installs everything:
+  bash training/bootstrap.sh
 
-# 4. TRL — SFTTrainer lives here (Supervised Fine-Tuning)
-pip install trl>=0.8.6
+━━━ Manual steps ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-# 5. GGUF read/write support (for --mode convert and --mode export)
-pip install gguf>=0.6.0
+  # 1. Create the venv (skip if .fngemma-suryaos/ already exists):
+  python3 -m venv {venv}
 
-# 6. sentencepiece — needed by Gemma tokenizer
-pip install sentencepiece
+  # 2. Install all dependencies (CPU PyTorch + HuggingFace stack):
+  {pip} install -r {req}
 
-# Optional: progress bars and nicer logs
-pip install rich tqdm
+  # 3. Activate (optional — scripts can be run with the full path too):
+  source {venv}/bin/activate
 
-# Verify after install:
-python3 -c "import torch; print('torch', torch.__version__, '| CUDA:', torch.cuda.is_available())"
-python3 -c "import transformers; print('transformers', transformers.__version__)"
-python3 -c "import peft; print('peft', peft.__version__)"
-python3 -c "import trl; print('trl', trl.__version__)"
-python3 -c "import gguf; print('gguf OK')"
+━━━ Verify ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  {py} -c "import torch;        print('torch',        torch.__version__,        '| CUDA:', torch.cuda.is_available())"
+  {py} -c "import transformers; print('transformers', transformers.__version__)"
+  {py} -c "import peft;         print('peft',         peft.__version__)"
+  {py} -c "import trl;          print('trl',          trl.__version__)"
+  {py} -c "import sentencepiece; print('sentencepiece OK')"
+
+━━━ After setup, run in order ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  {py} training/train_tokenizer.py        # extend tokenizer + warm up embeddings
+  {py} training/finetune.py --mode check  # verify environment
+  {py} training/finetune.py --mode all    # full pipeline: check→train→export
 """)
 
 
@@ -690,41 +885,45 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 1,
             _warn("Set HF_TOKEN if the model is gated.")
 
     # -----------------------------------------------------------------------
-    # 2. Load tokenizer and add domain tokens
+    # 2. Load tokenizer — prefer pre-trained extension from train_tokenizer.py
     # -----------------------------------------------------------------------
 
-    _ok("Loading tokenizer …")
+    # If train_tokenizer.py has already run, load the extended tokenizer that
+    # has all 319 domain tokens with warmed-up embeddings.  Otherwise fall back
+    # to adding the 12 core DOMAIN_TOKENS to the base tokenizer.
+    if TOKENIZER_EXTENDED.exists() and any(TOKENIZER_EXTENDED.iterdir()):
+        tok_source = str(TOKENIZER_EXTENDED)
+        _ok(f"Loading pre-trained extended tokenizer from {TOKENIZER_EXTENDED}/")
+        _ok("  (run training/train_tokenizer.py first if this is the initial run)")
+    else:
+        tok_source = model_path
+        _warn("tokenizer_extended/ not found — loading base tokenizer + adding 12 DOMAIN_TOKENS")
+        _warn("  Run python3 training/train_tokenizer.py first for better embedding init.")
+
     try:
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_path,
-            trust_remote_code=False,
-            # Gemma 3 tokenizer handles padding on the right by default
-        )
+        tokenizer = AutoTokenizer.from_pretrained(tok_source, trust_remote_code=False)
     except Exception as e:
         _err(f"Tokenizer load failed: {e}")
         _err("If using local model_hf/, ensure tokenizer.model is present.")
         _err(f"If missing, copy from HF Hub: huggingface-cli download {HF_MODEL_ID} tokenizer.model")
         sys.exit(1)
 
-    # Set pad token — Gemma uses <pad> but some HF configs omit it.
-    # The trainer needs a pad token to batch sequences of different lengths.
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
         _warn("pad_token was None; set to eos_token")
 
-    # Add domain-specific tokens.
-    # WHY: If 'linux_memory_usage' is split into ['linux', '_', 'memory', '_', 'usage']
-    # by the tokenizer, the model must predict 5 tokens correctly in sequence.
-    # With a single token per tool name, it predicts 1 token — much easier to learn.
-    existing = set(tokenizer.get_vocab().keys())
-    new_tokens = [t for t in DOMAIN_TOKENS if t not in existing]
-
-    if new_tokens:
-        n_added = tokenizer.add_tokens(new_tokens, special_tokens=False)
-        _ok(f"Added {n_added} domain tokens to tokenizer: {new_tokens[:3]}…")
+    # Only add DOMAIN_TOKENS if we didn't load the full extended tokenizer
+    if tok_source == model_path:
+        existing  = set(tokenizer.get_vocab().keys())
+        new_tokens = [t for t in DOMAIN_TOKENS if t not in existing]
+        if new_tokens:
+            n_added = tokenizer.add_tokens(new_tokens, special_tokens=False)
+            _ok(f"Added {n_added} domain tokens to tokenizer: {new_tokens[:3]}…")
+        else:
+            n_added = 0
+            _ok("All domain tokens already in vocabulary — none added")
     else:
-        n_added = 0
-        _ok("All domain tokens already in vocabulary — none added")
+        n_added = 0  # already added by train_tokenizer.py
 
     print(f"  Vocabulary size: {len(tokenizer)} tokens")
 
@@ -752,11 +951,38 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 1,
     _ok(f"Total parameters: {n_params:,} ({n_params/1e6:.1f}M)")
 
     # Resize embedding table to match the extended vocabulary.
-    # We added new tokens → vocab grew → embedding matrix must grow too.
-    # New rows are initialised randomly; the LoRA training will learn their values.
-    if n_added > 0:
+    # When loading from tokenizer_extended/, the vocab is already larger than
+    # the base model — resize and then restore warm embeddings from embed_init.pt.
+    base_vocab_size = model.config.vocab_size
+    if len(tokenizer) > base_vocab_size:
         model.resize_token_embeddings(len(tokenizer))
-        _ok(f"Resized embeddings: {n_params:,} → {sum(p.numel() for p in model.parameters()):,} params")
+        _ok(f"Resized embeddings: {base_vocab_size:,} → {len(tokenizer):,} tokens")
+
+        # Restore pre-trained embeddings for new tokens if embed_init.pt exists
+        embed_init_path = TOKENIZER_EXTENDED / "embed_init.pt"
+        if embed_init_path.exists():
+            try:
+                saved = torch.load(str(embed_init_path), map_location="cpu", weights_only=True)
+                pre_trained: torch.Tensor = saved["embeddings"]   # [n_new, hidden]
+                saved_base_size: int      = saved["base_vocab_size"]
+                embed_table = model.model.embed_tokens.weight
+                # Sanity-check dimensions before writing
+                n_new = len(tokenizer) - saved_base_size
+                if pre_trained.shape == (n_new, embed_table.shape[1]):
+                    embed_table.data[saved_base_size: saved_base_size + n_new] = pre_trained
+                    _ok(f"Loaded pre-trained embeddings for {n_new} new tokens from {embed_init_path.name}")
+                else:
+                    _warn(f"embed_init.pt shape {pre_trained.shape} doesn't match "
+                          f"expected ({n_new}, {embed_table.shape[1]}) — using random init")
+            except Exception as e:
+                _warn(f"Could not load embed_init.pt: {e} — using random init")
+        else:
+            _warn("embed_init.pt not found — new token embeddings start from random init")
+            _warn("  (run python3 training/train_tokenizer.py to fix this)")
+    elif n_added > 0:
+        # Fallback for the 12-token DOMAIN_TOKENS case
+        model.resize_token_embeddings(len(tokenizer))
+        _ok(f"Resized embeddings to {len(tokenizer):,} tokens (random init for new tokens)")
 
     # -----------------------------------------------------------------------
     # 4. Apply LoRA
@@ -920,6 +1146,39 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 1,
     train_dataset = Dataset.from_list(formatted)
 
     # -----------------------------------------------------------------------
+    # 5b. Build probe dataset for DispatchCallback
+    #     We pick up to 20 examples uniformly spread across the training set.
+    #     For each, we record: (full_text, prompt_token_length, tool_name).
+    #     The callback computes response-only loss at the end of each epoch.
+    # -----------------------------------------------------------------------
+
+    probe_data: list = []
+    step = max(1, len(raw_lines) // 20)
+    for i in range(0, len(raw_lines), step):
+        line = raw_lines[i].strip()
+        if not line:
+            continue
+        try:
+            ex = json.loads(line)
+            full_text  = _fmt_example(ex, tokenizer)
+            prompt_txt = _fmt_prompt_only(ex, tokenizer)
+            tool_name  = ex["target"]["name"]
+            if full_text and prompt_txt and tool_name:
+                prompt_len = len(tokenizer(prompt_txt, add_special_tokens=False)["input_ids"])
+                probe_data.append((full_text, prompt_len, tool_name))
+        except Exception:
+            pass
+
+    _ok(f"Probe dataset: {len(probe_data)} examples covering "
+        f"{len({d[2] for d in probe_data})} distinct tools")
+
+    dispatch_callback = DispatchCallback(
+        probe_data=probe_data,
+        tokenizer=tokenizer,
+        log_path=MODEL_LORA / "training_log.jsonl",
+    )
+
+    # -----------------------------------------------------------------------
     # 6. Configure training
     # -----------------------------------------------------------------------
 
@@ -950,6 +1209,12 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 1,
     #                      the end of each epoch.
 
     MODEL_LORA.mkdir(parents=True, exist_ok=True)
+
+    # Telemetry log path
+    log_path = MODEL_LORA / "training_log.jsonl"
+    if log_path.exists():
+        log_path.unlink()  # start fresh each run
+    _ok(f"Telemetry log: {log_path}")
 
     # Estimate training time for the user
     n_steps = (len(formatted) * epochs) // (batch_size * grad_accum)
@@ -1020,22 +1285,31 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 1,
             args            = training_args,
             train_dataset   = train_dataset,
             tokenizer       = tokenizer,
+            callbacks       = [dispatch_callback],
         )
     except TypeError as e:
-        _warn(f"SFTTrainer signature mismatch ({e}) — trying without tokenizer arg")
+        _warn(f"SFTTrainer signature mismatch ({e}) — trying without tokenizer/callbacks arg")
         trainer = SFTTrainer(
             model           = model,
             args            = training_args,
             train_dataset   = train_dataset,
         )
+        # Register callback manually if SFTTrainer accepted it
+        try:
+            trainer.add_callback(dispatch_callback)
+        except Exception:
+            _warn("Could not register DispatchCallback — per-epoch probes disabled")
 
     _ok("Starting training …")
-    print(f"  {len(formatted)} examples × {epochs} epochs = ~{len(formatted)*epochs} steps total\n")
+    print(f"  {len(formatted)} examples × {epochs} epochs = ~{len(formatted)*epochs} steps total")
+    print(f"  Per-epoch probe: response-only loss on {len(probe_data)} examples")
+    print(f"  Telemetry: {log_path}\n")
 
     try:
         train_result = trainer.train()
         _ok(f"Training complete in {_elapsed(t0)}")
         _ok(f"Final loss: {train_result.training_loss:.4f}")
+        _ok(f"Telemetry written to {log_path}  ({log_path.stat().st_size if log_path.exists() else 0} bytes)")
     except KeyboardInterrupt:
         _warn("Training interrupted by user. Saving partial checkpoint …")
     except Exception as e:

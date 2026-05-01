@@ -1,8 +1,8 @@
-# Core ML stack — CPU build (no CUDA required)
+# PyTorch CPU-only build — must come before the packages so pip resolves it
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch>=2.2.0
 torchvision
 torchaudio
---extra-index-url https://download.pytorch.org/whl/cpu
 
 # HuggingFace ecosystem
 transformers>=4.40.0
@@ -10,18 +10,19 @@ datasets>=2.18.0
 accelerate>=0.29.0
 safetensors>=0.4.0
 
-# LoRA / PEFT
+# LoRA adapter + supervised fine-tuning trainer
 peft>=0.10.0
-
-# Supervised fine-tuning trainer
 trl>=0.8.6
 
-# GGUF read/write (convert Ollama model blobs)
+# GGUF read/write (Ollama model blob conversion)
 gguf>=0.6.0
 
-# Tokenizer (Gemma needs sentencepiece)
+# Gemma tokenizer backend
 sentencepiece>=0.1.99
 
-# Optional: nicer output
-rich>=13.0.0
+# Memory usage telemetry (optional — callback falls back gracefully without it)
+psutil>=5.9.0
+
+# Progress + display
 tqdm>=4.66.0
+rich>=13.0.0
