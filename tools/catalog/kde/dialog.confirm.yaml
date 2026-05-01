@@ -1,0 +1,37 @@
+name: kde.dialog.confirm
+domain: kde
+description: Show a Yes/No confirmation dialog. Returns user's choice.
+risk: low
+confirmation_required: false
+allowed_in_production: true
+executor: surya_agent.executors.kde.confirm
+
+parameters:
+  type: object
+  required:
+    - prompt
+  properties:
+    prompt:
+      type: string
+      description: The question to show in the dialog body.
+    title:
+      type: string
+      description: Optional dialog title (defaults to the agent's app name).
+    default:
+      type: string
+      enum: [yes, no]
+      description: Which button is the default focus.
+
+examples:
+  - Ask the user before deleting these files.
+  - Confirm with the user that they want to restart the application.
+  - Get user permission to proceed with this irreversible action.
+
+aliases:
+  - kde.confirm
+  - ask_yesno
+
+tags:
+  - dialog
+  - user-input
+  - blocking

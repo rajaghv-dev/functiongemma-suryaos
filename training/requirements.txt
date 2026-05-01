@@ -1,0 +1,27 @@
+# Core ML stack — CPU build (no CUDA required)
+torch>=2.2.0
+torchvision
+torchaudio
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# HuggingFace ecosystem
+transformers>=4.40.0
+datasets>=2.18.0
+accelerate>=0.29.0
+safetensors>=0.4.0
+
+# LoRA / PEFT
+peft>=0.10.0
+
+# Supervised fine-tuning trainer
+trl>=0.8.6
+
+# GGUF read/write (convert Ollama model blobs)
+gguf>=0.6.0
+
+# Tokenizer (Gemma needs sentencepiece)
+sentencepiece>=0.1.99
+
+# Optional: nicer output
+rich>=13.0.0
+tqdm>=4.66.0

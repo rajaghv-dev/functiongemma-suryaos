@@ -1,0 +1,32 @@
+name: kde.window.focus
+domain: kde
+description: Bring a window to the foreground by matching its title.
+risk: low
+confirmation_required: false
+allowed_in_production: true
+executor: surya_agent.executors.kde.window_focus
+
+parameters:
+  type: object
+  required:
+    - title
+  properties:
+    title:
+      type: string
+      description: Substring of the window title to match (case-insensitive).
+
+examples:
+  - Switch to Firefox.
+  - Focus the terminal.
+  - Bring Kate to the front.
+  - Show the Dolphin window.
+
+aliases:
+  - kde.window.raise
+  - window.switch
+
+tags:
+  - kde
+  - wmctrl
+  - window
+  - quick-action

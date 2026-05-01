@@ -1,0 +1,28 @@
+name: linux.memory.usage
+domain: linux
+description: Report current RAM usage — total, used, free, and available.
+risk: low
+confirmation_required: false
+allowed_in_production: true
+executor: surya_agent.executors.linux.memory_usage
+
+parameters:
+  type: object
+  properties: {}
+
+examples:
+  - How much RAM is being used?
+  - What's the memory usage?
+  - Is the system running low on memory?
+  - Show RAM stats.
+
+aliases:
+  - linux.ram.usage
+  - memory.check
+
+tags:
+  - memory
+  - ram
+  - free
+  - status
+  - read-only

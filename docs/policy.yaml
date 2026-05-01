@@ -1,0 +1,88 @@
+# =============================================================================
+# Surya Agent — policy rules
+# =============================================================================
+#
+# Authoritative list of policy rules consumed by src/surya_agent/policy/.
+# Rules are evaluated in order; first match wins. Every action goes through
+# the policy engine before reaching an executor.
+#
+# Rule shape:
+#   - id: short_unique_name
+#     match:
+#       domain: <domain>          # tool domain, e.g. kde, linux, app
+#       tool: <tool name pattern> # glob over tool name
+#       risk: <low|medium|high>   # match by risk level
+#     action: allow | deny | confirm
+#     reason: short_string         # logged in audit trail
+# =============================================================================
+
+rules:
+  # -- Always deny generic shell --
+  - id: deny_generic_shell
+    match:
+      tool: shell.*
+    action: deny
+    reason: generic_shell_disallowed
+
+  - id: deny_subprocess_arbitrary
+    match:
+      tool: subprocess.*
+    action: deny
+    reason: arbitrary_subprocess_disallowed
+
+  # -- High-risk requires confirmation --
+  - id: confirm_high_risk
+    match:
+      risk: high
+    action: confirm
+    reason: high_risk_action
+
+  # -- Medium risk requires confirmation in strict mode --
+  - id: confirm_medium_risk
+    match:
+      risk: medium
+    action: confirm                   # confirm in strict; balanced may auto-allow
+    reason: medium_risk_action
+
+  # -- Read-only diagnostics always allowed --
+  - id: allow_read_only_diagnostics
+    match:
+      domain: diagnostics
+      risk: low
+    action: allow
+    reason: read_only_diagnostic
+
+  # -- KDE notifications always allowed --
+  - id: allow_kde_notifications
+    match:
+      tool: kde.notifications.*
+    action: allow
+    reason: notification_no_state_change
+
+  # -- KDE dialogs always allowed (they prompt the user themselves) --
+  - id: allow_kde_dialog
+    match:
+      tool: kde.dialog.*
+    action: allow
+    reason: dialog_user_drives
+
+  # -- Default deny — anything not explicitly handled is blocked --
+  - id: default_deny
+    match: {}
+    action: deny
+    reason: no_matching_rule
+
+# =============================================================================
+# Mode overlays — adjust action for mode-specific contexts
+# =============================================================================
+mode_overlays:
+  permissive:
+    # In permissive mode, demote 'confirm' to 'allow' for medium risk
+    confirm_medium_risk: allow
+
+  strict:
+    # In strict mode, no overlays — defaults stand
+    {}
+
+  balanced:
+    confirm_medium_risk: confirm

@@ -1,0 +1,42 @@
+name: kde.notifications.send
+domain: kde
+description: Send a KDE Plasma desktop notification with a title and body.
+risk: low
+confirmation_required: false
+allowed_in_production: true
+executor: surya_agent.executors.kde.notify
+
+parameters:
+  type: object
+  required:
+    - title
+    - message
+  properties:
+    title:
+      type: string
+      description: The notification title (shown bolder, at the top).
+    message:
+      type: string
+      description: The notification body.
+    icon:
+      type: string
+      description: Optional Freedesktop icon name (e.g. dialog-information).
+    timeout_ms:
+      type: integer
+      minimum: 0
+      maximum: 60000
+      description: Auto-dismiss after this many milliseconds (0 = no auto-dismiss).
+
+examples:
+  - Notify me that the build is complete.
+  - Show a desktop alert saying backup finished.
+  - Send a warning notification about low disk space.
+
+aliases:
+  - kde.notify
+  - notify
+
+tags:
+  - notification
+  - feedback
+  - non-blocking

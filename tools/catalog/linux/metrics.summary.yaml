@@ -1,0 +1,34 @@
+name: linux.metrics.summary
+domain: linux
+description: Return a compact system health snapshot — CPU, RAM, disk, battery, wifi, Ollama.
+risk: low
+confirmation_required: false
+allowed_in_production: true
+executor: surya_agent.executors.linux.metrics_summary
+
+parameters:
+  type: object
+  properties: {}
+
+examples:
+  - How is the system doing?
+  - What is the system status?
+  - Give me a health check.
+  - Is the system overloaded?
+  - Quick system overview.
+  - Get system metrics.
+  - Show system metrics.
+  - System metrics summary.
+  - What are the system stats?
+  - Show me CPU and RAM usage.
+
+aliases:
+  - linux.system.status
+  - system.health
+
+tags:
+  - netdata
+  - metrics
+  - status
+  - read-only
+  - observability

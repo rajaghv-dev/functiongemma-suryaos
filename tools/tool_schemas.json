@@ -1,0 +1,583 @@
+{
+  "kde.dialog.confirm": {
+    "name": "kde.dialog.confirm",
+    "mcp_name": "kde_dialog_confirm",
+    "description": "Show a Yes/No confirmation dialog. Returns user's choice.",
+    "domain": "kde",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "Ask the user before deleting these files.",
+      "Confirm with the user that they want to restart the application.",
+      "Get user permission to proceed with this irreversible action."
+    ],
+    "aliases": [
+      "kde.confirm",
+      "ask_yesno"
+    ],
+    "parameters": {
+      "type": "object",
+      "required": [
+        "prompt"
+      ],
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "description": "The question to show in the dialog body."
+        },
+        "title": {
+          "type": "string",
+          "description": "Optional dialog title (defaults to the agent's app name)."
+        },
+        "default": {
+          "type": "string",
+          "enum": [
+            true,
+            false
+          ],
+          "description": "Which button is the default focus."
+        }
+      }
+    },
+    "mcp_schema": {
+      "name": "kde_dialog_confirm",
+      "description": "Show a Yes/No confirmation dialog. Returns user's choice.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "prompt"
+        ],
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "The question to show in the dialog body."
+          },
+          "title": {
+            "type": "string",
+            "description": "Optional dialog title (defaults to the agent's app name)."
+          },
+          "default": {
+            "type": "string",
+            "enum": [
+              true,
+              false
+            ],
+            "description": "Which button is the default focus."
+          }
+        }
+      }
+    }
+  },
+  "kde.krunner.launch": {
+    "name": "kde.krunner.launch",
+    "mcp_name": "kde_krunner_launch",
+    "description": "Launch an application on the KDE desktop by name.",
+    "domain": "kde",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "Open Kate.",
+      "Launch Dolphin.",
+      "Open a terminal.",
+      "Start Firefox.",
+      "Open the file manager."
+    ],
+    "aliases": [
+      "kde.app.launch",
+      "app.open"
+    ],
+    "parameters": {
+      "type": "object",
+      "required": [
+        "app"
+      ],
+      "properties": {
+        "app": {
+          "type": "string",
+          "description": "Application name or command to launch (e.g. kate, dolphin, konsole)."
+        }
+      }
+    },
+    "mcp_schema": {
+      "name": "kde_krunner_launch",
+      "description": "Launch an application on the KDE desktop by name.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "app"
+        ],
+        "properties": {
+          "app": {
+            "type": "string",
+            "description": "Application name or command to launch (e.g. kate, dolphin, konsole)."
+          }
+        }
+      }
+    }
+  },
+  "kde.notifications.send": {
+    "name": "kde.notifications.send",
+    "mcp_name": "kde_notifications_send",
+    "description": "Send a KDE Plasma desktop notification with a title and body.",
+    "domain": "kde",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "Notify me that the build is complete.",
+      "Show a desktop alert saying backup finished.",
+      "Send a warning notification about low disk space."
+    ],
+    "aliases": [
+      "kde.notify",
+      "notify"
+    ],
+    "parameters": {
+      "type": "object",
+      "required": [
+        "title",
+        "message"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The notification title (shown bolder, at the top)."
+        },
+        "message": {
+          "type": "string",
+          "description": "The notification body."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Optional Freedesktop icon name (e.g. dialog-information)."
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000,
+          "description": "Auto-dismiss after this many milliseconds (0 = no auto-dismiss)."
+        }
+      }
+    },
+    "mcp_schema": {
+      "name": "kde_notifications_send",
+      "description": "Send a KDE Plasma desktop notification with a title and body.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "title",
+          "message"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The notification title (shown bolder, at the top)."
+          },
+          "message": {
+            "type": "string",
+            "description": "The notification body."
+          },
+          "icon": {
+            "type": "string",
+            "description": "Optional Freedesktop icon name (e.g. dialog-information)."
+          },
+          "timeout_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 60000,
+            "description": "Auto-dismiss after this many milliseconds (0 = no auto-dismiss)."
+          }
+        }
+      }
+    }
+  },
+  "kde.window.focus": {
+    "name": "kde.window.focus",
+    "mcp_name": "kde_window_focus",
+    "description": "Bring a window to the foreground by matching its title.",
+    "domain": "kde",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "Switch to Firefox.",
+      "Focus the terminal.",
+      "Bring Kate to the front.",
+      "Show the Dolphin window."
+    ],
+    "aliases": [
+      "kde.window.raise",
+      "window.switch"
+    ],
+    "parameters": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Substring of the window title to match (case-insensitive)."
+        }
+      }
+    },
+    "mcp_schema": {
+      "name": "kde_window_focus",
+      "description": "Bring a window to the foreground by matching its title.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Substring of the window title to match (case-insensitive)."
+          }
+        }
+      }
+    }
+  },
+  "linux.battery.status": {
+    "name": "linux.battery.status",
+    "mcp_name": "linux_battery_status",
+    "description": "Report battery level, charging state, and estimated time remaining.",
+    "domain": "linux",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "How's the battery?",
+      "What's the battery percentage?",
+      "Is the laptop charging?",
+      "How long until the battery dies?"
+    ],
+    "aliases": [
+      "linux.battery.check",
+      "battery.level"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    },
+    "mcp_schema": {
+      "name": "linux_battery_status",
+      "description": "Report battery level, charging state, and estimated time remaining.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  },
+  "linux.brightness.set": {
+    "name": "linux.brightness.set",
+    "mcp_name": "linux_brightness_set",
+    "description": "Adjust the screen brightness up or down by a percentage.",
+    "domain": "linux",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "Dim the screen.",
+      "Make the display brighter.",
+      "Lower screen brightness by 20 percent.",
+      "Turn up the brightness."
+    ],
+    "aliases": [
+      "linux.brightness.adjust",
+      "brightness.change"
+    ],
+    "parameters": {
+      "type": "object",
+      "required": [
+        "direction"
+      ],
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": [
+            "up",
+            "down"
+          ],
+          "description": "Direction to change brightness."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Percentage to change brightness by (default 10)."
+        }
+      }
+    },
+    "mcp_schema": {
+      "name": "linux_brightness_set",
+      "description": "Adjust the screen brightness up or down by a percentage.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "direction"
+        ],
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ],
+            "description": "Direction to change brightness."
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Percentage to change brightness by (default 10)."
+          }
+        }
+      }
+    }
+  },
+  "linux.disk.usage": {
+    "name": "linux.disk.usage",
+    "mcp_name": "linux_disk_usage",
+    "description": "Report disk space usage for a given path (default /home).",
+    "domain": "linux",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "How much disk space is left?",
+      "How full is the hard drive?",
+      "Check disk usage for /home.",
+      "Is the disk almost full?"
+    ],
+    "aliases": [
+      "linux.disk.check",
+      "disk.free"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Filesystem path to check (default /home)."
+        }
+      }
+    },
+    "mcp_schema": {
+      "name": "linux_disk_usage",
+      "description": "Report disk space usage for a given path (default /home).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Filesystem path to check (default /home)."
+          }
+        }
+      }
+    }
+  },
+  "linux.memory.usage": {
+    "name": "linux.memory.usage",
+    "mcp_name": "linux_memory_usage",
+    "description": "Report current RAM usage \u2014 total, used, free, and available.",
+    "domain": "linux",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "How much RAM is being used?",
+      "What's the memory usage?",
+      "Is the system running low on memory?",
+      "Show RAM stats."
+    ],
+    "aliases": [
+      "linux.ram.usage",
+      "memory.check"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    },
+    "mcp_schema": {
+      "name": "linux_memory_usage",
+      "description": "Report current RAM usage \u2014 total, used, free, and available.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  },
+  "linux.metrics.summary": {
+    "name": "linux.metrics.summary",
+    "mcp_name": "linux_metrics_summary",
+    "description": "Return a compact system health snapshot \u2014 CPU, RAM, disk, battery, wifi, Ollama.",
+    "domain": "linux",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "How is the system doing?",
+      "What is the system status?",
+      "Give me a health check.",
+      "Is the system overloaded?",
+      "Quick system overview.",
+      "Get system metrics.",
+      "Show system metrics.",
+      "System metrics summary.",
+      "What are the system stats?",
+      "Show me CPU and RAM usage."
+    ],
+    "aliases": [
+      "linux.system.status",
+      "system.health"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    },
+    "mcp_schema": {
+      "name": "linux_metrics_summary",
+      "description": "Return a compact system health snapshot \u2014 CPU, RAM, disk, battery, wifi, Ollama.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  },
+  "linux.network.status": {
+    "name": "linux.network.status",
+    "mcp_name": "linux_network_status",
+    "description": "Report the current network and wifi connection state.",
+    "domain": "linux",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "Is wifi connected?",
+      "What network am I on?",
+      "Show network status.",
+      "Am I online?"
+    ],
+    "aliases": [
+      "linux.wifi.status",
+      "network.check"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {}
+    },
+    "mcp_schema": {
+      "name": "linux_network_status",
+      "description": "Report the current network and wifi connection state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  },
+  "linux.service.status": {
+    "name": "linux.service.status",
+    "mcp_name": "linux_service_status",
+    "description": "Check whether a systemd service is active, inactive, or failed.",
+    "domain": "linux",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "Is Ollama running?",
+      "Check if bluetooth is active.",
+      "Is NetworkManager up?",
+      "What's the status of the sshd service?"
+    ],
+    "aliases": [
+      "linux.service.check",
+      "systemd.status"
+    ],
+    "parameters": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the systemd service (e.g. ollama, bluetooth, NetworkManager)."
+        }
+      }
+    },
+    "mcp_schema": {
+      "name": "linux_service_status",
+      "description": "Check whether a systemd service is active, inactive, or failed.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the systemd service (e.g. ollama, bluetooth, NetworkManager)."
+          }
+        }
+      }
+    }
+  },
+  "linux.volume.set": {
+    "name": "linux.volume.set",
+    "mcp_name": "linux_volume_set",
+    "description": "Adjust the audio volume up or down by a percentage.",
+    "domain": "linux",
+    "risk": "low",
+    "confirmation_required": false,
+    "examples": [
+      "Turn the volume up by 10 percent.",
+      "Lower the volume.",
+      "Make it quieter.",
+      "Increase audio level."
+    ],
+    "aliases": [
+      "linux.volume.change",
+      "volume.adjust"
+    ],
+    "parameters": {
+      "type": "object",
+      "required": [
+        "direction"
+      ],
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": [
+            "up",
+            "down"
+          ],
+          "description": "Direction to change the volume."
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Percentage to change volume by (default 5)."
+        }
+      }
+    },
+    "mcp_schema": {
+      "name": "linux_volume_set",
+      "description": "Adjust the audio volume up or down by a percentage.",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "direction"
+        ],
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down"
+            ],
+            "description": "Direction to change the volume."
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Percentage to change volume by (default 5)."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,461 @@
+{"query": "Ask the user before deleting these files.", "positive": "kde.dialog.confirm", "negative": "linux.volume.set"}
+{"query": "Confirm with the user that they want to restart the application.", "positive": "kde.dialog.confirm", "negative": "kde.notifications.send"}
+{"query": "Get user permission to proceed with this irreversible action.", "positive": "kde.dialog.confirm", "negative": "kde.krunner.launch"}
+{"query": "Open Kate.", "positive": "kde.krunner.launch", "negative": "linux.brightness.set"}
+{"query": "Launch Dolphin.", "positive": "kde.krunner.launch", "negative": "linux.battery.status"}
+{"query": "Open a terminal.", "positive": "kde.krunner.launch", "negative": "linux.battery.status"}
+{"query": "Start Firefox.", "positive": "kde.krunner.launch", "negative": "kde.window.focus"}
+{"query": "Open the file manager.", "positive": "kde.krunner.launch", "negative": "kde.notifications.send"}
+{"query": "Notify me that the build is complete.", "positive": "kde.notifications.send", "negative": "linux.volume.set"}
+{"query": "Show a desktop alert saying backup finished.", "positive": "kde.notifications.send", "negative": "linux.network.status"}
+{"query": "Send a warning notification about low disk space.", "positive": "kde.notifications.send", "negative": "kde.krunner.launch"}
+{"query": "Switch to Firefox.", "positive": "kde.window.focus", "negative": "linux.service.status"}
+{"query": "Focus the terminal.", "positive": "kde.window.focus", "negative": "linux.memory.usage"}
+{"query": "Bring Kate to the front.", "positive": "kde.window.focus", "negative": "kde.dialog.confirm"}
+{"query": "Show the Dolphin window.", "positive": "kde.window.focus", "negative": "kde.dialog.confirm"}
+{"query": "How's the battery?", "positive": "linux.battery.status", "negative": "kde.krunner.launch"}
+{"query": "What's the battery percentage?", "positive": "linux.battery.status", "negative": "kde.window.focus"}
+{"query": "Is the laptop charging?", "positive": "linux.battery.status", "negative": "kde.window.focus"}
+{"query": "How long until the battery dies?", "positive": "linux.battery.status", "negative": "linux.network.status"}
+{"query": "Dim the screen.", "positive": "linux.brightness.set", "negative": "linux.service.status"}
+{"query": "Make the display brighter.", "positive": "linux.brightness.set", "negative": "kde.dialog.confirm"}
+{"query": "Lower screen brightness by 20 percent.", "positive": "linux.brightness.set", "negative": "linux.network.status"}
+{"query": "Turn up the brightness.", "positive": "linux.brightness.set", "negative": "kde.window.focus"}
+{"query": "How much disk space is left?", "positive": "linux.disk.usage", "negative": "linux.volume.set"}
+{"query": "How full is the hard drive?", "positive": "linux.disk.usage", "negative": "linux.network.status"}
+{"query": "Check disk usage for /home.", "positive": "linux.disk.usage", "negative": "linux.memory.usage"}
+{"query": "Is the disk almost full?", "positive": "linux.disk.usage", "negative": "kde.window.focus"}
+{"query": "How much RAM is being used?", "positive": "linux.memory.usage", "negative": "linux.metrics.summary"}
+{"query": "What's the memory usage?", "positive": "linux.memory.usage", "negative": "linux.service.status"}
+{"query": "Is the system running low on memory?", "positive": "linux.memory.usage", "negative": "linux.battery.status"}
+{"query": "Show RAM stats.", "positive": "linux.memory.usage", "negative": "kde.dialog.confirm"}
+{"query": "How is the system doing?", "positive": "linux.metrics.summary", "negative": "kde.notifications.send"}
+{"query": "What is the system status?", "positive": "linux.metrics.summary", "negative": "linux.disk.usage"}
+{"query": "Give me a health check.", "positive": "linux.metrics.summary", "negative": "linux.brightness.set"}
+{"query": "Is the system overloaded?", "positive": "linux.metrics.summary", "negative": "linux.battery.status"}
+{"query": "Quick system overview.", "positive": "linux.metrics.summary", "negative": "kde.notifications.send"}
+{"query": "Get system metrics.", "positive": "linux.metrics.summary", "negative": "kde.window.focus"}
+{"query": "Show system metrics.", "positive": "linux.metrics.summary", "negative": "linux.brightness.set"}
+{"query": "System metrics summary.", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "What are the system stats?", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "Show me CPU and RAM usage.", "positive": "linux.metrics.summary", "negative": "linux.disk.usage"}
+{"query": "Is wifi connected?", "positive": "linux.network.status", "negative": "kde.krunner.launch"}
+{"query": "What network am I on?", "positive": "linux.network.status", "negative": "linux.brightness.set"}
+{"query": "Show network status.", "positive": "linux.network.status", "negative": "linux.brightness.set"}
+{"query": "Am I online?", "positive": "linux.network.status", "negative": "linux.service.status"}
+{"query": "Is Ollama running?", "positive": "linux.service.status", "negative": "linux.battery.status"}
+{"query": "Check if bluetooth is active.", "positive": "linux.service.status", "negative": "kde.dialog.confirm"}
+{"query": "Is NetworkManager up?", "positive": "linux.service.status", "negative": "linux.memory.usage"}
+{"query": "What's the status of the sshd service?", "positive": "linux.service.status", "negative": "linux.metrics.summary"}
+{"query": "Turn the volume up by 10 percent.", "positive": "linux.volume.set", "negative": "kde.krunner.launch"}
+{"query": "Lower the volume.", "positive": "linux.volume.set", "negative": "linux.disk.usage"}
+{"query": "Make it quieter.", "positive": "linux.volume.set", "negative": "kde.krunner.launch"}
+{"query": "Increase audio level.", "positive": "linux.volume.set", "negative": "linux.metrics.summary"}
+{"query": "1. Ensure the user confirms deletion before removing these files.", "positive": "kde.dialog.confirm", "negative": "linux.brightness.set"}
+{"query": "2. Please ask the user to verify deletion first.", "positive": "kde.dialog.confirm", "negative": "linux.volume.set"}
+{"query": "3. Make sure the user reviews before deleting these files.", "positive": "kde.dialog.confirm", "negative": "linux.service.status"}
+{"query": "4. Confirm deletion with the user.", "positive": "kde.dialog.confirm", "negative": "linux.disk.usage"}
+{"query": "5. Check if the user wants to delete these files.", "positive": "kde.dialog.confirm", "negative": "linux.service.status"}
+{"query": "6. Ask the user to confirm deletion before proceeding.", "positive": "kde.dialog.confirm", "negative": "linux.battery.status"}
+{"query": "7. Confirm deletion with the user before removing.", "positive": "kde.dialog.confirm", "negative": "kde.notifications.send"}
+{"query": "1. Yes, I'd like to restart the app.", "positive": "kde.dialog.confirm", "negative": "kde.krunner.launch"}
+{"query": "2. I'd like to reset the application.", "positive": "kde.dialog.confirm", "negative": "linux.volume.set"}
+{"query": "3. I need to restart the app.", "positive": "kde.dialog.confirm", "negative": "linux.battery.status"}
+{"query": "4. Please restart the app.", "positive": "kde.dialog.confirm", "negative": "linux.brightness.set"}
+{"query": "5. I want to reset the application.", "positive": "kde.dialog.confirm", "negative": "kde.notifications.send"}
+{"query": "6. Allow me to restart the app.", "positive": "kde.dialog.confirm", "negative": "linux.battery.status"}
+{"query": "7. Restart the application.", "positive": "kde.dialog.confirm", "negative": "kde.notifications.send"}
+{"query": "8. I need to restart the app.", "positive": "kde.dialog.confirm", "negative": "linux.memory.usage"}
+{"query": "- Request the user's consent to proceed with this action.", "positive": "kde.dialog.confirm", "negative": "linux.brightness.set"}
+{"query": "- Incorporate user consent to perform this irreversible action.", "positive": "kde.dialog.confirm", "negative": "linux.metrics.summary"}
+{"query": "- Prompt the user for approval before executing this step.", "positive": "kde.dialog.confirm", "negative": "linux.volume.set"}
+{"query": "- Confirm prior user permissions for this irreversible action.", "positive": "kde.dialog.confirm", "negative": "linux.disk.usage"}
+{"query": "- Secure user agreement to complete this irreversible task.", "positive": "kde.dialog.confirm", "negative": "kde.window.focus"}
+{"query": "- Obtain prior user authorization to carry out this action.", "positive": "kde.dialog.confirm", "negative": "linux.disk.usage"}
+{"query": "- Request user consent to proceed with this irreversible decision.", "positive": "kde.dialog.confirm", "negative": "linux.disk.usage"}
+{"query": "- Confirm prior user permissions for this irreversible move.", "positive": "kde.dialog.confirm", "negative": "linux.battery.status"}
+{"query": "- Secure user consent to carry out this irreversible action.", "positive": "kde.dialog.confirm", "negative": "linux.volume.set"}
+{"query": "1. Open Kate\u2019s app.", "positive": "kde.krunner.launch", "negative": "linux.brightness.set"}
+{"query": "2. Start Kate.", "positive": "kde.krunner.launch", "negative": "linux.volume.set"}
+{"query": "1. Start a terminal session.", "positive": "kde.krunner.launch", "negative": "linux.volume.set"}
+{"query": "2. Open the terminal program.", "positive": "kde.krunner.launch", "negative": "kde.notifications.send"}
+{"query": "3. Activate the terminal application.", "positive": "kde.krunner.launch", "negative": "linux.service.status"}
+{"query": "4. Create a terminal shell.", "positive": "kde.krunner.launch", "negative": "linux.volume.set"}
+{"query": "5. Launch a terminal window.", "positive": "kde.krunner.launch", "negative": "kde.window.focus"}
+{"query": "6. Use the terminal for tasks.", "positive": "kde.krunner.launch", "negative": "linux.network.status"}
+{"query": "7. Initialize the terminal interface.", "positive": "kde.krunner.launch", "negative": "linux.battery.status"}
+{"query": "8. Access a terminal environment.", "positive": "kde.krunner.launch", "negative": "kde.window.focus"}
+{"query": "9. Activate the terminal.", "positive": "kde.krunner.launch", "negative": "linux.metrics.summary"}
+{"query": "10. Open the terminal.", "positive": "kde.krunner.launch", "negative": "linux.memory.usage"}
+{"query": "1. Start Firefox.", "positive": "kde.krunner.launch", "negative": "linux.brightness.set"}
+{"query": "2. Use Firefox.", "positive": "kde.krunner.launch", "negative": "linux.volume.set"}
+{"query": "3. Install Firefox.", "positive": "kde.krunner.launch", "negative": "linux.network.status"}
+{"query": "4. Launch Firefox.", "positive": "kde.krunner.launch", "negative": "linux.battery.status"}
+{"query": "5. Begin using Firefox.", "positive": "kde.krunner.launch", "negative": "linux.volume.set"}
+{"query": "6. Open Firefox.", "positive": "kde.krunner.launch", "negative": "linux.disk.usage"}
+{"query": "7. Start Firefox.", "positive": "kde.krunner.launch", "negative": "kde.dialog.confirm"}
+{"query": "8. Use Firefox.", "positive": "kde.krunner.launch", "negative": "linux.battery.status"}
+{"query": "9. Begin Firefox.", "positive": "kde.krunner.launch", "negative": "kde.dialog.confirm"}
+{"query": "10. Start Firefox.", "positive": "kde.krunner.launch", "negative": "linux.disk.usage"}
+{"query": "- What do you mean by the file manager?", "positive": "kde.krunner.launch", "negative": "linux.memory.usage"}
+{"query": "- How can I open the file manager?", "positive": "kde.krunner.launch", "negative": "linux.brightness.set"}
+{"query": "- Can I access the file manager?", "positive": "kde.krunner.launch", "negative": "kde.notifications.send"}
+{"query": "- Tell me the steps to open the file manager?", "positive": "kde.krunner.launch", "negative": "linux.battery.status"}
+{"query": "- How can I open the file manager?", "positive": "kde.krunner.launch", "negative": "linux.service.status"}
+{"query": "- Open the file manager interface?", "positive": "kde.krunner.launch", "negative": "linux.disk.usage"}
+{"query": "- Open up the file manager settings?", "positive": "kde.krunner.launch", "negative": "linux.battery.status"}
+{"query": "- Access the file manager?", "positive": "kde.krunner.launch", "negative": "linux.volume.set"}
+{"query": "- Open the file manager program?", "positive": "kde.krunner.launch", "negative": "linux.metrics.summary"}
+{"query": "1. Tell me the build is done.", "positive": "kde.notifications.send", "negative": "linux.memory.usage"}
+{"query": "2. I'm informed the build is complete.", "positive": "kde.notifications.send", "negative": "linux.volume.set"}
+{"query": "3. The build is completed.", "positive": "kde.notifications.send", "negative": "linux.metrics.summary"}
+{"query": "4. I've finished the build.", "positive": "kde.notifications.send", "negative": "kde.window.focus"}
+{"query": "5. The project is now done.", "positive": "kde.notifications.send", "negative": "linux.brightness.set"}
+{"query": "6. The build is complete.", "positive": "kde.notifications.send", "negative": "kde.window.focus"}
+{"query": "7. Notify me that the build is done.", "positive": "kde.notifications.send", "negative": "linux.battery.status"}
+{"query": "8. Inform me that the build is complete.", "positive": "kde.notifications.send", "negative": "linux.network.status"}
+{"query": "9. I have completed the build.", "positive": "kde.notifications.send", "negative": "linux.network.status"}
+{"query": "10. The build is done.", "positive": "kde.notifications.send", "negative": "linux.brightness.set"}
+{"query": "- Display a desktop alert with a backup completion message.", "positive": "kde.notifications.send", "negative": "linux.service.status"}
+{"query": "- Indicate a desktop alert that a backup has been successfully completed.", "positive": "kde.notifications.send", "negative": "linux.memory.usage"}
+{"query": "- Show a desktop notification with a \"Backup completed\" message.", "positive": "kde.notifications.send", "negative": "linux.service.status"}
+{"query": "- Visualize a desktop notification confirming backup operation is complete.", "positive": "kde.notifications.send", "negative": "linux.memory.usage"}
+{"query": "- Display a desktop alert indicating backup success.", "positive": "kde.notifications.send", "negative": "linux.disk.usage"}
+{"query": "- Show a desktop alert confirming the backup has finished.", "positive": "kde.notifications.send", "negative": "linux.battery.status"}
+{"query": "- Indicate a desktop notification that the backup has been successfully completed.", "positive": "kde.notifications.send", "negative": "kde.window.focus"}
+{"query": "- Visualize a desktop notification with a backup success confirmation.", "positive": "kde.notifications.send", "negative": "linux.network.status"}
+{"query": "- Display a desktop alert with a backup operation status message.", "positive": "kde.notifications.send", "negative": "linux.metrics.summary"}
+{"query": "- \"Prompt users to receive a warning about insufficient disk space.\"", "positive": "kde.notifications.send", "negative": "kde.krunner.launch"}
+{"query": "- \"Issue an alert regarding storage usage reaching its limit.\"", "positive": "kde.notifications.send", "negative": "kde.dialog.confirm"}
+{"query": "- \"Alert your users to the impending low disk space issue.\"", "positive": "kde.notifications.send", "negative": "kde.krunner.launch"}
+{"query": "- \"Notify users that the system is at risk of insufficient storage.\"", "positive": "kde.notifications.send", "negative": "kde.window.focus"}
+{"query": "- \"Send a warning to inform about impending low disk space problems.\"", "positive": "kde.notifications.send", "negative": "linux.volume.set"}
+{"query": "- \"Indicate that the system needs to monitor for low disk space usage.\"", "positive": "kde.notifications.send", "negative": "kde.window.focus"}
+{"query": "- \"Promote awareness of low disk space by sending alerts.\"", "positive": "kde.notifications.send", "negative": "linux.volume.set"}
+{"query": "- \"Suggest sending a warning about low disk space consumption.\"", "positive": "kde.notifications.send", "negative": "linux.memory.usage"}
+{"query": "- \"Signal that there's a need for a disk space warning.\"", "positive": "kde.notifications.send", "negative": "linux.service.status"}
+{"query": "- Switch to Firefox.", "positive": "kde.window.focus", "negative": "kde.krunner.launch"}
+{"query": "- Use Firefox instead of Chrome.", "positive": "kde.window.focus", "negative": "linux.memory.usage"}
+{"query": "- Begin using Firefox.", "positive": "kde.window.focus", "negative": "linux.memory.usage"}
+{"query": "- Replace with Firefox.", "positive": "kde.window.focus", "negative": "linux.service.status"}
+{"query": "- Switch to Firefox.", "positive": "kde.window.focus", "negative": "linux.metrics.summary"}
+{"query": "- Use Firefox.", "positive": "kde.window.focus", "negative": "linux.network.status"}
+{"query": "- Firefox is your preferred browser.", "positive": "kde.window.focus", "negative": "linux.brightness.set"}
+{"query": "- Replace with Firefox.", "positive": "kde.window.focus", "negative": "linux.network.status"}
+{"query": "- Use Firefox.", "positive": "kde.window.focus", "negative": "kde.dialog.confirm"}
+{"query": "1. Bring Kate to the front.", "positive": "kde.window.focus", "negative": "linux.volume.set"}
+{"query": "2. I want Kate to the front.", "positive": "kde.window.focus", "negative": "kde.krunner.launch"}
+{"query": "3. Arrive at the front with Kate.", "positive": "kde.window.focus", "negative": "linux.volume.set"}
+{"query": "4. Make sure Kate is at the front.", "positive": "kde.window.focus", "negative": "linux.network.status"}
+{"query": "5. Kate needs to be at the front.", "positive": "kde.window.focus", "negative": "linux.brightness.set"}
+{"query": "6. Have Kate on the front.", "positive": "kde.window.focus", "negative": "linux.volume.set"}
+{"query": "7. Bring Kate to the front quickly.", "positive": "kde.window.focus", "negative": "linux.disk.usage"}
+{"query": "8. Kate is waiting to the front.", "positive": "kde.window.focus", "negative": "kde.krunner.launch"}
+{"query": "9. Have Kate's turn to the front.", "positive": "kde.window.focus", "negative": "linux.brightness.set"}
+{"query": "10. Get Kate to the front.", "positive": "kde.window.focus", "negative": "linux.memory.usage"}
+{"query": "- Battery status?", "positive": "linux.battery.status", "negative": "kde.notifications.send"}
+{"query": "- What's the battery condition?", "positive": "linux.battery.status", "negative": "linux.metrics.summary"}
+{"query": "- How is the battery?", "positive": "linux.battery.status", "negative": "kde.dialog.confirm"}
+{"query": "- Battery level?", "positive": "linux.battery.status", "negative": "linux.brightness.set"}
+{"query": "- Battery health?", "positive": "linux.battery.status", "negative": "linux.network.status"}
+{"query": "- Battery condition?", "positive": "linux.battery.status", "negative": "kde.notifications.send"}
+{"query": "- Battery usage?", "positive": "linux.battery.status", "negative": "linux.network.status"}
+{"query": "- Battery performance?", "positive": "linux.battery.status", "negative": "kde.krunner.launch"}
+{"query": "- Battery state?", "positive": "linux.battery.status", "negative": "linux.volume.set"}
+{"query": "- Battery level", "positive": "linux.battery.status", "negative": "linux.brightness.set"}
+{"query": "- Battery status", "positive": "linux.battery.status", "negative": "linux.volume.set"}
+{"query": "- Battery percentage", "positive": "linux.battery.status", "negative": "linux.network.status"}
+{"query": "- Current battery usage", "positive": "linux.battery.status", "negative": "linux.service.status"}
+{"query": "- Battery consumption", "positive": "linux.battery.status", "negative": "kde.window.focus"}
+{"query": "- Battery usage percentage", "positive": "linux.battery.status", "negative": "kde.notifications.send"}
+{"query": "- Battery status", "positive": "linux.battery.status", "negative": "linux.disk.usage"}
+{"query": "- Battery level", "positive": "linux.battery.status", "negative": "kde.notifications.send"}
+{"query": "- Battery percentage", "positive": "linux.battery.status", "negative": "linux.network.status"}
+{"query": "- battery life", "positive": "linux.battery.status", "negative": "linux.network.status"}
+{"query": "- how long does the battery last?", "positive": "linux.battery.status", "negative": "kde.dialog.confirm"}
+{"query": "- battery lifespan?", "positive": "linux.battery.status", "negative": "linux.service.status"}
+{"query": "- until the battery runs out?", "positive": "linux.battery.status", "negative": "linux.disk.usage"}
+{"query": "- until the battery dies?", "positive": "linux.battery.status", "negative": "linux.metrics.summary"}
+{"query": "- battery remains functional until?", "positive": "linux.battery.status", "negative": "kde.dialog.confirm"}
+{"query": "- when will the battery go dead?", "positive": "linux.battery.status", "negative": "kde.krunner.launch"}
+{"query": "- how long before the battery depletes?", "positive": "linux.battery.status", "negative": "linux.disk.usage"}
+{"query": "- until the battery is completely discharged?", "positive": "linux.battery.status", "negative": "linux.brightness.set"}
+{"query": "- Turn the screen down.", "positive": "linux.brightness.set", "negative": "kde.window.focus"}
+{"query": "- Reduce the screen's brightness.", "positive": "linux.brightness.set", "negative": "kde.dialog.confirm"}
+{"query": "- Lower the screen's brightness.", "positive": "linux.brightness.set", "negative": "kde.window.focus"}
+{"query": "- Set the screen to a lower level.", "positive": "linux.brightness.set", "negative": "linux.service.status"}
+{"query": "- Make the screen dim.", "positive": "linux.brightness.set", "negative": "kde.krunner.launch"}
+{"query": "1. Set the screen's brightness to a higher level.", "positive": "linux.brightness.set", "negative": "kde.krunner.launch"}
+{"query": "2. Adjust the display's color to be more vibrant.", "positive": "linux.brightness.set", "negative": "linux.metrics.summary"}
+{"query": "3. Increase the brightness of the display to a standard level.", "positive": "linux.brightness.set", "negative": "kde.krunner.launch"}
+{"query": "4. Enhance the display's illumination.", "positive": "linux.brightness.set", "negative": "linux.network.status"}
+{"query": "5. Raise the screen's brightness to a higher setting.", "positive": "linux.brightness.set", "negative": "kde.notifications.send"}
+{"query": "6. Optimize the display's light output.", "positive": "linux.brightness.set", "negative": "kde.notifications.send"}
+{"query": "7. Improve the visual clarity by increasing brightness.", "positive": "linux.brightness.set", "negative": "linux.volume.set"}
+{"query": "8. Boost the screen's brightness to a natural level.", "positive": "linux.brightness.set", "negative": "linux.metrics.summary"}
+{"query": "9. Use a brighter color scheme.", "positive": "linux.brightness.set", "negative": "linux.network.status"}
+{"query": "10. Optimize the display's light intensity.", "positive": "linux.brightness.set", "negative": "kde.notifications.send"}
+{"query": "1. Adjust brightness to 20%.", "positive": "linux.brightness.set", "negative": "linux.battery.status"}
+{"query": "2. Reduce screen brightness to 20%.", "positive": "linux.brightness.set", "negative": "linux.network.status"}
+{"query": "3. Lower screen brightness by 20%.", "positive": "linux.brightness.set", "negative": "linux.service.status"}
+{"query": "4. Set the screen to 20% brightness.", "positive": "linux.brightness.set", "negative": "linux.memory.usage"}
+{"query": "5. Decrease screen brightness by 20%.", "positive": "linux.brightness.set", "negative": "kde.window.focus"}
+{"query": "6. Lower the screen's brightness to 20%.", "positive": "linux.brightness.set", "negative": "linux.network.status"}
+{"query": "7. Set brightness to 20%.", "positive": "linux.brightness.set", "negative": "kde.window.focus"}
+{"query": "8. Reduce screen brightness by 80%.", "positive": "linux.brightness.set", "negative": "linux.battery.status"}
+{"query": "9. Lower screen brightness by 20%.", "positive": "linux.brightness.set", "negative": "linux.memory.usage"}
+{"query": "1. Increase brightness.", "positive": "linux.brightness.set", "negative": "linux.volume.set"}
+{"query": "2. Make the screen brighter.", "positive": "linux.brightness.set", "negative": "linux.volume.set"}
+{"query": "3. Raise brightness levels.", "positive": "linux.brightness.set", "negative": "linux.disk.usage"}
+{"query": "4. Enhance light output.", "positive": "linux.brightness.set", "negative": "linux.metrics.summary"}
+{"query": "5. Boost brightness.", "positive": "linux.brightness.set", "negative": "linux.network.status"}
+{"query": "6. Increase brightness.", "positive": "linux.brightness.set", "negative": "linux.metrics.summary"}
+{"query": "7. Enhance the brightness.", "positive": "linux.brightness.set", "negative": "kde.krunner.launch"}
+{"query": "8. Raise the brightness.", "positive": "linux.brightness.set", "negative": "kde.window.focus"}
+{"query": "9. Make the brightness higher.", "positive": "linux.brightness.set", "negative": "kde.window.focus"}
+{"query": "10. Increase brightness levels.", "positive": "linux.brightness.set", "negative": "kde.krunner.launch"}
+{"query": "- Disk space usage?", "positive": "linux.disk.usage", "negative": "linux.brightness.set"}
+{"query": "- Available disk space?", "positive": "linux.disk.usage", "negative": "kde.dialog.confirm"}
+{"query": "- What is the available disk space?", "positive": "linux.disk.usage", "negative": "linux.service.status"}
+{"query": "- How much space is remaining?", "positive": "linux.disk.usage", "negative": "linux.network.status"}
+{"query": "- Current disk space?", "positive": "linux.disk.usage", "negative": "kde.window.focus"}
+{"query": "- How much disk space is available?", "positive": "linux.disk.usage", "negative": "linux.service.status"}
+{"query": "- What is the available disk space?", "positive": "linux.disk.usage", "negative": "kde.window.focus"}
+{"query": "- How much disk space is left?", "positive": "linux.disk.usage", "negative": "kde.dialog.confirm"}
+{"query": "- Remaining disk space?", "positive": "linux.disk.usage", "negative": "kde.krunner.launch"}
+{"query": "1. Verify the disk usage of /home.", "positive": "linux.disk.usage", "negative": "linux.volume.set"}
+{"query": "2. Check the disk space in use for /home.", "positive": "linux.disk.usage", "negative": "kde.dialog.confirm"}
+{"query": "3. Confirm the disk usage of /home.", "positive": "linux.disk.usage", "negative": "kde.window.focus"}
+{"query": "4. Confirm if /home is consuming disk space.", "positive": "linux.disk.usage", "negative": "kde.krunner.launch"}
+{"query": "5. Inspect disk usage for /home.", "positive": "linux.disk.usage", "negative": "kde.dialog.confirm"}
+{"query": "6. Check if /home's disk usage is active.", "positive": "linux.disk.usage", "negative": "linux.brightness.set"}
+{"query": "7. Confirm disk usage for /home.", "positive": "linux.disk.usage", "negative": "kde.krunner.launch"}
+{"query": "8. Inspect the disk space allocated for /home.", "positive": "linux.disk.usage", "negative": "linux.network.status"}
+{"query": "9. Verify the disk usage at /home", "positive": "linux.disk.usage", "negative": "kde.window.focus"}
+{"query": "1. Is the disk nearly full?", "positive": "linux.disk.usage", "negative": "linux.battery.status"}
+{"query": "2. Does the disk appear almost full?", "positive": "linux.disk.usage", "negative": "linux.volume.set"}
+{"query": "3. Is the disk almost full?", "positive": "linux.disk.usage", "negative": "linux.metrics.summary"}
+{"query": "4. How full is the disk?", "positive": "linux.disk.usage", "negative": "kde.window.focus"}
+{"query": "5. What's the condition of the disk?", "positive": "linux.disk.usage", "negative": "linux.network.status"}
+{"query": "6. The disk is almost full?", "positive": "linux.disk.usage", "negative": "kde.notifications.send"}
+{"query": "7. Do you think the disk is almost full?", "positive": "linux.disk.usage", "negative": "linux.service.status"}
+{"query": "8. Is the disk almost full?", "positive": "linux.disk.usage", "negative": "linux.service.status"}
+{"query": "9. Approximate fullness of the disk?", "positive": "linux.disk.usage", "negative": "linux.metrics.summary"}
+{"query": "10. Is the disk almost full?", "positive": "linux.disk.usage", "negative": "kde.window.focus"}
+{"query": "1. What's the RAM usage?", "positive": "linux.memory.usage", "negative": "linux.metrics.summary"}
+{"query": "2. How much RAM is being used?", "positive": "linux.memory.usage", "negative": "linux.disk.usage"}
+{"query": "3. What's the RAM activity level?", "positive": "linux.memory.usage", "negative": "kde.window.focus"}
+{"query": "4. What's the RAM active state?", "positive": "linux.memory.usage", "negative": "kde.krunner.launch"}
+{"query": "5. How much RAM is currently in use?", "positive": "linux.memory.usage", "negative": "kde.krunner.launch"}
+{"query": "6. What's the RAM configuration?", "positive": "linux.memory.usage", "negative": "linux.volume.set"}
+{"query": "7. What RAM is being consumed?", "positive": "linux.memory.usage", "negative": "linux.disk.usage"}
+{"query": "8. Are there any RAM shortages?", "positive": "linux.memory.usage", "negative": "linux.brightness.set"}
+{"query": "9. What's the RAM usage report?", "positive": "linux.memory.usage", "negative": "linux.disk.usage"}
+{"query": "10. What's the RAM being utilized?", "positive": "linux.memory.usage", "negative": "linux.disk.usage"}
+{"query": "1. What is the memory usage?", "positive": "linux.memory.usage", "negative": "linux.metrics.summary"}
+{"query": "2. What is the memory consumption?", "positive": "linux.memory.usage", "negative": "kde.dialog.confirm"}
+{"query": "3. What is the memory usage in the system?", "positive": "linux.memory.usage", "negative": "linux.volume.set"}
+{"query": "4. What does the memory usage indicate?", "positive": "linux.memory.usage", "negative": "linux.volume.set"}
+{"query": "5. What is the memory usage statistic?", "positive": "linux.memory.usage", "negative": "linux.volume.set"}
+{"query": "6. What is the memory footprint?", "positive": "linux.memory.usage", "negative": "kde.krunner.launch"}
+{"query": "7. How much memory does the system use?", "positive": "linux.memory.usage", "negative": "kde.dialog.confirm"}
+{"query": "8. What is the memory usage of a program?", "positive": "linux.memory.usage", "negative": "linux.disk.usage"}
+{"query": "9. What is the current memory usage state?", "positive": "linux.memory.usage", "negative": "linux.brightness.set"}
+{"query": "10. What memory usage information do I have?", "positive": "linux.memory.usage", "negative": "kde.krunner.launch"}
+{"query": "- \"I need to check if the system has enough memory.\"", "positive": "linux.memory.usage", "negative": "kde.window.focus"}
+{"query": "- \"Is the system running out of memory capacity?\"", "positive": "linux.memory.usage", "negative": "kde.window.focus"}
+{"query": "- \"Could you verify that the memory is sufficient?\"", "positive": "linux.memory.usage", "negative": "kde.window.focus"}
+{"query": "- \"Do you see if", "positive": "linux.memory.usage", "negative": "linux.network.status"}
+{"query": "1. Can you display RAM usage in my system?", "positive": "linux.memory.usage", "negative": "linux.metrics.summary"}
+{"query": "2. Please show me the RAM statistics.", "positive": "linux.memory.usage", "negative": "kde.notifications.send"}
+{"query": "3. What is the RAM usage status?", "positive": "linux.memory.usage", "negative": "linux.disk.usage"}
+{"query": "4. Show me the RAM usage report.", "positive": "linux.memory.usage", "negative": "kde.notifications.send"}
+{"query": "5. RAM usage: how much is it?", "positive": "linux.memory.usage", "negative": "linux.battery.status"}
+{"query": "6. Display RAM statistics.", "positive": "linux.memory.usage", "negative": "linux.metrics.summary"}
+{"query": "7. RAM usage details.", "positive": "linux.memory.usage", "negative": "kde.window.focus"}
+{"query": "8. RAM usage report.", "positive": "linux.memory.usage", "negative": "kde.krunner.launch"}
+{"query": "9. RAM stats.", "positive": "linux.memory.usage", "negative": "linux.metrics.summary"}
+{"query": "10. Show RAM information.", "positive": "linux.memory.usage", "negative": "linux.network.status"}
+{"query": "How is the system performing?", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "Is the system functioning properly?", "positive": "linux.metrics.summary", "negative": "kde.dialog.confirm"}
+{"query": "What\u2019s the status of the system?", "positive": "linux.metrics.summary", "negative": "linux.volume.set"}
+{"query": "How does the system compare with others?", "positive": "linux.metrics.summary", "negative": "linux.network.status"}
+{"query": "What\u2019s the performance level of the system?", "positive": "linux.metrics.summary", "negative": "kde.dialog.confirm"}
+{"query": "Are the system hours available?", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "Do the system have any errors?", "positive": "linux.metrics.summary", "negative": "kde.window.focus"}
+{"query": "Is the system dependable?", "positive": "linux.metrics.summary", "negative": "kde.notifications.send"}
+{"query": "- What is the current status of the system?", "positive": "linux.metrics.summary", "negative": "linux.disk.usage"}
+{"query": "- Describe the system\u2019s current operational status.", "positive": "linux.metrics.summary", "negative": "linux.memory.usage"}
+{"query": "- What is the system\u2019s current functioning status?", "positive": "linux.metrics.summary", "negative": "linux.memory.usage"}
+{"query": "- How is the system operating now?", "positive": "linux.metrics.summary", "negative": "kde.window.focus"}
+{"query": "- What is the current status of the system?", "positive": "linux.metrics.summary", "negative": "linux.disk.usage"}
+{"query": "- Please provide the system\u2019s current status.", "positive": "linux.metrics.summary", "negative": "kde.dialog.confirm"}
+{"query": "- What is the current status of the system's performance?", "positive": "linux.metrics.summary", "negative": "kde.notifications.send"}
+{"query": "- Describe the system\u2019s current status as per the data.", "positive": "linux.metrics.summary", "negative": "linux.disk.usage"}
+{"query": "- What is the current status of the system?", "positive": "linux.metrics.summary", "negative": "kde.dialog.confirm"}
+{"query": "1. What would a health check look like?", "positive": "linux.metrics.summary", "negative": "linux.disk.usage"}
+{"query": "2. Can you provide a health check?", "positive": "linux.metrics.summary", "negative": "linux.battery.status"}
+{"query": "3. Please offer a health check service?", "positive": "linux.metrics.summary", "negative": "linux.memory.usage"}
+{"query": "4. I need a health check report?", "positive": "linux.metrics.summary", "negative": "linux.battery.status"}
+{"query": "5. Give me a health check?", "positive": "linux.metrics.summary", "negative": "linux.disk.usage"}
+{"query": "6. What is a health check for me?", "positive": "linux.metrics.summary", "negative": "linux.network.status"}
+{"query": "7. I want a health check for me?", "positive": "linux.metrics.summary", "negative": "linux.volume.set"}
+{"query": "8. How can I get a health check?", "positive": "linux.metrics.summary", "negative": "linux.memory.usage"}
+{"query": "9. Please arrange a health check?", "positive": "linux.metrics.summary", "negative": "kde.notifications.send"}
+{"query": "10. Could you provide a health check for me?", "positive": "linux.metrics.summary", "negative": "kde.window.focus"}
+{"query": "- Is the system experiencing overload?", "positive": "linux.metrics.summary", "negative": "linux.battery.status"}
+{"query": "- Can the system be experiencing overload?", "positive": "linux.metrics.summary", "negative": "kde.window.focus"}
+{"query": "- How is the system handling requests?", "positive": "linux.metrics.summary", "negative": "kde.dialog.confirm"}
+{"query": "- Do you have issues with the system being overloaded?", "positive": "linux.metrics.summary", "negative": "linux.service.status"}
+{"query": "- Are there problems with the system being overloaded?", "positive": "linux.metrics.summary", "negative": "linux.network.status"}
+{"query": "- Is the system experiencing a system overload?", "positive": "linux.metrics.summary", "negative": "kde.dialog.confirm"}
+{"query": "- What is the status of the system being overloaded?", "positive": "linux.metrics.summary", "negative": "linux.brightness.set"}
+{"query": "- How is the system managing its capacity?", "positive": "linux.metrics.summary", "negative": "kde.dialog.confirm"}
+{"query": "- Is the system currently overloaded with workload?", "positive": "linux.metrics.summary", "negative": "kde.dialog.confirm"}
+{"query": "1. Get system metrics data.", "positive": "linux.metrics.summary", "negative": "linux.service.status"}
+{"query": "2. What are the system metrics?", "positive": "linux.metrics.summary", "negative": "linux.memory.usage"}
+{"query": "3. System metrics for evaluation.", "positive": "linux.metrics.summary", "negative": "linux.network.status"}
+{"query": "4. List system metrics.", "positive": "linux.metrics.summary", "negative": "linux.network.status"}
+{"query": "5. Display system metrics.", "positive": "linux.metrics.summary", "negative": "kde.notifications.send"}
+{"query": "6. Retrieve system metrics.", "positive": "linux.metrics.summary", "negative": "kde.dialog.confirm"}
+{"query": "7. System statistics.", "positive": "linux.metrics.summary", "negative": "linux.network.status"}
+{"query": "8. Get system metrics from data.", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "9. System performance metrics.", "positive": "linux.metrics.summary", "negative": "kde.notifications.send"}
+{"query": "10. Show system metrics.", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "- Display system performance metrics.", "positive": "linux.metrics.summary", "negative": "linux.service.status"}
+{"query": "- Examine system usage statistics.", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "- Analyze current system usage trends.", "positive": "linux.metrics.summary", "negative": "linux.volume.set"}
+{"query": "- Report on system utilization levels.", "positive": "linux.metrics.summary", "negative": "kde.window.focus"}
+{"query": "- Show metrics related to system performance.", "positive": "linux.metrics.summary", "negative": "linux.disk.usage"}
+{"query": "- Outline current system usage data.", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "- Analyze system usage trends.", "positive": "linux.metrics.summary", "negative": "linux.service.status"}
+{"query": "- Present system performance indicators.", "positive": "linux.metrics.summary", "negative": "kde.window.focus"}
+{"query": "- Dissect system performance data.", "positive": "linux.metrics.summary", "negative": "linux.service.status"}
+{"query": "1. System performance metrics", "positive": "linux.metrics.summary", "negative": "linux.service.status"}
+{"query": "2. Provide a summary of system performance data", "positive": "linux.metrics.summary", "negative": "kde.dialog.confirm"}
+{"query": "3. Summarize system metrics as requested", "positive": "linux.metrics.summary", "negative": "linux.service.status"}
+{"query": "4. List system metrics in this summary", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "5. System metrics are presented here", "positive": "linux.metrics.summary", "negative": "linux.disk.usage"}
+{"query": "6. Show a summary of system metrics", "positive": "linux.metrics.summary", "negative": "linux.volume.set"}
+{"query": "7. Include a summary of system performance data", "positive": "linux.metrics.summary", "negative": "linux.service.status"}
+{"query": "8. Summarize system performance metrics", "positive": "linux.metrics.summary", "negative": "linux.service.status"}
+{"query": "9. System metrics are highlighted here", "positive": "linux.metrics.summary", "negative": "linux.network.status"}
+{"query": "10. Present system metrics in this context", "positive": "linux.metrics.summary", "negative": "linux.brightness.set"}
+{"query": "1. What are the system's statistics?", "positive": "linux.metrics.summary", "negative": "linux.battery.status"}
+{"query": "2. Show me the system stats.", "positive": "linux.metrics.summary", "negative": "kde.window.focus"}
+{"query": "3. List out the system statistics.", "positive": "linux.metrics.summary", "negative": "linux.volume.set"}
+{"query": "4. Explain the system's performance metrics.", "positive": "linux.metrics.summary", "negative": "linux.brightness.set"}
+{"query": "5. Please describe the system's stats.", "positive": "linux.metrics.summary", "negative": "kde.window.focus"}
+{"query": "6. What do the system provide about its stats?", "positive": "linux.metrics.summary", "negative": "linux.battery.status"}
+{"query": "7. What information do the system show?", "positive": "linux.metrics.summary", "negative": "linux.disk.usage"}
+{"query": "8. Give me the system's statistics.", "positive": "linux.metrics.summary", "negative": "kde.notifications.send"}
+{"query": "9. List out the system's technical metrics.", "positive": "linux.metrics.summary", "negative": "linux.volume.set"}
+{"query": "10. What are the system's performance data?", "positive": "linux.metrics.summary", "negative": "linux.volume.set"}
+{"query": "1. Show me my CPU and RAM usage.", "positive": "linux.metrics.summary", "negative": "linux.battery.status"}
+{"query": "2. Explain CPU and RAM usage.", "positive": "linux.metrics.summary", "negative": "linux.memory.usage"}
+{"query": "3. Display current CPU and RAM consumption.", "positive": "linux.metrics.summary", "negative": "linux.brightness.set"}
+{"query": "4. Describe the CPU and RAM usage status.", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "5. Show me my system's CPU and RAM.", "positive": "linux.metrics.summary", "negative": "kde.dialog.confirm"}
+{"query": "6. Display my CPU and RAM usage.", "positive": "linux.metrics.summary", "negative": "linux.memory.usage"}
+{"query": "7. Examine CPU and RAM usage.", "positive": "linux.metrics.summary", "negative": "linux.service.status"}
+{"query": "8. Explain CPU and RAM usage data.", "positive": "linux.metrics.summary", "negative": "linux.service.status"}
+{"query": "9. Display CPU and RAM usage statistics.", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "10. Show me the CPU and RAM usage.", "positive": "linux.metrics.summary", "negative": "kde.krunner.launch"}
+{"query": "- Do you have a wired connection?", "positive": "linux.network.status", "negative": "linux.metrics.summary"}
+{"query": "- Is your phone connected to the network?", "positive": "linux.network.status", "negative": "kde.window.focus"}
+{"query": "- Are the signals functioning properly?", "positive": "linux.network.status", "negative": "linux.metrics.summary"}
+{"query": "- Is there a Wi-Fi signal available?", "positive": "linux.network.status", "negative": "linux.battery.status"}
+{"query": "- Are there any issues with the network?", "positive": "linux.network.status", "negative": "kde.notifications.send"}
+{"query": "- Is your Wi-Fi working?", "positive": "linux.network.status", "negative": "linux.brightness.set"}
+{"query": "- Do you see any signals?", "positive": "linux.network.status", "negative": "kde.krunner.launch"}
+{"query": "- Are your devices connected to the network?", "positive": "linux.network.status", "negative": "kde.window.focus"}
+{"query": "- Is the Wi-Fi enabled?", "positive": "linux.network.status", "negative": "linux.brightness.set"}
+{"query": "1. What network am I on?", "positive": "linux.network.status", "negative": "linux.battery.status"}
+{"query": "2. Which network am I in?", "positive": "linux.network.status", "negative": "kde.notifications.send"}
+{"query": "3. I'm on a specific network?", "positive": "linux.network.status", "negative": "linux.memory.usage"}
+{"query": "4. What is the network I\u2019m connected to?", "positive": "linux.network.status", "negative": "linux.metrics.summary"}
+{"query": "5. What network am I using?", "positive": "linux.network.status", "negative": "linux.battery.status"}
+{"query": "6. Which network am I in?", "positive": "linux.network.status", "negative": "linux.service.status"}
+{"query": "7. What network am I on?", "positive": "linux.network.status", "negative": "linux.volume.set"}
+{"query": "8. I\u2019m on a network?", "positive": "linux.network.status", "negative": "linux.metrics.summary"}
+{"query": "9. What network am I on?", "positive": "linux.network.status", "negative": "kde.dialog.confirm"}
+{"query": "10. What is the network I\u2019m using?", "positive": "linux.network.status", "negative": "linux.volume.set"}
+{"query": "1. Is my phone online?", "positive": "linux.network.status", "negative": "linux.metrics.summary"}
+{"query": "2. Am I online?", "positive": "linux.network.status", "negative": "linux.battery.status"}
+{"query": "3. I'm online?", "positive": "linux.network.status", "negative": "linux.volume.set"}
+{"query": "4. Am I connected?", "positive": "linux.network.status", "negative": "kde.krunner.launch"}
+{"query": "5. Is my internet active?", "positive": "linux.network.status", "negative": "kde.notifications.send"}
+{"query": "6. I'm online?", "positive": "linux.network.status", "negative": "linux.battery.status"}
+{"query": "7. Am I online?", "positive": "linux.network.status", "negative": "kde.krunner.launch"}
+{"query": "8. Is my connection on?", "positive": "linux.network.status", "negative": "kde.krunner.launch"}
+{"query": "9. Am I online?", "positive": "linux.network.status", "negative": "linux.metrics.summary"}
+{"query": "10. I'm online?", "positive": "linux.network.status", "negative": "kde.notifications.send"}
+{"query": "1. Is Ollama running?", "positive": "linux.service.status", "negative": "linux.battery.status"}
+{"query": "2. Do you see Ollama?", "positive": "linux.service.status", "negative": "linux.battery.status"}
+{"query": "3. Is Ollama operational?", "positive": "linux.service.status", "negative": "linux.network.status"}
+{"query": "4. Are there problems with Ollama?", "positive": "linux.service.status", "negative": "kde.window.focus"}
+{"query": "5. Is Ollama functioning?", "positive": "linux.service.status", "negative": "linux.brightness.set"}
+{"query": "6. Does Ollama work?", "positive": "linux.service.status", "negative": "kde.window.focus"}
+{"query": "7. Is Ollama running in use?", "positive": "linux.service.status", "negative": "linux.volume.set"}
+{"query": "8. Are there issues with Ollama's functionality?", "positive": "linux.service.status", "negative": "linux.volume.set"}
+{"query": "9. Is Ollama operating?", "positive": "linux.service.status", "negative": "linux.battery.status"}
+{"query": "10. Does Ollama run as expected?", "positive": "linux.service.status", "negative": "linux.metrics.summary"}
+{"query": "1. Ensure Bluetooth is enabled.", "positive": "linux.service.status", "negative": "linux.memory.usage"}
+{"query": "2. Check Bluetooth connectivity.", "positive": "linux.service.status", "negative": "linux.battery.status"}
+{"query": "3. Verify Bluetooth status.", "positive": "linux.service.status", "negative": "kde.dialog.confirm"}
+{"query": "4. Confirm Bluetooth device is connected.", "positive": "linux.service.status", "negative": "kde.krunner.launch"}
+{"query": "5. Check Bluetooth availability.", "positive": "linux.service.status", "negative": "linux.volume.set"}
+{"query": "6. Confirm Bluetooth is on.", "positive": "linux.service.status", "negative": "linux.disk.usage"}
+{"query": "7. Verify if Bluetooth is active.", "positive": "linux.service.status", "negative": "linux.battery.status"}
+{"query": "8. Enable Bluetooth.", "positive": "linux.service.status", "negative": "kde.dialog.confirm"}
+{"query": "9. Confirm Bluetooth is connected.", "positive": "linux.service.status", "negative": "kde.dialog.confirm"}
+{"query": "10. Check Bluetooth status.", "positive": "linux.service.status", "negative": "linux.brightness.set"}
+{"query": "1. Is NetworkManager operational?", "positive": "linux.service.status", "negative": "kde.notifications.send"}
+{"query": "2. Is NetworkManager running?", "positive": "linux.service.status", "negative": "linux.volume.set"}
+{"query": "3. Are NetworkManager settings enabled?", "positive": "linux.service.status", "negative": "linux.battery.status"}
+{"query": "4. Is NetworkManager up or down?", "positive": "linux.service.status", "negative": "kde.notifications.send"}
+{"query": "5. Do I see NetworkManager?", "positive": "linux.service.status", "negative": "linux.memory.usage"}
+{"query": "6. Is NetworkManager active?", "positive": "linux.service.status", "negative": "linux.metrics.summary"}
+{"query": "7. Is NetworkManager on?", "positive": "linux.service.status", "negative": "linux.disk.usage"}
+{"query": "8. Check NetworkManager status?", "positive": "linux.service.status", "negative": "linux.metrics.summary"}
+{"query": "9. Is NetworkManager functioning?", "positive": "linux.service.status", "negative": "kde.dialog.confirm"}
+{"query": "10. Are NetworkManager services running?", "positive": "linux.service.status", "negative": "kde.krunner.launch"}
+{"query": "1. Check the status of the sshd service.", "positive": "linux.service.status", "negative": "kde.krunner.launch"}
+{"query": "2. What's the current state of the SSHD service?", "positive": "linux.service.status", "negative": "kde.notifications.send"}
+{"query": "3. What's the status of the SSHD service?", "positive": "linux.service.status", "negative": "linux.metrics.summary"}
+{"query": "4. Are the SSHD service settings active?", "positive": "linux.service.status", "negative": "kde.dialog.confirm"}
+{"query": "5. What is the current status of the SSHD service?", "positive": "linux.service.status", "negative": "linux.brightness.set"}
+{"query": "6. Is the SSHD service operational?", "positive": "linux.service.status", "negative": "linux.network.status"}
+{"query": "7. What's the status of the SSHD service?", "positive": "linux.service.status", "negative": "linux.metrics.summary"}
+{"query": "8. Are the SSHD service settings up?", "positive": "linux.service.status", "negative": "kde.notifications.send"}
+{"query": "9. What's the current status of the SSHD service?", "positive": "linux.service.status", "negative": "linux.disk.usage"}
+{"query": "10. Is the SSHD service currently running?", "positive": "linux.service.status", "negative": "kde.notifications.send"}
+{"query": "1. Adjust the volume to a lower level.", "positive": "linux.volume.set", "negative": "kde.dialog.confirm"}
+{"query": "2. Diminish the volume.", "positive": "linux.volume.set", "negative": "linux.battery.status"}
+{"query": "3. Lower the sound.", "positive": "linux.volume.set", "negative": "linux.brightness.set"}
+{"query": "4. Reduce the noise.", "positive": "linux.volume.set", "negative": "kde.dialog.confirm"}
+{"query": "5. Make the volume smaller.", "positive": "linux.volume.set", "negative": "linux.brightness.set"}
+{"query": "6. Lower the volume.", "positive": "linux.volume.set", "negative": "kde.window.focus"}
+{"query": "7. Cut the volume.", "positive": "linux.volume.set", "negative": "linux.service.status"}
+{"query": "8. Decrease the volume.", "positive": "linux.volume.set", "negative": "kde.window.focus"}
+{"query": "9. Diminish the playback.", "positive": "linux.volume.set", "negative": "linux.service.status"}
+{"query": "10. Lower the volume as requested.", "positive": "linux.volume.set", "negative": "kde.krunner.launch"}
+{"query": "- Make the room less disruptive.", "positive": "linux.volume.set", "negative": "linux.brightness.set"}
+{"query": "- Lower the noise levels to create peace.", "positive": "linux.volume.set", "negative": "linux.metrics.summary"}
+{"query": "- Encourage a quieter atmosphere.", "positive": "linux.volume.set", "negative": "linux.disk.usage"}
+{"query": "- Reduce unwanted sounds in the environment.", "positive": "linux.volume.set", "negative": "linux.network.status"}
+{"query": "- Promote a more peaceful setting.", "positive": "linux.volume.set", "negative": "kde.notifications.send"}
+{"query": "- Create space for less noise.", "positive": "linux.volume.set", "negative": "kde.window.focus"}
+{"query": "- Optimize the soundscape to enhance quiet.", "positive": "linux.volume.set", "negative": "kde.notifications.send"}
+{"query": "- Promote a quieter mindset in the surroundings.", "positive": "linux.volume.set", "negative": "kde.notifications.send"}
+{"query": "- Improve the overall ambiance to ensure a peaceful experience.", "positive": "linux.volume.set", "negative": "linux.disk.usage"}
+{"query": "1. Raise the audio volume.", "positive": "linux.volume.set", "negative": "kde.dialog.confirm"}
+{"query": "2. Enhance the audio output.", "positive": "linux.volume.set", "negative": "kde.notifications.send"}
+{"query": "3. Adjust the audio level to 80%.", "positive": "linux.volume.set", "negative": "linux.brightness.set"}
+{"query": "4. Increase the audio level by 10 dB.", "positive": "linux.volume.set", "negative": "linux.disk.usage"}
+{"query": "5. Boost the audio level to a higher setting.", "positive": "linux.volume.set", "negative": "linux.service.status"}
+{"query": "6. Raise the audio volume to a higher than current level.", "positive": "linux.volume.set", "negative": "kde.window.focus"}
+{"query": "7. Adjust audio to a higher than 70%.", "positive": "linux.volume.set", "negative": "linux.battery.status"}
+{"query": "8. Increase audio to the next level.", "positive": "linux.volume.set", "negative": "kde.notifications.send"}
+{"query": "9. Raise the audio level to a higher than 70%.", "positive": "linux.volume.set", "negative": "kde.krunner.launch"}
+{"query": "10. Boost audio to the next higher setting.", "positive": "linux.volume.set", "negative": "linux.disk.usage"}

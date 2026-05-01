@@ -1,0 +1,27 @@
+name: linux.battery.status
+domain: linux
+description: Report battery level, charging state, and estimated time remaining.
+risk: low
+confirmation_required: false
+allowed_in_production: true
+executor: surya_agent.executors.linux.battery_status
+
+parameters:
+  type: object
+  properties: {}
+
+examples:
+  - How's the battery?
+  - What's the battery percentage?
+  - Is the laptop charging?
+  - How long until the battery dies?
+
+aliases:
+  - linux.battery.check
+  - battery.level
+
+tags:
+  - battery
+  - acpi
+  - status
+  - read-only

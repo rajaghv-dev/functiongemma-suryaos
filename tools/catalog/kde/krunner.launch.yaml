@@ -1,0 +1,33 @@
+name: kde.krunner.launch
+domain: kde
+description: Launch an application on the KDE desktop by name.
+risk: low
+confirmation_required: false
+allowed_in_production: true
+executor: surya_agent.executors.kde.krunner_launch
+
+parameters:
+  type: object
+  required:
+    - app
+  properties:
+    app:
+      type: string
+      description: Application name or command to launch (e.g. kate, dolphin, konsole).
+
+examples:
+  - Open Kate.
+  - Launch Dolphin.
+  - Open a terminal.
+  - Start Firefox.
+  - Open the file manager.
+
+aliases:
+  - kde.app.launch
+  - app.open
+
+tags:
+  - kde
+  - kstart
+  - launcher
+  - quick-action

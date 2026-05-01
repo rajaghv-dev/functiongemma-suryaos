@@ -1,0 +1,52 @@
+# =============================================================================
+# Surya Agent — production mode overrides
+# =============================================================================
+#
+# Loaded ON TOP OF default.yaml when SURYA_AGENT_MODE=production.
+# Optimised for shipped SuryaOS use: real side effects, strict policy,
+# audit logging mandatory, no debug verbosity.
+# =============================================================================
+
+agent:
+  mode: production
+  dry_run: false                     # Real side effects in prod
+  log_level: WARN                    # Only warn/error in user-visible logs
+
+models:
+  primary:
+    name: functiongemma-270m         # Preferred per project spec
+    backend: ollama
+    model_id: functiongemma:270m
+    temperature: 0.1
+    max_tokens: 512
+
+  fallback:
+    enabled: true
+    name: gemma4-e4b
+    backend: ollama
+    model_id: gemma4:e4b
+
+retrieval:
+  fts_enabled: true
+  vector_enabled: true
+  graph_enabled: true
+  tool_retrieval_top_k: 12
+  rerank_enabled: true
+
+policy:
+  mode: strict                       # Strictest by default; user can dial down
+  confirmation_mode: kdialog         # Native KDE prompts for SuryaOS users
+  audit_enabled: true                # Mandatory in production
+  deny_generic_shell: true
+  allow_destructive_actions: false
+
+# -----------------------------------------------------------------------------
+# Production export toggles — read by scripts/export_production_release.py
+# -----------------------------------------------------------------------------
+production:
+  include_docs: false                # No tutorial markdown in the release
+  include_tutorials: false
+  include_dev_notes: false
+  include_eval_data: false
+  include_training_data: false
+  include_only_runtime_files: true

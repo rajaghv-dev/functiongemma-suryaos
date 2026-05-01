@@ -1,0 +1,31 @@
+name: linux.disk.usage
+domain: linux
+description: Report disk space usage for a given path (default /home).
+risk: low
+confirmation_required: false
+allowed_in_production: true
+executor: surya_agent.executors.linux.disk_usage
+
+parameters:
+  type: object
+  properties:
+    path:
+      type: string
+      description: Filesystem path to check (default /home).
+
+examples:
+  - How much disk space is left?
+  - How full is the hard drive?
+  - Check disk usage for /home.
+  - Is the disk almost full?
+
+aliases:
+  - linux.disk.check
+  - disk.free
+
+tags:
+  - disk
+  - df
+  - storage
+  - status
+  - read-only

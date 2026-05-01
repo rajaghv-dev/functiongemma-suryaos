@@ -1,0 +1,27 @@
+name: linux.network.status
+domain: linux
+description: Report the current network and wifi connection state.
+risk: low
+confirmation_required: false
+allowed_in_production: true
+executor: surya_agent.executors.linux.network_status
+
+parameters:
+  type: object
+  properties: {}
+
+examples:
+  - Is wifi connected?
+  - What network am I on?
+  - Show network status.
+  - Am I online?
+
+aliases:
+  - linux.wifi.status
+  - network.check
+
+tags:
+  - network
+  - nmcli
+  - status
+  - read-only

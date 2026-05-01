@@ -1,0 +1,32 @@
+name: linux.service.status
+domain: linux
+description: Check whether a systemd service is active, inactive, or failed.
+risk: low
+confirmation_required: false
+allowed_in_production: true
+executor: surya_agent.executors.linux.service_status
+
+parameters:
+  type: object
+  required:
+    - name
+  properties:
+    name:
+      type: string
+      description: Name of the systemd service (e.g. ollama, bluetooth, NetworkManager).
+
+examples:
+  - Is Ollama running?
+  - Check if bluetooth is active.
+  - Is NetworkManager up?
+  - What's the status of the sshd service?
+
+aliases:
+  - linux.service.check
+  - systemd.status
+
+tags:
+  - systemd
+  - service
+  - status
+  - read-only

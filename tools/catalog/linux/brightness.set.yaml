@@ -1,0 +1,38 @@
+name: linux.brightness.set
+domain: linux
+description: Adjust the screen brightness up or down by a percentage.
+risk: low
+confirmation_required: false
+allowed_in_production: true
+executor: surya_agent.executors.linux.brightness_set
+
+parameters:
+  type: object
+  required:
+    - direction
+  properties:
+    direction:
+      type: string
+      enum: [up, down]
+      description: Direction to change brightness.
+    step:
+      type: integer
+      minimum: 1
+      maximum: 100
+      description: Percentage to change brightness by (default 10).
+
+examples:
+  - Dim the screen.
+  - Make the display brighter.
+  - Lower screen brightness by 20 percent.
+  - Turn up the brightness.
+
+aliases:
+  - linux.brightness.adjust
+  - brightness.change
+
+tags:
+  - display
+  - brightness
+  - brightnessctl
+  - quick-action

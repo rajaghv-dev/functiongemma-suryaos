@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+model_hf/
+model_lora/
+model_merged/
+output/
+*.bin
+*.safetensors
+*.gguf
+!training/output/Modelfile
+*.log
+.DS_Store
