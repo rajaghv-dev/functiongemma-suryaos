@@ -1,0 +1,1559 @@
+Call kde.dialog.confirm to handle this request.
+The kde.dialog.confirm tool runs the appropriate system command.
+When the user asks for this, dispatch via kde.dialog.confirm.
+kde.dialog.confirm is the correct MCP tool for this query.
+Use kde.dialog.confirm when the user wants to perform this action.
+kde.dialog.confirm is registered in the SuryaOS tool catalog.
+After invoking kde.dialog.confirm, format the result for the user.
+Call kde_dialog_confirm to handle this request.
+The kde_dialog_confirm tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_dialog_confirm.
+kde_dialog_confirm is the correct MCP tool for this query.
+Use kde_dialog_confirm when the user wants to perform this action.
+kde_dialog_confirm is registered in the SuryaOS tool catalog.
+After invoking kde_dialog_confirm, format the result for the user.
+Call dialog_confirm to handle this request.
+The dialog_confirm tool runs the appropriate system command.
+When the user asks for this, dispatch via dialog_confirm.
+dialog_confirm is the correct MCP tool for this query.
+Use dialog_confirm when the user wants to perform this action.
+dialog_confirm is registered in the SuryaOS tool catalog.
+After invoking dialog_confirm, format the result for the user.
+Call system_dialog_confirm to handle this request.
+The system_dialog_confirm tool runs the appropriate system command.
+When the user asks for this, dispatch via system_dialog_confirm.
+system_dialog_confirm is the correct MCP tool for this query.
+Use system_dialog_confirm when the user wants to perform this action.
+system_dialog_confirm is registered in the SuryaOS tool catalog.
+After invoking system_dialog_confirm, format the result for the user.
+Call volume_dialog_confirm to handle this request.
+The volume_dialog_confirm tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_dialog_confirm.
+volume_dialog_confirm is the correct MCP tool for this query.
+Use volume_dialog_confirm when the user wants to perform this action.
+volume_dialog_confirm is registered in the SuryaOS tool catalog.
+After invoking volume_dialog_confirm, format the result for the user.
+Call kde.krunner.launch to handle this request.
+The kde.krunner.launch tool runs the appropriate system command.
+When the user asks for this, dispatch via kde.krunner.launch.
+kde.krunner.launch is the correct MCP tool for this query.
+Use kde.krunner.launch when the user wants to perform this action.
+kde.krunner.launch is registered in the SuryaOS tool catalog.
+After invoking kde.krunner.launch, format the result for the user.
+Call kde_krunner_launch to handle this request.
+The kde_krunner_launch tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_krunner_launch.
+kde_krunner_launch is the correct MCP tool for this query.
+Use kde_krunner_launch when the user wants to perform this action.
+kde_krunner_launch is registered in the SuryaOS tool catalog.
+After invoking kde_krunner_launch, format the result for the user.
+Call krunner_launch to handle this request.
+The krunner_launch tool runs the appropriate system command.
+When the user asks for this, dispatch via krunner_launch.
+krunner_launch is the correct MCP tool for this query.
+Use krunner_launch when the user wants to perform this action.
+krunner_launch is registered in the SuryaOS tool catalog.
+After invoking krunner_launch, format the result for the user.
+Call system_krunner_launch to handle this request.
+The system_krunner_launch tool runs the appropriate system command.
+When the user asks for this, dispatch via system_krunner_launch.
+system_krunner_launch is the correct MCP tool for this query.
+Use system_krunner_launch when the user wants to perform this action.
+system_krunner_launch is registered in the SuryaOS tool catalog.
+After invoking system_krunner_launch, format the result for the user.
+Call volume_krunner_launch to handle this request.
+The volume_krunner_launch tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_krunner_launch.
+volume_krunner_launch is the correct MCP tool for this query.
+Use volume_krunner_launch when the user wants to perform this action.
+volume_krunner_launch is registered in the SuryaOS tool catalog.
+After invoking volume_krunner_launch, format the result for the user.
+Call kde.notifications.send to handle this request.
+The kde.notifications.send tool runs the appropriate system command.
+When the user asks for this, dispatch via kde.notifications.send.
+kde.notifications.send is the correct MCP tool for this query.
+Use kde.notifications.send when the user wants to perform this action.
+kde.notifications.send is registered in the SuryaOS tool catalog.
+After invoking kde.notifications.send, format the result for the user.
+Call kde_notifications_send to handle this request.
+The kde_notifications_send tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_notifications_send.
+kde_notifications_send is the correct MCP tool for this query.
+Use kde_notifications_send when the user wants to perform this action.
+kde_notifications_send is registered in the SuryaOS tool catalog.
+After invoking kde_notifications_send, format the result for the user.
+Call notifications_send to handle this request.
+The notifications_send tool runs the appropriate system command.
+When the user asks for this, dispatch via notifications_send.
+notifications_send is the correct MCP tool for this query.
+Use notifications_send when the user wants to perform this action.
+notifications_send is registered in the SuryaOS tool catalog.
+After invoking notifications_send, format the result for the user.
+Call system_notifications_send to handle this request.
+The system_notifications_send tool runs the appropriate system command.
+When the user asks for this, dispatch via system_notifications_send.
+system_notifications_send is the correct MCP tool for this query.
+Use system_notifications_send when the user wants to perform this action.
+system_notifications_send is registered in the SuryaOS tool catalog.
+After invoking system_notifications_send, format the result for the user.
+Call volume_notifications_send to handle this request.
+The volume_notifications_send tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_notifications_send.
+volume_notifications_send is the correct MCP tool for this query.
+Use volume_notifications_send when the user wants to perform this action.
+volume_notifications_send is registered in the SuryaOS tool catalog.
+After invoking volume_notifications_send, format the result for the user.
+Call kde.window.focus to handle this request.
+The kde.window.focus tool runs the appropriate system command.
+When the user asks for this, dispatch via kde.window.focus.
+kde.window.focus is the correct MCP tool for this query.
+Use kde.window.focus when the user wants to perform this action.
+kde.window.focus is registered in the SuryaOS tool catalog.
+After invoking kde.window.focus, format the result for the user.
+Call kde_window_focus to handle this request.
+The kde_window_focus tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_window_focus.
+kde_window_focus is the correct MCP tool for this query.
+Use kde_window_focus when the user wants to perform this action.
+kde_window_focus is registered in the SuryaOS tool catalog.
+After invoking kde_window_focus, format the result for the user.
+Call window_focus to handle this request.
+The window_focus tool runs the appropriate system command.
+When the user asks for this, dispatch via window_focus.
+window_focus is the correct MCP tool for this query.
+Use window_focus when the user wants to perform this action.
+window_focus is registered in the SuryaOS tool catalog.
+After invoking window_focus, format the result for the user.
+Call system_window_focus to handle this request.
+The system_window_focus tool runs the appropriate system command.
+When the user asks for this, dispatch via system_window_focus.
+system_window_focus is the correct MCP tool for this query.
+Use system_window_focus when the user wants to perform this action.
+system_window_focus is registered in the SuryaOS tool catalog.
+After invoking system_window_focus, format the result for the user.
+Call volume_window_focus to handle this request.
+The volume_window_focus tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_window_focus.
+volume_window_focus is the correct MCP tool for this query.
+Use volume_window_focus when the user wants to perform this action.
+volume_window_focus is registered in the SuryaOS tool catalog.
+After invoking volume_window_focus, format the result for the user.
+Call linux.battery.status to handle this request.
+The linux.battery.status tool runs the appropriate system command.
+When the user asks for this, dispatch via linux.battery.status.
+linux.battery.status is the correct MCP tool for this query.
+Use linux.battery.status when the user wants to perform this action.
+linux.battery.status is registered in the SuryaOS tool catalog.
+After invoking linux.battery.status, format the result for the user.
+Call linux_battery_status to handle this request.
+The linux_battery_status tool runs the appropriate system command.
+When the user asks for this, dispatch via linux_battery_status.
+linux_battery_status is the correct MCP tool for this query.
+Use linux_battery_status when the user wants to perform this action.
+linux_battery_status is registered in the SuryaOS tool catalog.
+After invoking linux_battery_status, format the result for the user.
+Call battery_status to handle this request.
+The battery_status tool runs the appropriate system command.
+When the user asks for this, dispatch via battery_status.
+battery_status is the correct MCP tool for this query.
+Use battery_status when the user wants to perform this action.
+battery_status is registered in the SuryaOS tool catalog.
+After invoking battery_status, format the result for the user.
+Call system_battery_status to handle this request.
+The system_battery_status tool runs the appropriate system command.
+When the user asks for this, dispatch via system_battery_status.
+system_battery_status is the correct MCP tool for this query.
+Use system_battery_status when the user wants to perform this action.
+system_battery_status is registered in the SuryaOS tool catalog.
+After invoking system_battery_status, format the result for the user.
+Call volume_battery_status to handle this request.
+The volume_battery_status tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_battery_status.
+volume_battery_status is the correct MCP tool for this query.
+Use volume_battery_status when the user wants to perform this action.
+volume_battery_status is registered in the SuryaOS tool catalog.
+After invoking volume_battery_status, format the result for the user.
+Call kde_battery_status to handle this request.
+The kde_battery_status tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_battery_status.
+kde_battery_status is the correct MCP tool for this query.
+Use kde_battery_status when the user wants to perform this action.
+kde_battery_status is registered in the SuryaOS tool catalog.
+After invoking kde_battery_status, format the result for the user.
+Call linux.brightness.set to handle this request.
+The linux.brightness.set tool runs the appropriate system command.
+When the user asks for this, dispatch via linux.brightness.set.
+linux.brightness.set is the correct MCP tool for this query.
+Use linux.brightness.set when the user wants to perform this action.
+linux.brightness.set is registered in the SuryaOS tool catalog.
+After invoking linux.brightness.set, format the result for the user.
+Call linux_brightness_set to handle this request.
+The linux_brightness_set tool runs the appropriate system command.
+When the user asks for this, dispatch via linux_brightness_set.
+linux_brightness_set is the correct MCP tool for this query.
+Use linux_brightness_set when the user wants to perform this action.
+linux_brightness_set is registered in the SuryaOS tool catalog.
+After invoking linux_brightness_set, format the result for the user.
+Call brightness_set to handle this request.
+The brightness_set tool runs the appropriate system command.
+When the user asks for this, dispatch via brightness_set.
+brightness_set is the correct MCP tool for this query.
+Use brightness_set when the user wants to perform this action.
+brightness_set is registered in the SuryaOS tool catalog.
+After invoking brightness_set, format the result for the user.
+Call system_brightness_set to handle this request.
+The system_brightness_set tool runs the appropriate system command.
+When the user asks for this, dispatch via system_brightness_set.
+system_brightness_set is the correct MCP tool for this query.
+Use system_brightness_set when the user wants to perform this action.
+system_brightness_set is registered in the SuryaOS tool catalog.
+After invoking system_brightness_set, format the result for the user.
+Call volume_brightness_set to handle this request.
+The volume_brightness_set tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_brightness_set.
+volume_brightness_set is the correct MCP tool for this query.
+Use volume_brightness_set when the user wants to perform this action.
+volume_brightness_set is registered in the SuryaOS tool catalog.
+After invoking volume_brightness_set, format the result for the user.
+Call kde_brightness_set to handle this request.
+The kde_brightness_set tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_brightness_set.
+kde_brightness_set is the correct MCP tool for this query.
+Use kde_brightness_set when the user wants to perform this action.
+kde_brightness_set is registered in the SuryaOS tool catalog.
+After invoking kde_brightness_set, format the result for the user.
+Call linux.disk.usage to handle this request.
+The linux.disk.usage tool runs the appropriate system command.
+When the user asks for this, dispatch via linux.disk.usage.
+linux.disk.usage is the correct MCP tool for this query.
+Use linux.disk.usage when the user wants to perform this action.
+linux.disk.usage is registered in the SuryaOS tool catalog.
+After invoking linux.disk.usage, format the result for the user.
+Call linux_disk_usage to handle this request.
+The linux_disk_usage tool runs the appropriate system command.
+When the user asks for this, dispatch via linux_disk_usage.
+linux_disk_usage is the correct MCP tool for this query.
+Use linux_disk_usage when the user wants to perform this action.
+linux_disk_usage is registered in the SuryaOS tool catalog.
+After invoking linux_disk_usage, format the result for the user.
+Call disk_usage to handle this request.
+The disk_usage tool runs the appropriate system command.
+When the user asks for this, dispatch via disk_usage.
+disk_usage is the correct MCP tool for this query.
+Use disk_usage when the user wants to perform this action.
+disk_usage is registered in the SuryaOS tool catalog.
+After invoking disk_usage, format the result for the user.
+Call system_disk_usage to handle this request.
+The system_disk_usage tool runs the appropriate system command.
+When the user asks for this, dispatch via system_disk_usage.
+system_disk_usage is the correct MCP tool for this query.
+Use system_disk_usage when the user wants to perform this action.
+system_disk_usage is registered in the SuryaOS tool catalog.
+After invoking system_disk_usage, format the result for the user.
+Call volume_disk_usage to handle this request.
+The volume_disk_usage tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_disk_usage.
+volume_disk_usage is the correct MCP tool for this query.
+Use volume_disk_usage when the user wants to perform this action.
+volume_disk_usage is registered in the SuryaOS tool catalog.
+After invoking volume_disk_usage, format the result for the user.
+Call kde_disk_usage to handle this request.
+The kde_disk_usage tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_disk_usage.
+kde_disk_usage is the correct MCP tool for this query.
+Use kde_disk_usage when the user wants to perform this action.
+kde_disk_usage is registered in the SuryaOS tool catalog.
+After invoking kde_disk_usage, format the result for the user.
+Call linux.memory.usage to handle this request.
+The linux.memory.usage tool runs the appropriate system command.
+When the user asks for this, dispatch via linux.memory.usage.
+linux.memory.usage is the correct MCP tool for this query.
+Use linux.memory.usage when the user wants to perform this action.
+linux.memory.usage is registered in the SuryaOS tool catalog.
+After invoking linux.memory.usage, format the result for the user.
+Call linux_memory_usage to handle this request.
+The linux_memory_usage tool runs the appropriate system command.
+When the user asks for this, dispatch via linux_memory_usage.
+linux_memory_usage is the correct MCP tool for this query.
+Use linux_memory_usage when the user wants to perform this action.
+linux_memory_usage is registered in the SuryaOS tool catalog.
+After invoking linux_memory_usage, format the result for the user.
+Call memory_usage to handle this request.
+The memory_usage tool runs the appropriate system command.
+When the user asks for this, dispatch via memory_usage.
+memory_usage is the correct MCP tool for this query.
+Use memory_usage when the user wants to perform this action.
+memory_usage is registered in the SuryaOS tool catalog.
+After invoking memory_usage, format the result for the user.
+Call system_memory_usage to handle this request.
+The system_memory_usage tool runs the appropriate system command.
+When the user asks for this, dispatch via system_memory_usage.
+system_memory_usage is the correct MCP tool for this query.
+Use system_memory_usage when the user wants to perform this action.
+system_memory_usage is registered in the SuryaOS tool catalog.
+After invoking system_memory_usage, format the result for the user.
+Call volume_memory_usage to handle this request.
+The volume_memory_usage tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_memory_usage.
+volume_memory_usage is the correct MCP tool for this query.
+Use volume_memory_usage when the user wants to perform this action.
+volume_memory_usage is registered in the SuryaOS tool catalog.
+After invoking volume_memory_usage, format the result for the user.
+Call kde_memory_usage to handle this request.
+The kde_memory_usage tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_memory_usage.
+kde_memory_usage is the correct MCP tool for this query.
+Use kde_memory_usage when the user wants to perform this action.
+kde_memory_usage is registered in the SuryaOS tool catalog.
+After invoking kde_memory_usage, format the result for the user.
+Call linux.metrics.summary to handle this request.
+The linux.metrics.summary tool runs the appropriate system command.
+When the user asks for this, dispatch via linux.metrics.summary.
+linux.metrics.summary is the correct MCP tool for this query.
+Use linux.metrics.summary when the user wants to perform this action.
+linux.metrics.summary is registered in the SuryaOS tool catalog.
+After invoking linux.metrics.summary, format the result for the user.
+Call linux_metrics_summary to handle this request.
+The linux_metrics_summary tool runs the appropriate system command.
+When the user asks for this, dispatch via linux_metrics_summary.
+linux_metrics_summary is the correct MCP tool for this query.
+Use linux_metrics_summary when the user wants to perform this action.
+linux_metrics_summary is registered in the SuryaOS tool catalog.
+After invoking linux_metrics_summary, format the result for the user.
+Call metrics_summary to handle this request.
+The metrics_summary tool runs the appropriate system command.
+When the user asks for this, dispatch via metrics_summary.
+metrics_summary is the correct MCP tool for this query.
+Use metrics_summary when the user wants to perform this action.
+metrics_summary is registered in the SuryaOS tool catalog.
+After invoking metrics_summary, format the result for the user.
+Call system_metrics_summary to handle this request.
+The system_metrics_summary tool runs the appropriate system command.
+When the user asks for this, dispatch via system_metrics_summary.
+system_metrics_summary is the correct MCP tool for this query.
+Use system_metrics_summary when the user wants to perform this action.
+system_metrics_summary is registered in the SuryaOS tool catalog.
+After invoking system_metrics_summary, format the result for the user.
+Call volume_metrics_summary to handle this request.
+The volume_metrics_summary tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_metrics_summary.
+volume_metrics_summary is the correct MCP tool for this query.
+Use volume_metrics_summary when the user wants to perform this action.
+volume_metrics_summary is registered in the SuryaOS tool catalog.
+After invoking volume_metrics_summary, format the result for the user.
+Call kde_metrics_summary to handle this request.
+The kde_metrics_summary tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_metrics_summary.
+kde_metrics_summary is the correct MCP tool for this query.
+Use kde_metrics_summary when the user wants to perform this action.
+kde_metrics_summary is registered in the SuryaOS tool catalog.
+After invoking kde_metrics_summary, format the result for the user.
+Call linux.network.status to handle this request.
+The linux.network.status tool runs the appropriate system command.
+When the user asks for this, dispatch via linux.network.status.
+linux.network.status is the correct MCP tool for this query.
+Use linux.network.status when the user wants to perform this action.
+linux.network.status is registered in the SuryaOS tool catalog.
+After invoking linux.network.status, format the result for the user.
+Call linux_network_status to handle this request.
+The linux_network_status tool runs the appropriate system command.
+When the user asks for this, dispatch via linux_network_status.
+linux_network_status is the correct MCP tool for this query.
+Use linux_network_status when the user wants to perform this action.
+linux_network_status is registered in the SuryaOS tool catalog.
+After invoking linux_network_status, format the result for the user.
+Call network_status to handle this request.
+The network_status tool runs the appropriate system command.
+When the user asks for this, dispatch via network_status.
+network_status is the correct MCP tool for this query.
+Use network_status when the user wants to perform this action.
+network_status is registered in the SuryaOS tool catalog.
+After invoking network_status, format the result for the user.
+Call system_network_status to handle this request.
+The system_network_status tool runs the appropriate system command.
+When the user asks for this, dispatch via system_network_status.
+system_network_status is the correct MCP tool for this query.
+Use system_network_status when the user wants to perform this action.
+system_network_status is registered in the SuryaOS tool catalog.
+After invoking system_network_status, format the result for the user.
+Call volume_network_status to handle this request.
+The volume_network_status tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_network_status.
+volume_network_status is the correct MCP tool for this query.
+Use volume_network_status when the user wants to perform this action.
+volume_network_status is registered in the SuryaOS tool catalog.
+After invoking volume_network_status, format the result for the user.
+Call kde_network_status to handle this request.
+The kde_network_status tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_network_status.
+kde_network_status is the correct MCP tool for this query.
+Use kde_network_status when the user wants to perform this action.
+kde_network_status is registered in the SuryaOS tool catalog.
+After invoking kde_network_status, format the result for the user.
+Call linux.service.status to handle this request.
+The linux.service.status tool runs the appropriate system command.
+When the user asks for this, dispatch via linux.service.status.
+linux.service.status is the correct MCP tool for this query.
+Use linux.service.status when the user wants to perform this action.
+linux.service.status is registered in the SuryaOS tool catalog.
+After invoking linux.service.status, format the result for the user.
+Call linux_service_status to handle this request.
+The linux_service_status tool runs the appropriate system command.
+When the user asks for this, dispatch via linux_service_status.
+linux_service_status is the correct MCP tool for this query.
+Use linux_service_status when the user wants to perform this action.
+linux_service_status is registered in the SuryaOS tool catalog.
+After invoking linux_service_status, format the result for the user.
+Call service_status to handle this request.
+The service_status tool runs the appropriate system command.
+When the user asks for this, dispatch via service_status.
+service_status is the correct MCP tool for this query.
+Use service_status when the user wants to perform this action.
+service_status is registered in the SuryaOS tool catalog.
+After invoking service_status, format the result for the user.
+Call system_service_status to handle this request.
+The system_service_status tool runs the appropriate system command.
+When the user asks for this, dispatch via system_service_status.
+system_service_status is the correct MCP tool for this query.
+Use system_service_status when the user wants to perform this action.
+system_service_status is registered in the SuryaOS tool catalog.
+After invoking system_service_status, format the result for the user.
+Call volume_service_status to handle this request.
+The volume_service_status tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_service_status.
+volume_service_status is the correct MCP tool for this query.
+Use volume_service_status when the user wants to perform this action.
+volume_service_status is registered in the SuryaOS tool catalog.
+After invoking volume_service_status, format the result for the user.
+Call kde_service_status to handle this request.
+The kde_service_status tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_service_status.
+kde_service_status is the correct MCP tool for this query.
+Use kde_service_status when the user wants to perform this action.
+kde_service_status is registered in the SuryaOS tool catalog.
+After invoking kde_service_status, format the result for the user.
+Call linux.volume.set to handle this request.
+The linux.volume.set tool runs the appropriate system command.
+When the user asks for this, dispatch via linux.volume.set.
+linux.volume.set is the correct MCP tool for this query.
+Use linux.volume.set when the user wants to perform this action.
+linux.volume.set is registered in the SuryaOS tool catalog.
+After invoking linux.volume.set, format the result for the user.
+Call linux_volume_set to handle this request.
+The linux_volume_set tool runs the appropriate system command.
+When the user asks for this, dispatch via linux_volume_set.
+linux_volume_set is the correct MCP tool for this query.
+Use linux_volume_set when the user wants to perform this action.
+linux_volume_set is registered in the SuryaOS tool catalog.
+After invoking linux_volume_set, format the result for the user.
+Call volume_set to handle this request.
+The volume_set tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_set.
+volume_set is the correct MCP tool for this query.
+Use volume_set when the user wants to perform this action.
+volume_set is registered in the SuryaOS tool catalog.
+After invoking volume_set, format the result for the user.
+Call system_volume_set to handle this request.
+The system_volume_set tool runs the appropriate system command.
+When the user asks for this, dispatch via system_volume_set.
+system_volume_set is the correct MCP tool for this query.
+Use system_volume_set when the user wants to perform this action.
+system_volume_set is registered in the SuryaOS tool catalog.
+After invoking system_volume_set, format the result for the user.
+Call volume_volume_set to handle this request.
+The volume_volume_set tool runs the appropriate system command.
+When the user asks for this, dispatch via volume_volume_set.
+volume_volume_set is the correct MCP tool for this query.
+Use volume_volume_set when the user wants to perform this action.
+volume_volume_set is registered in the SuryaOS tool catalog.
+After invoking volume_volume_set, format the result for the user.
+Call kde_volume_set to handle this request.
+The kde_volume_set tool runs the appropriate system command.
+When the user asks for this, dispatch via kde_volume_set.
+kde_volume_set is the correct MCP tool for this query.
+Use kde_volume_set when the user wants to perform this action.
+kde_volume_set is registered in the SuryaOS tool catalog.
+After invoking kde_volume_set, format the result for the user.
+Plasma is a core part of the KDE Plasma desktop.
+Launch Plasma to open the user's preferred application.
+On SuryaOS, Plasma integrates with the desktop session.
+The Plasma component handles its specific responsibility.
+Plasma runs in the user's KDE session.
+KWin is a core part of the KDE Plasma desktop.
+Launch KWin to open the user's preferred application.
+On SuryaOS, KWin integrates with the desktop session.
+The KWin component handles its specific responsibility.
+KWin runs in the user's KDE session.
+KDE is a core part of the KDE Plasma desktop.
+Launch KDE to open the user's preferred application.
+On SuryaOS, KDE integrates with the desktop session.
+The KDE component handles its specific responsibility.
+KDE runs in the user's KDE session.
+Wayland is a core part of the KDE Plasma desktop.
+Launch Wayland to open the user's preferred application.
+On SuryaOS, Wayland integrates with the desktop session.
+The Wayland component handles its specific responsibility.
+Wayland runs in the user's KDE session.
+KRunner is a core part of the KDE Plasma desktop.
+Launch KRunner to open the user's preferred application.
+On SuryaOS, KRunner integrates with the desktop session.
+The KRunner component handles its specific responsibility.
+KRunner runs in the user's KDE session.
+Kate is a core part of the KDE Plasma desktop.
+Launch Kate to open the user's preferred application.
+On SuryaOS, Kate integrates with the desktop session.
+The Kate component handles its specific responsibility.
+Kate runs in the user's KDE session.
+Dolphin is a core part of the KDE Plasma desktop.
+Launch Dolphin to open the user's preferred application.
+On SuryaOS, Dolphin integrates with the desktop session.
+The Dolphin component handles its specific responsibility.
+Dolphin runs in the user's KDE session.
+Konsole is a core part of the KDE Plasma desktop.
+Launch Konsole to open the user's preferred application.
+On SuryaOS, Konsole integrates with the desktop session.
+The Konsole component handles its specific responsibility.
+Konsole runs in the user's KDE session.
+KMail is a core part of the KDE Plasma desktop.
+Launch KMail to open the user's preferred application.
+On SuryaOS, KMail integrates with the desktop session.
+The KMail component handles its specific responsibility.
+KMail runs in the user's KDE session.
+KOrganizer is a core part of the KDE Plasma desktop.
+Launch KOrganizer to open the user's preferred application.
+On SuryaOS, KOrganizer integrates with the desktop session.
+The KOrganizer component handles its specific responsibility.
+KOrganizer runs in the user's KDE session.
+KDevelop is a core part of the KDE Plasma desktop.
+Launch KDevelop to open the user's preferred application.
+On SuryaOS, KDevelop integrates with the desktop session.
+The KDevelop component handles its specific responsibility.
+KDevelop runs in the user's KDE session.
+Akonadi is a core part of the KDE Plasma desktop.
+Launch Akonadi to open the user's preferred application.
+On SuryaOS, Akonadi integrates with the desktop session.
+The Akonadi component handles its specific responsibility.
+Akonadi runs in the user's KDE session.
+Klipper is a core part of the KDE Plasma desktop.
+Launch Klipper to open the user's preferred application.
+On SuryaOS, Klipper integrates with the desktop session.
+The Klipper component handles its specific responsibility.
+Klipper runs in the user's KDE session.
+kdialog is a core part of the KDE Plasma desktop.
+Launch kdialog to open the user's preferred application.
+On SuryaOS, kdialog integrates with the desktop session.
+The kdialog component handles its specific responsibility.
+kdialog runs in the user's KDE session.
+kstart5 is a core part of the KDE Plasma desktop.
+Launch kstart5 to open the user's preferred application.
+On SuryaOS, kstart5 integrates with the desktop session.
+The kstart5 component handles its specific responsibility.
+kstart5 runs in the user's KDE session.
+kstart6 is a core part of the KDE Plasma desktop.
+Launch kstart6 to open the user's preferred application.
+On SuryaOS, kstart6 integrates with the desktop session.
+The kstart6 component handles its specific responsibility.
+kstart6 runs in the user's KDE session.
+qdbus is a core part of the KDE Plasma desktop.
+Launch qdbus to open the user's preferred application.
+On SuryaOS, qdbus integrates with the desktop session.
+The qdbus component handles its specific responsibility.
+qdbus runs in the user's KDE session.
+qdbus5 is a core part of the KDE Plasma desktop.
+Launch qdbus5 to open the user's preferred application.
+On SuryaOS, qdbus5 integrates with the desktop session.
+The qdbus5 component handles its specific responsibility.
+qdbus5 runs in the user's KDE session.
+qdbus6 is a core part of the KDE Plasma desktop.
+Launch qdbus6 to open the user's preferred application.
+On SuryaOS, qdbus6 integrates with the desktop session.
+The qdbus6 component handles its specific responsibility.
+qdbus6 runs in the user's KDE session.
+kioclient5 is a core part of the KDE Plasma desktop.
+Launch kioclient5 to open the user's preferred application.
+On SuryaOS, kioclient5 integrates with the desktop session.
+The kioclient5 component handles its specific responsibility.
+kioclient5 runs in the user's KDE session.
+kioclient6 is a core part of the KDE Plasma desktop.
+Launch kioclient6 to open the user's preferred application.
+On SuryaOS, kioclient6 integrates with the desktop session.
+The kioclient6 component handles its specific responsibility.
+kioclient6 runs in the user's KDE session.
+KIO is a core part of the KDE Plasma desktop.
+Launch KIO to open the user's preferred application.
+On SuryaOS, KIO integrates with the desktop session.
+The KIO component handles its specific responsibility.
+KIO runs in the user's KDE session.
+KCM is a core part of the KDE Plasma desktop.
+Launch KCM to open the user's preferred application.
+On SuryaOS, KCM integrates with the desktop session.
+The KCM component handles its specific responsibility.
+KCM runs in the user's KDE session.
+kglobalaccel is a core part of the KDE Plasma desktop.
+Launch kglobalaccel to open the user's preferred application.
+On SuryaOS, kglobalaccel integrates with the desktop session.
+The kglobalaccel component handles its specific responsibility.
+kglobalaccel runs in the user's KDE session.
+The systemd daemon manages this part of the system.
+Run systemd to control the underlying service.
+systemd is part of the standard Linux toolchain.
+On SuryaOS 25.1, systemd is installed by default.
+The agent shells out to systemd when handling related queries.
+systemd is invoked via subprocess by the MCP server.
+The systemctl daemon manages this part of the system.
+Run systemctl to control the underlying service.
+systemctl is part of the standard Linux toolchain.
+On SuryaOS 25.1, systemctl is installed by default.
+The agent shells out to systemctl when handling related queries.
+systemctl is invoked via subprocess by the MCP server.
+The journalctl daemon manages this part of the system.
+Run journalctl to control the underlying service.
+journalctl is part of the standard Linux toolchain.
+On SuryaOS 25.1, journalctl is installed by default.
+The agent shells out to journalctl when handling related queries.
+journalctl is invoked via subprocess by the MCP server.
+The pipewire daemon manages this part of the system.
+Run pipewire to control the underlying service.
+pipewire is part of the standard Linux toolchain.
+On SuryaOS 25.1, pipewire is installed by default.
+The agent shells out to pipewire when handling related queries.
+pipewire is invoked via subprocess by the MCP server.
+The pulseaudio daemon manages this part of the system.
+Run pulseaudio to control the underlying service.
+pulseaudio is part of the standard Linux toolchain.
+On SuryaOS 25.1, pulseaudio is installed by default.
+The agent shells out to pulseaudio when handling related queries.
+pulseaudio is invoked via subprocess by the MCP server.
+The NetworkManager daemon manages this part of the system.
+Run NetworkManager to control the underlying service.
+NetworkManager is part of the standard Linux toolchain.
+On SuryaOS 25.1, NetworkManager is installed by default.
+The agent shells out to NetworkManager when handling related queries.
+NetworkManager is invoked via subprocess by the MCP server.
+The bluetoothd daemon manages this part of the system.
+Run bluetoothd to control the underlying service.
+bluetoothd is part of the standard Linux toolchain.
+On SuryaOS 25.1, bluetoothd is installed by default.
+The agent shells out to bluetoothd when handling related queries.
+bluetoothd is invoked via subprocess by the MCP server.
+The cupsd daemon manages this part of the system.
+Run cupsd to control the underlying service.
+cupsd is part of the standard Linux toolchain.
+On SuryaOS 25.1, cupsd is installed by default.
+The agent shells out to cupsd when handling related queries.
+cupsd is invoked via subprocess by the MCP server.
+The ollama daemon manages this part of the system.
+Run ollama to control the underlying service.
+ollama is part of the standard Linux toolchain.
+On SuryaOS 25.1, ollama is installed by default.
+The agent shells out to ollama when handling related queries.
+ollama is invoked via subprocess by the MCP server.
+The udevd daemon manages this part of the system.
+Run udevd to control the underlying service.
+udevd is part of the standard Linux toolchain.
+On SuryaOS 25.1, udevd is installed by default.
+The agent shells out to udevd when handling related queries.
+udevd is invoked via subprocess by the MCP server.
+The dbus-daemon daemon manages this part of the system.
+Run dbus-daemon to control the underlying service.
+dbus-daemon is part of the standard Linux toolchain.
+On SuryaOS 25.1, dbus-daemon is installed by default.
+The agent shells out to dbus-daemon when handling related queries.
+dbus-daemon is invoked via subprocess by the MCP server.
+The logind daemon manages this part of the system.
+Run logind to control the underlying service.
+logind is part of the standard Linux toolchain.
+On SuryaOS 25.1, logind is installed by default.
+The agent shells out to logind when handling related queries.
+logind is invoked via subprocess by the MCP server.
+The rtkit daemon manages this part of the system.
+Run rtkit to control the underlying service.
+rtkit is part of the standard Linux toolchain.
+On SuryaOS 25.1, rtkit is installed by default.
+The agent shells out to rtkit when handling related queries.
+rtkit is invoked via subprocess by the MCP server.
+The pactl daemon manages this part of the system.
+Run pactl to control the underlying service.
+pactl is part of the standard Linux toolchain.
+On SuryaOS 25.1, pactl is installed by default.
+The agent shells out to pactl when handling related queries.
+pactl is invoked via subprocess by the MCP server.
+The nmcli daemon manages this part of the system.
+Run nmcli to control the underlying service.
+nmcli is part of the standard Linux toolchain.
+On SuryaOS 25.1, nmcli is installed by default.
+The agent shells out to nmcli when handling related queries.
+nmcli is invoked via subprocess by the MCP server.
+The wmctrl daemon manages this part of the system.
+Run wmctrl to control the underlying service.
+wmctrl is part of the standard Linux toolchain.
+On SuryaOS 25.1, wmctrl is installed by default.
+The agent shells out to wmctrl when handling related queries.
+wmctrl is invoked via subprocess by the MCP server.
+The acpi daemon manages this part of the system.
+Run acpi to control the underlying service.
+acpi is part of the standard Linux toolchain.
+On SuryaOS 25.1, acpi is installed by default.
+The agent shells out to acpi when handling related queries.
+acpi is invoked via subprocess by the MCP server.
+The brightnessctl daemon manages this part of the system.
+Run brightnessctl to control the underlying service.
+brightnessctl is part of the standard Linux toolchain.
+On SuryaOS 25.1, brightnessctl is installed by default.
+The agent shells out to brightnessctl when handling related queries.
+brightnessctl is invoked via subprocess by the MCP server.
+The notify-send daemon manages this part of the system.
+Run notify-send to control the underlying service.
+notify-send is part of the standard Linux toolchain.
+On SuryaOS 25.1, notify-send is installed by default.
+The agent shells out to notify-send when handling related queries.
+notify-send is invoked via subprocess by the MCP server.
+The free daemon manages this part of the system.
+Run free to control the underlying service.
+free is part of the standard Linux toolchain.
+On SuryaOS 25.1, free is installed by default.
+The agent shells out to free when handling related queries.
+free is invoked via subprocess by the MCP server.
+The df daemon manages this part of the system.
+Run df to control the underlying service.
+df is part of the standard Linux toolchain.
+On SuryaOS 25.1, df is installed by default.
+The agent shells out to df when handling related queries.
+df is invoked via subprocess by the MCP server.
+The lsblk daemon manages this part of the system.
+Run lsblk to control the underlying service.
+lsblk is part of the standard Linux toolchain.
+On SuryaOS 25.1, lsblk is installed by default.
+The agent shells out to lsblk when handling related queries.
+lsblk is invoked via subprocess by the MCP server.
+The iotop daemon manages this part of the system.
+Run iotop to control the underlying service.
+iotop is part of the standard Linux toolchain.
+On SuryaOS 25.1, iotop is installed by default.
+The agent shells out to iotop when handling related queries.
+iotop is invoked via subprocess by the MCP server.
+The BAT0 daemon manages this part of the system.
+Run BAT0 to control the underlying service.
+BAT0 is part of the standard Linux toolchain.
+On SuryaOS 25.1, BAT0 is installed by default.
+The agent shells out to BAT0 when handling related queries.
+BAT0 is invoked via subprocess by the MCP server.
+The wlo1 daemon manages this part of the system.
+Run wlo1 to control the underlying service.
+wlo1 is part of the standard Linux toolchain.
+On SuryaOS 25.1, wlo1 is installed by default.
+The agent shells out to wlo1 when handling related queries.
+wlo1 is invoked via subprocess by the MCP server.
+The eno2 daemon manages this part of the system.
+Run eno2 to control the underlying service.
+eno2 is part of the standard Linux toolchain.
+On SuryaOS 25.1, eno2 is installed by default.
+The agent shells out to eno2 when handling related queries.
+eno2 is invoked via subprocess by the MCP server.
+The nvme0n1 daemon manages this part of the system.
+Run nvme0n1 to control the underlying service.
+nvme0n1 is part of the standard Linux toolchain.
+On SuryaOS 25.1, nvme0n1 is installed by default.
+The agent shells out to nvme0n1 when handling related queries.
+nvme0n1 is invoked via subprocess by the MCP server.
+The DEFAULT_SINK daemon manages this part of the system.
+Run DEFAULT_SINK to control the underlying service.
+DEFAULT_SINK is part of the standard Linux toolchain.
+On SuryaOS 25.1, DEFAULT_SINK is installed by default.
+The agent shells out to DEFAULT_SINK when handling related queries.
+DEFAULT_SINK is invoked via subprocess by the MCP server.
+The /proc daemon manages this part of the system.
+Run /proc to control the underlying service.
+/proc is part of the standard Linux toolchain.
+On SuryaOS 25.1, /proc is installed by default.
+The agent shells out to /proc when handling related queries.
+/proc is invoked via subprocess by the MCP server.
+The /sys daemon manages this part of the system.
+Run /sys to control the underlying service.
+/sys is part of the standard Linux toolchain.
+On SuryaOS 25.1, /sys is installed by default.
+The agent shells out to /sys when handling related queries.
+/sys is invoked via subprocess by the MCP server.
+The /etc/systemd daemon manages this part of the system.
+Run /etc/systemd to control the underlying service.
+/etc/systemd is part of the standard Linux toolchain.
+On SuryaOS 25.1, /etc/systemd is installed by default.
+The agent shells out to /etc/systemd when handling related queries.
+/etc/systemd is invoked via subprocess by the MCP server.
+The /var/log daemon manages this part of the system.
+Run /var/log to control the underlying service.
+/var/log is part of the standard Linux toolchain.
+On SuryaOS 25.1, /var/log is installed by default.
+The agent shells out to /var/log when handling related queries.
+/var/log is invoked via subprocess by the MCP server.
+The /opt/surya-agent daemon manages this part of the system.
+Run /opt/surya-agent to control the underlying service.
+/opt/surya-agent is part of the standard Linux toolchain.
+On SuryaOS 25.1, /opt/surya-agent is installed by default.
+The agent shells out to /opt/surya-agent when handling related queries.
+/opt/surya-agent is invoked via subprocess by the MCP server.
+The direction can be up for this command.
+Set the parameter to up when appropriate.
+A up state means the service is in this condition.
+up is one of the valid enum values for this argument.
+The direction can be up for this command.
+The direction can be down for this command.
+Set the parameter to down when appropriate.
+A down state means the service is in this condition.
+down is one of the valid enum values for this argument.
+The direction can be down for this command.
+The direction can be active for this command.
+Set the parameter to active when appropriate.
+A active state means the service is in this condition.
+active is one of the valid enum values for this argument.
+The direction can be active for this command.
+The direction can be inactive for this command.
+Set the parameter to inactive when appropriate.
+A inactive state means the service is in this condition.
+inactive is one of the valid enum values for this argument.
+The direction can be inactive for this command.
+The direction can be failed for this command.
+Set the parameter to failed when appropriate.
+A failed state means the service is in this condition.
+failed is one of the valid enum values for this argument.
+The direction can be failed for this command.
+The direction can be deactivating for this command.
+Set the parameter to deactivating when appropriate.
+A deactivating state means the service is in this condition.
+deactivating is one of the valid enum values for this argument.
+The direction can be deactivating for this command.
+The direction can be activating for this command.
+Set the parameter to activating when appropriate.
+A activating state means the service is in this condition.
+activating is one of the valid enum values for this argument.
+The direction can be activating for this command.
+The direction can be connected for this command.
+Set the parameter to connected when appropriate.
+A connected state means the service is in this condition.
+connected is one of the valid enum values for this argument.
+The direction can be connected for this command.
+The direction can be disconnected for this command.
+Set the parameter to disconnected when appropriate.
+A disconnected state means the service is in this condition.
+disconnected is one of the valid enum values for this argument.
+The direction can be disconnected for this command.
+The direction can be limited for this command.
+Set the parameter to limited when appropriate.
+A limited state means the service is in this condition.
+limited is one of the valid enum values for this argument.
+The direction can be limited for this command.
+The direction can be portal for this command.
+Set the parameter to portal when appropriate.
+A portal state means the service is in this condition.
+portal is one of the valid enum values for this argument.
+The direction can be portal for this command.
+The direction can be charging for this command.
+Set the parameter to charging when appropriate.
+A charging state means the service is in this condition.
+charging is one of the valid enum values for this argument.
+The direction can be charging for this command.
+The direction can be discharging for this command.
+Set the parameter to discharging when appropriate.
+A discharging state means the service is in this condition.
+discharging is one of the valid enum values for this argument.
+The direction can be discharging for this command.
+The direction can be fully-charged for this command.
+Set the parameter to fully-charged when appropriate.
+A fully-charged state means the service is in this condition.
+fully-charged is one of the valid enum values for this argument.
+The direction can be fully-charged for this command.
+The direction can be unknown for this command.
+Set the parameter to unknown when appropriate.
+A unknown state means the service is in this condition.
+unknown is one of the valid enum values for this argument.
+The direction can be unknown for this command.
+Call compile to handle this request.
+The compile tool runs the appropriate system command.
+When the user asks for this, dispatch via compile.
+compile is the correct MCP tool for this query.
+Use compile when the user wants to perform this action.
+compile is registered in the SuryaOS tool catalog.
+After invoking compile, format the result for the user.
+Call build to handle this request.
+The build tool runs the appropriate system command.
+When the user asks for this, dispatch via build.
+build is the correct MCP tool for this query.
+Use build when the user wants to perform this action.
+build is registered in the SuryaOS tool catalog.
+After invoking build, format the result for the user.
+Call test to handle this request.
+The test tool runs the appropriate system command.
+When the user asks for this, dispatch via test.
+test is the correct MCP tool for this query.
+Use test when the user wants to perform this action.
+test is registered in the SuryaOS tool catalog.
+After invoking test, format the result for the user.
+Call commit to handle this request.
+The commit tool runs the appropriate system command.
+When the user asks for this, dispatch via commit.
+commit is the correct MCP tool for this query.
+Use commit when the user wants to perform this action.
+commit is registered in the SuryaOS tool catalog.
+After invoking commit, format the result for the user.
+Call push to handle this request.
+The push tool runs the appropriate system command.
+When the user asks for this, dispatch via push.
+push is the correct MCP tool for this query.
+Use push when the user wants to perform this action.
+push is registered in the SuryaOS tool catalog.
+After invoking push, format the result for the user.
+Call pull to handle this request.
+The pull tool runs the appropriate system command.
+When the user asks for this, dispatch via pull.
+pull is the correct MCP tool for this query.
+Use pull when the user wants to perform this action.
+pull is registered in the SuryaOS tool catalog.
+After invoking pull, format the result for the user.
+Call rebase to handle this request.
+The rebase tool runs the appropriate system command.
+When the user asks for this, dispatch via rebase.
+rebase is the correct MCP tool for this query.
+Use rebase when the user wants to perform this action.
+rebase is registered in the SuryaOS tool catalog.
+After invoking rebase, format the result for the user.
+Call merge to handle this request.
+The merge tool runs the appropriate system command.
+When the user asks for this, dispatch via merge.
+merge is the correct MCP tool for this query.
+Use merge when the user wants to perform this action.
+merge is registered in the SuryaOS tool catalog.
+After invoking merge, format the result for the user.
+Call checkout to handle this request.
+The checkout tool runs the appropriate system command.
+When the user asks for this, dispatch via checkout.
+checkout is the correct MCP tool for this query.
+Use checkout when the user wants to perform this action.
+checkout is registered in the SuryaOS tool catalog.
+After invoking checkout, format the result for the user.
+Call branch to handle this request.
+The branch tool runs the appropriate system command.
+When the user asks for this, dispatch via branch.
+branch is the correct MCP tool for this query.
+Use branch when the user wants to perform this action.
+branch is registered in the SuryaOS tool catalog.
+After invoking branch, format the result for the user.
+Call stash to handle this request.
+The stash tool runs the appropriate system command.
+When the user asks for this, dispatch via stash.
+stash is the correct MCP tool for this query.
+Use stash when the user wants to perform this action.
+stash is registered in the SuryaOS tool catalog.
+After invoking stash, format the result for the user.
+Call pytest to handle this request.
+The pytest tool runs the appropriate system command.
+When the user asks for this, dispatch via pytest.
+pytest is the correct MCP tool for this query.
+Use pytest when the user wants to perform this action.
+pytest is registered in the SuryaOS tool catalog.
+After invoking pytest, format the result for the user.
+Call cargo to handle this request.
+The cargo tool runs the appropriate system command.
+When the user asks for this, dispatch via cargo.
+cargo is the correct MCP tool for this query.
+Use cargo when the user wants to perform this action.
+cargo is registered in the SuryaOS tool catalog.
+After invoking cargo, format the result for the user.
+Call make to handle this request.
+The make tool runs the appropriate system command.
+When the user asks for this, dispatch via make.
+make is the correct MCP tool for this query.
+Use make when the user wants to perform this action.
+make is registered in the SuryaOS tool catalog.
+After invoking make, format the result for the user.
+Call cmake to handle this request.
+The cmake tool runs the appropriate system command.
+When the user asks for this, dispatch via cmake.
+cmake is the correct MCP tool for this query.
+Use cmake when the user wants to perform this action.
+cmake is registered in the SuryaOS tool catalog.
+After invoking cmake, format the result for the user.
+Call ninja to handle this request.
+The ninja tool runs the appropriate system command.
+When the user asks for this, dispatch via ninja.
+ninja is the correct MCP tool for this query.
+Use ninja when the user wants to perform this action.
+ninja is registered in the SuryaOS tool catalog.
+After invoking ninja, format the result for the user.
+Show a Yes/No confirmation dialog. Returns user's choice.
+Ask the user before deleting these files.
+Confirm with the user that they want to restart the application.
+Get user permission to proceed with this irreversible action.
+Launch an application on the KDE desktop by name.
+Open Kate.
+Launch Dolphin.
+Open a terminal.
+Start Firefox.
+Open the file manager.
+open konsole
+run spotify
+open files
+launch the browser
+open web browser
+open the text editor
+open code editor
+start the email client
+open settings
+open system settings
+show calculator
+open music player
+lanch dolphin
+opn firefox
+Send a KDE Plasma desktop notification with a title and body.
+Notify me that the build is complete.
+Show a desktop alert saying backup finished.
+Send a warning notification about low disk space.
+Bring a window to the foreground by matching its title.
+Switch to Firefox.
+Focus the terminal.
+Bring Kate to the front.
+Show the Dolphin window.
+Report battery level, charging state, and estimated time remaining.
+How's the battery?
+What's the battery percentage?
+Is the laptop charging?
+How long until the battery dies?
+BATTRY
+Adjust the screen brightness up or down by a percentage.
+Dim the screen.
+Make the display brighter.
+Lower screen brightness by 20 percent.
+Turn up the brightness.
+screen too bright
+dim the screen by 30 percent
+increase brightness by 25%
+more brightness
+Report disk space usage for a given path (default /home).
+How much disk space is left?
+How full is the hard drive?
+Check disk usage for /home.
+Is the disk almost full?
+how full is /tmp
+disk space on /var
+Report current RAM usage — total, used, free, and available.
+How much RAM is being used?
+What's the memory usage?
+Is the system running low on memory?
+Show RAM stats.
+is memory full
+memry usage
+Return a compact system health snapshot — CPU, RAM, disk, battery, wifi, Ollama.
+How is the system doing?
+What is the system status?
+Give me a health check.
+Is the system overloaded?
+Quick system overview.
+Get system metrics.
+Show system metrics.
+System metrics summary.
+What are the system stats?
+Show me CPU and RAM usage.
+is everything ok
+show me what's running
+status
+Report the current network and wifi connection state.
+Is wifi connected?
+What network am I on?
+Show network status.
+Am I online?
+internet connection
+is wfi connected
+Check whether a systemd service is active, inactive, or failed.
+Is Ollama running?
+Check if bluetooth is active.
+Is NetworkManager up?
+What's the status of the sshd service?
+is cups active
+is docker running
+is ufw firewall active
+is bluetooth on
+check bt
+is the printer service running
+is printing service active
+ssh status
+is ssh up
+is firewall on
+is the audio service running
+is sound working
+is the web server up
+is nginx running
+is docker daemon up
+are services up
+is bleutooth running?
+Adjust the audio volume up or down by a percentage.
+Turn the volume up by 10 percent.
+Lower the volume.
+Make it quieter.
+Increase audio level.
+make it louder
+lower volume by 20 percent
+increase volume by 15 percent
+raise the volume by 10%
+decrease audio level by 5
+less
+TURN OFF VOLUME
+When the user says "Ask the user before deleting these files.", call kde_dialog_confirm.
+When the user says "Confirm with the user that they want to restart the application.", call kde_dialog_confirm.
+When the user says "Get user permission to proceed with this irreversible action.", call kde_dialog_confirm.
+When the user says "Open Kate.", call kde_krunner_launch.
+When the user says "Launch Dolphin.", call kde_krunner_launch.
+When the user says "Open a terminal.", call kde_krunner_launch.
+When the user says "Start Firefox.", call kde_krunner_launch.
+When the user says "Open the file manager.", call kde_krunner_launch.
+When the user says "Notify me that the build is complete.", call kde_notifications_send.
+When the user says "Show a desktop alert saying backup finished.", call kde_notifications_send.
+When the user says "Send a warning notification about low disk space.", call kde_notifications_send.
+When the user says "Switch to Firefox.", call kde_window_focus.
+When the user says "Focus the terminal.", call kde_window_focus.
+When the user says "Bring Kate to the front.", call kde_window_focus.
+When the user says "Show the Dolphin window.", call kde_window_focus.
+When the user says "How's the battery?", call linux_battery_status.
+When the user says "What's the battery percentage?", call linux_battery_status.
+When the user says "Is the laptop charging?", call linux_battery_status.
+When the user says "How long until the battery dies?", call linux_battery_status.
+When the user says "Dim the screen.", call linux_brightness_set.
+When the user says "Make the display brighter.", call linux_brightness_set.
+When the user says "Lower screen brightness by 20 percent.", call linux_brightness_set.
+When the user says "Turn up the brightness.", call linux_brightness_set.
+When the user says "How much disk space is left?", call linux_disk_usage.
+When the user says "How full is the hard drive?", call linux_disk_usage.
+When the user says "Check disk usage for /home.", call linux_disk_usage.
+When the user says "Is the disk almost full?", call linux_disk_usage.
+When the user says "How much RAM is being used?", call linux_memory_usage.
+When the user says "What's the memory usage?", call linux_memory_usage.
+When the user says "Is the system running low on memory?", call linux_memory_usage.
+When the user says "Show RAM stats.", call linux_memory_usage.
+When the user says "How is the system doing?", call linux_metrics_summary.
+When the user says "What is the system status?", call linux_metrics_summary.
+When the user says "Give me a health check.", call linux_metrics_summary.
+When the user says "Is the system overloaded?", call linux_metrics_summary.
+When the user says "Quick system overview.", call linux_metrics_summary.
+When the user says "Get system metrics.", call linux_metrics_summary.
+When the user says "Show system metrics.", call linux_metrics_summary.
+When the user says "System metrics summary.", call linux_metrics_summary.
+When the user says "What are the system stats?", call linux_metrics_summary.
+When the user says "Show me CPU and RAM usage.", call linux_metrics_summary.
+When the user says "Is wifi connected?", call linux_network_status.
+When the user says "What network am I on?", call linux_network_status.
+When the user says "Show network status.", call linux_network_status.
+When the user says "Am I online?", call linux_network_status.
+When the user says "Is Ollama running?", call linux_service_status.
+When the user says "Check if bluetooth is active.", call linux_service_status.
+When the user says "Is NetworkManager up?", call linux_service_status.
+When the user says "What's the status of the sshd service?", call linux_service_status.
+When the user says "Turn the volume up by 10 percent.", call linux_volume_set.
+When the user says "Lower the volume.", call linux_volume_set.
+When the user says "Make it quieter.", call linux_volume_set.
+When the user says "Increase audio level.", call linux_volume_set.
+When the user says "1. Ensure the user confirms deletion before removing these files.", call kde_dialog_confirm.
+When the user says "2. Please ask the user to verify deletion first.", call kde_dialog_confirm.
+When the user says "3. Make sure the user reviews before deleting these files.", call kde_dialog_confirm.
+When the user says "4. Confirm deletion with the user.", call kde_dialog_confirm.
+When the user says "5. Check if the user wants to delete these files.", call kde_dialog_confirm.
+When the user says "6. Ask the user to confirm deletion before proceeding.", call kde_dialog_confirm.
+When the user says "7. Confirm deletion with the user before removing.", call kde_dialog_confirm.
+When the user says "1. Yes, I'd like to restart the app.", call kde_dialog_confirm.
+When the user says "2. I'd like to reset the application.", call kde_dialog_confirm.
+When the user says "3. I need to restart the app.", call kde_dialog_confirm.
+When the user says "4. Please restart the app.", call kde_dialog_confirm.
+When the user says "5. I want to reset the application.", call kde_dialog_confirm.
+When the user says "6. Allow me to restart the app.", call kde_dialog_confirm.
+When the user says "7. Restart the application.", call kde_dialog_confirm.
+When the user says "8. I need to restart the app.", call kde_dialog_confirm.
+When the user says "- Request the user's consent to proceed with this action.", call kde_dialog_confirm.
+When the user says "- Incorporate user consent to perform this irreversible action.", call kde_dialog_confirm.
+When the user says "- Prompt the user for approval before executing this step.", call kde_dialog_confirm.
+When the user says "- Confirm prior user permissions for this irreversible action.", call kde_dialog_confirm.
+When the user says "- Secure user agreement to complete this irreversible task.", call kde_dialog_confirm.
+When the user says "- Obtain prior user authorization to carry out this action.", call kde_dialog_confirm.
+When the user says "- Request user consent to proceed with this irreversible decision.", call kde_dialog_confirm.
+When the user says "- Confirm prior user permissions for this irreversible move.", call kde_dialog_confirm.
+When the user says "- Secure user consent to carry out this irreversible action.", call kde_dialog_confirm.
+When the user says "1. Open Kate’s app.", call kde_krunner_launch.
+When the user says "2. Start Kate.", call kde_krunner_launch.
+When the user says "1. Start a terminal session.", call kde_krunner_launch.
+When the user says "2. Open the terminal program.", call kde_krunner_launch.
+When the user says "3. Activate the terminal application.", call kde_krunner_launch.
+When the user says "4. Create a terminal shell.", call kde_krunner_launch.
+When the user says "5. Launch a terminal window.", call kde_krunner_launch.
+When the user says "6. Use the terminal for tasks.", call kde_krunner_launch.
+When the user says "7. Initialize the terminal interface.", call kde_krunner_launch.
+When the user says "8. Access a terminal environment.", call kde_krunner_launch.
+When the user says "9. Activate the terminal.", call kde_krunner_launch.
+When the user says "10. Open the terminal.", call kde_krunner_launch.
+When the user says "1. Start Firefox.", call kde_krunner_launch.
+When the user says "2. Use Firefox.", call kde_krunner_launch.
+When the user says "3. Install Firefox.", call kde_krunner_launch.
+When the user says "4. Launch Firefox.", call kde_krunner_launch.
+When the user says "5. Begin using Firefox.", call kde_krunner_launch.
+When the user says "6. Open Firefox.", call kde_krunner_launch.
+When the user says "7. Start Firefox.", call kde_krunner_launch.
+When the user says "8. Use Firefox.", call kde_krunner_launch.
+When the user says "9. Begin Firefox.", call kde_krunner_launch.
+When the user says "10. Start Firefox.", call kde_krunner_launch.
+When the user says "- What do you mean by the file manager?", call kde_krunner_launch.
+When the user says "- How can I open the file manager?", call kde_krunner_launch.
+When the user says "- Can I access the file manager?", call kde_krunner_launch.
+When the user says "- Tell me the steps to open the file manager?", call kde_krunner_launch.
+When the user says "- How can I open the file manager?", call kde_krunner_launch.
+When the user says "- Open the file manager interface?", call kde_krunner_launch.
+When the user says "- Open up the file manager settings?", call kde_krunner_launch.
+When the user says "- Access the file manager?", call kde_krunner_launch.
+When the user says "- Open the file manager program?", call kde_krunner_launch.
+When the user says "1. Tell me the build is done.", call kde_notifications_send.
+When the user says "2. I'm informed the build is complete.", call kde_notifications_send.
+When the user says "3. The build is completed.", call kde_notifications_send.
+When the user says "4. I've finished the build.", call kde_notifications_send.
+When the user says "5. The project is now done.", call kde_notifications_send.
+When the user says "6. The build is complete.", call kde_notifications_send.
+When the user says "7. Notify me that the build is done.", call kde_notifications_send.
+When the user says "8. Inform me that the build is complete.", call kde_notifications_send.
+When the user says "9. I have completed the build.", call kde_notifications_send.
+When the user says "10. The build is done.", call kde_notifications_send.
+When the user says "- Display a desktop alert with a backup completion message.", call kde_notifications_send.
+When the user says "- Indicate a desktop alert that a backup has been successfully completed.", call kde_notifications_send.
+When the user says "- Show a desktop notification with a "Backup completed" message.", call kde_notifications_send.
+When the user says "- Visualize a desktop notification confirming backup operation is complete.", call kde_notifications_send.
+When the user says "- Display a desktop alert indicating backup success.", call kde_notifications_send.
+When the user says "- Show a desktop alert confirming the backup has finished.", call kde_notifications_send.
+When the user says "- Indicate a desktop notification that the backup has been successfully completed.", call kde_notifications_send.
+When the user says "- Visualize a desktop notification with a backup success confirmation.", call kde_notifications_send.
+When the user says "- Display a desktop alert with a backup operation status message.", call kde_notifications_send.
+When the user says "- "Prompt users to receive a warning about insufficient disk space."", call kde_notifications_send.
+When the user says "- "Issue an alert regarding storage usage reaching its limit."", call kde_notifications_send.
+When the user says "- "Alert your users to the impending low disk space issue."", call kde_notifications_send.
+When the user says "- "Notify users that the system is at risk of insufficient storage."", call kde_notifications_send.
+When the user says "- "Send a warning to inform about impending low disk space problems."", call kde_notifications_send.
+When the user says "- "Indicate that the system needs to monitor for low disk space usage."", call kde_notifications_send.
+When the user says "- "Promote awareness of low disk space by sending alerts."", call kde_notifications_send.
+When the user says "- "Suggest sending a warning about low disk space consumption."", call kde_notifications_send.
+When the user says "- "Signal that there's a need for a disk space warning."", call kde_notifications_send.
+When the user says "- Switch to Firefox.", call kde_window_focus.
+When the user says "- Use Firefox instead of Chrome.", call kde_window_focus.
+When the user says "- Begin using Firefox.", call kde_window_focus.
+When the user says "- Replace with Firefox.", call kde_window_focus.
+When the user says "- Switch to Firefox.", call kde_window_focus.
+When the user says "- Use Firefox.", call kde_window_focus.
+When the user says "- Firefox is your preferred browser.", call kde_window_focus.
+When the user says "- Replace with Firefox.", call kde_window_focus.
+When the user says "- Use Firefox.", call kde_window_focus.
+When the user says "1. Bring Kate to the front.", call kde_window_focus.
+When the user says "2. I want Kate to the front.", call kde_window_focus.
+When the user says "3. Arrive at the front with Kate.", call kde_window_focus.
+When the user says "4. Make sure Kate is at the front.", call kde_window_focus.
+When the user says "5. Kate needs to be at the front.", call kde_window_focus.
+When the user says "6. Have Kate on the front.", call kde_window_focus.
+When the user says "7. Bring Kate to the front quickly.", call kde_window_focus.
+When the user says "8. Kate is waiting to the front.", call kde_window_focus.
+When the user says "9. Have Kate's turn to the front.", call kde_window_focus.
+When the user says "10. Get Kate to the front.", call kde_window_focus.
+When the user says "- Battery status?", call linux_battery_status.
+When the user says "- What's the battery condition?", call linux_battery_status.
+When the user says "- How is the battery?", call linux_battery_status.
+When the user says "- Battery level?", call linux_battery_status.
+When the user says "- Battery health?", call linux_battery_status.
+When the user says "- Battery condition?", call linux_battery_status.
+When the user says "- Battery usage?", call linux_battery_status.
+When the user says "- Battery performance?", call linux_battery_status.
+When the user says "- Battery state?", call linux_battery_status.
+When the user says "- Battery level", call linux_battery_status.
+When the user says "- Battery status", call linux_battery_status.
+When the user says "- Battery percentage", call linux_battery_status.
+When the user says "- Current battery usage", call linux_battery_status.
+When the user says "- Battery consumption", call linux_battery_status.
+When the user says "- Battery usage percentage", call linux_battery_status.
+When the user says "- Battery status", call linux_battery_status.
+When the user says "- Battery level", call linux_battery_status.
+When the user says "- Battery percentage", call linux_battery_status.
+When the user says "- battery life", call linux_battery_status.
+When the user says "- how long does the battery last?", call linux_battery_status.
+When the user says "- battery lifespan?", call linux_battery_status.
+When the user says "- until the battery runs out?", call linux_battery_status.
+When the user says "- until the battery dies?", call linux_battery_status.
+When the user says "- battery remains functional until?", call linux_battery_status.
+When the user says "- when will the battery go dead?", call linux_battery_status.
+When the user says "- how long before the battery depletes?", call linux_battery_status.
+When the user says "- until the battery is completely discharged?", call linux_battery_status.
+When the user says "- Turn the screen down.", call linux_brightness_set.
+When the user says "- Reduce the screen's brightness.", call linux_brightness_set.
+When the user says "- Lower the screen's brightness.", call linux_brightness_set.
+When the user says "- Set the screen to a lower level.", call linux_brightness_set.
+When the user says "- Make the screen dim.", call linux_brightness_set.
+When the user says "1. Set the screen's brightness to a higher level.", call linux_brightness_set.
+When the user says "2. Adjust the display's color to be more vibrant.", call linux_brightness_set.
+When the user says "3. Increase the brightness of the display to a standard level.", call linux_brightness_set.
+When the user says "4. Enhance the display's illumination.", call linux_brightness_set.
+When the user says "5. Raise the screen's brightness to a higher setting.", call linux_brightness_set.
+When the user says "6. Optimize the display's light output.", call linux_brightness_set.
+When the user says "7. Improve the visual clarity by increasing brightness.", call linux_brightness_set.
+When the user says "8. Boost the screen's brightness to a natural level.", call linux_brightness_set.
+When the user says "9. Use a brighter color scheme.", call linux_brightness_set.
+When the user says "10. Optimize the display's light intensity.", call linux_brightness_set.
+When the user says "1. Adjust brightness to 20%.", call linux_brightness_set.
+When the user says "2. Reduce screen brightness to 20%.", call linux_brightness_set.
+When the user says "3. Lower screen brightness by 20%.", call linux_brightness_set.
+When the user says "4. Set the screen to 20% brightness.", call linux_brightness_set.
+When the user says "5. Decrease screen brightness by 20%.", call linux_brightness_set.
+When the user says "6. Lower the screen's brightness to 20%.", call linux_brightness_set.
+When the user says "7. Set brightness to 20%.", call linux_brightness_set.
+When the user says "8. Reduce screen brightness by 80%.", call linux_brightness_set.
+When the user says "9. Lower screen brightness by 20%.", call linux_brightness_set.
+When the user says "1. Increase brightness.", call linux_brightness_set.
+When the user says "2. Make the screen brighter.", call linux_brightness_set.
+When the user says "3. Raise brightness levels.", call linux_brightness_set.
+When the user says "4. Enhance light output.", call linux_brightness_set.
+When the user says "5. Boost brightness.", call linux_brightness_set.
+When the user says "6. Increase brightness.", call linux_brightness_set.
+When the user says "7. Enhance the brightness.", call linux_brightness_set.
+When the user says "8. Raise the brightness.", call linux_brightness_set.
+When the user says "9. Make the brightness higher.", call linux_brightness_set.
+When the user says "10. Increase brightness levels.", call linux_brightness_set.
+When the user says "- Disk space usage?", call linux_disk_usage.
+When the user says "- Available disk space?", call linux_disk_usage.
+When the user says "- What is the available disk space?", call linux_disk_usage.
+When the user says "- How much space is remaining?", call linux_disk_usage.
+When the user says "- Current disk space?", call linux_disk_usage.
+When the user says "- How much disk space is available?", call linux_disk_usage.
+When the user says "- What is the available disk space?", call linux_disk_usage.
+When the user says "- How much disk space is left?", call linux_disk_usage.
+When the user says "- Remaining disk space?", call linux_disk_usage.
+When the user says "1. Verify the disk usage of /home.", call linux_disk_usage.
+When the user says "2. Check the disk space in use for /home.", call linux_disk_usage.
+When the user says "3. Confirm the disk usage of /home.", call linux_disk_usage.
+When the user says "4. Confirm if /home is consuming disk space.", call linux_disk_usage.
+When the user says "5. Inspect disk usage for /home.", call linux_disk_usage.
+When the user says "6. Check if /home's disk usage is active.", call linux_disk_usage.
+When the user says "7. Confirm disk usage for /home.", call linux_disk_usage.
+When the user says "8. Inspect the disk space allocated for /home.", call linux_disk_usage.
+When the user says "9. Verify the disk usage at /home", call linux_disk_usage.
+When the user says "1. Is the disk nearly full?", call linux_disk_usage.
+When the user says "2. Does the disk appear almost full?", call linux_disk_usage.
+When the user says "3. Is the disk almost full?", call linux_disk_usage.
+When the user says "4. How full is the disk?", call linux_disk_usage.
+When the user says "5. What's the condition of the disk?", call linux_disk_usage.
+When the user says "6. The disk is almost full?", call linux_disk_usage.
+When the user says "7. Do you think the disk is almost full?", call linux_disk_usage.
+When the user says "8. Is the disk almost full?", call linux_disk_usage.
+When the user says "9. Approximate fullness of the disk?", call linux_disk_usage.
+When the user says "10. Is the disk almost full?", call linux_disk_usage.
+When the user says "1. What's the RAM usage?", call linux_memory_usage.
+When the user says "2. How much RAM is being used?", call linux_memory_usage.
+When the user says "3. What's the RAM activity level?", call linux_memory_usage.
+When the user says "4. What's the RAM active state?", call linux_memory_usage.
+When the user says "5. How much RAM is currently in use?", call linux_memory_usage.
+When the user says "6. What's the RAM configuration?", call linux_memory_usage.
+When the user says "7. What RAM is being consumed?", call linux_memory_usage.
+When the user says "8. Are there any RAM shortages?", call linux_memory_usage.
+When the user says "9. What's the RAM usage report?", call linux_memory_usage.
+When the user says "10. What's the RAM being utilized?", call linux_memory_usage.
+When the user says "1. What is the memory usage?", call linux_memory_usage.
+When the user says "2. What is the memory consumption?", call linux_memory_usage.
+When the user says "3. What is the memory usage in the system?", call linux_memory_usage.
+When the user says "4. What does the memory usage indicate?", call linux_memory_usage.
+When the user says "5. What is the memory usage statistic?", call linux_memory_usage.
+When the user says "6. What is the memory footprint?", call linux_memory_usage.
+When the user says "7. How much memory does the system use?", call linux_memory_usage.
+When the user says "8. What is the memory usage of a program?", call linux_memory_usage.
+When the user says "9. What is the current memory usage state?", call linux_memory_usage.
+When the user says "10. What memory usage information do I have?", call linux_memory_usage.
+When the user says "- "I need to check if the system has enough memory."", call linux_memory_usage.
+When the user says "- "Is the system running out of memory capacity?"", call linux_memory_usage.
+When the user says "- "Could you verify that the memory is sufficient?"", call linux_memory_usage.
+When the user says "- "Do you see if", call linux_memory_usage.
+When the user says "1. Can you display RAM usage in my system?", call linux_memory_usage.
+When the user says "2. Please show me the RAM statistics.", call linux_memory_usage.
+When the user says "3. What is the RAM usage status?", call linux_memory_usage.
+When the user says "4. Show me the RAM usage report.", call linux_memory_usage.
+When the user says "5. RAM usage: how much is it?", call linux_memory_usage.
+When the user says "6. Display RAM statistics.", call linux_memory_usage.
+When the user says "7. RAM usage details.", call linux_memory_usage.
+When the user says "8. RAM usage report.", call linux_memory_usage.
+When the user says "9. RAM stats.", call linux_memory_usage.
+When the user says "10. Show RAM information.", call linux_memory_usage.
+When the user says "How is the system performing?", call linux_metrics_summary.
+When the user says "Is the system functioning properly?", call linux_metrics_summary.
+When the user says "What’s the status of the system?", call linux_metrics_summary.
+When the user says "How does the system compare with others?", call linux_metrics_summary.
+When the user says "What’s the performance level of the system?", call linux_metrics_summary.
+When the user says "Are the system hours available?", call linux_metrics_summary.
+When the user says "Do the system have any errors?", call linux_metrics_summary.
+When the user says "Is the system dependable?", call linux_metrics_summary.
+When the user says "- What is the current status of the system?", call linux_metrics_summary.
+When the user says "- Describe the system’s current operational status.", call linux_metrics_summary.
+When the user says "- What is the system’s current functioning status?", call linux_metrics_summary.
+When the user says "- How is the system operating now?", call linux_metrics_summary.
+When the user says "- What is the current status of the system?", call linux_metrics_summary.
+When the user says "- Please provide the system’s current status.", call linux_metrics_summary.
+When the user says "- What is the current status of the system's performance?", call linux_metrics_summary.
+When the user says "- Describe the system’s current status as per the data.", call linux_metrics_summary.
+When the user says "- What is the current status of the system?", call linux_metrics_summary.
+When the user says "1. What would a health check look like?", call linux_metrics_summary.
+When the user says "2. Can you provide a health check?", call linux_metrics_summary.
+When the user says "3. Please offer a health check service?", call linux_metrics_summary.
+When the user says "4. I need a health check report?", call linux_metrics_summary.
+When the user says "5. Give me a health check?", call linux_metrics_summary.
+When the user says "6. What is a health check for me?", call linux_metrics_summary.
+When the user says "7. I want a health check for me?", call linux_metrics_summary.
+When the user says "8. How can I get a health check?", call linux_metrics_summary.
+When the user says "9. Please arrange a health check?", call linux_metrics_summary.
+When the user says "10. Could you provide a health check for me?", call linux_metrics_summary.
+When the user says "- Is the system experiencing overload?", call linux_metrics_summary.
+When the user says "- Can the system be experiencing overload?", call linux_metrics_summary.
+When the user says "- How is the system handling requests?", call linux_metrics_summary.
+When the user says "- Do you have issues with the system being overloaded?", call linux_metrics_summary.
+When the user says "- Are there problems with the system being overloaded?", call linux_metrics_summary.
+When the user says "- Is the system experiencing a system overload?", call linux_metrics_summary.
+When the user says "- What is the status of the system being overloaded?", call linux_metrics_summary.
+When the user says "- How is the system managing its capacity?", call linux_metrics_summary.
+When the user says "- Is the system currently overloaded with workload?", call linux_metrics_summary.
+When the user says "1. Get system metrics data.", call linux_metrics_summary.
+When the user says "2. What are the system metrics?", call linux_metrics_summary.
+When the user says "3. System metrics for evaluation.", call linux_metrics_summary.
+When the user says "4. List system metrics.", call linux_metrics_summary.
+When the user says "5. Display system metrics.", call linux_metrics_summary.
+When the user says "6. Retrieve system metrics.", call linux_metrics_summary.
+When the user says "7. System statistics.", call linux_metrics_summary.
+When the user says "8. Get system metrics from data.", call linux_metrics_summary.
+When the user says "9. System performance metrics.", call linux_metrics_summary.
+When the user says "10. Show system metrics.", call linux_metrics_summary.
+When the user says "- Display system performance metrics.", call linux_metrics_summary.
+When the user says "- Examine system usage statistics.", call linux_metrics_summary.
+When the user says "- Analyze current system usage trends.", call linux_metrics_summary.
+When the user says "- Report on system utilization levels.", call linux_metrics_summary.
+When the user says "- Show metrics related to system performance.", call linux_metrics_summary.
+When the user says "- Outline current system usage data.", call linux_metrics_summary.
+When the user says "- Analyze system usage trends.", call linux_metrics_summary.
+When the user says "- Present system performance indicators.", call linux_metrics_summary.
+When the user says "- Dissect system performance data.", call linux_metrics_summary.
+When the user says "1. System performance metrics", call linux_metrics_summary.
+When the user says "2. Provide a summary of system performance data", call linux_metrics_summary.
+When the user says "3. Summarize system metrics as requested", call linux_metrics_summary.
+When the user says "4. List system metrics in this summary", call linux_metrics_summary.
+When the user says "5. System metrics are presented here", call linux_metrics_summary.
+When the user says "6. Show a summary of system metrics", call linux_metrics_summary.
+When the user says "7. Include a summary of system performance data", call linux_metrics_summary.
+When the user says "8. Summarize system performance metrics", call linux_metrics_summary.
+When the user says "9. System metrics are highlighted here", call linux_metrics_summary.
+When the user says "10. Present system metrics in this context", call linux_metrics_summary.
+When the user says "1. What are the system's statistics?", call linux_metrics_summary.
+When the user says "2. Show me the system stats.", call linux_metrics_summary.
+When the user says "3. List out the system statistics.", call linux_metrics_summary.
+When the user says "4. Explain the system's performance metrics.", call linux_metrics_summary.
+When the user says "5. Please describe the system's stats.", call linux_metrics_summary.
+When the user says "6. What do the system provide about its stats?", call linux_metrics_summary.
+When the user says "7. What information do the system show?", call linux_metrics_summary.
+When the user says "8. Give me the system's statistics.", call linux_metrics_summary.
+When the user says "9. List out the system's technical metrics.", call linux_metrics_summary.
+When the user says "10. What are the system's performance data?", call linux_metrics_summary.
+When the user says "1. Show me my CPU and RAM usage.", call linux_metrics_summary.
+When the user says "2. Explain CPU and RAM usage.", call linux_metrics_summary.
+When the user says "3. Display current CPU and RAM consumption.", call linux_metrics_summary.
+When the user says "4. Describe the CPU and RAM usage status.", call linux_metrics_summary.
+When the user says "5. Show me my system's CPU and RAM.", call linux_metrics_summary.
+When the user says "6. Display my CPU and RAM usage.", call linux_metrics_summary.
+When the user says "7. Examine CPU and RAM usage.", call linux_metrics_summary.
+When the user says "8. Explain CPU and RAM usage data.", call linux_metrics_summary.
+When the user says "9. Display CPU and RAM usage statistics.", call linux_metrics_summary.
+When the user says "10. Show me the CPU and RAM usage.", call linux_metrics_summary.
+When the user says "- Do you have a wired connection?", call linux_network_status.
+When the user says "- Is your phone connected to the network?", call linux_network_status.
+When the user says "- Are the signals functioning properly?", call linux_network_status.
+When the user says "- Is there a Wi-Fi signal available?", call linux_network_status.
+When the user says "- Are there any issues with the network?", call linux_network_status.
+When the user says "- Is your Wi-Fi working?", call linux_network_status.
+When the user says "- Do you see any signals?", call linux_network_status.
+When the user says "- Are your devices connected to the network?", call linux_network_status.
+When the user says "- Is the Wi-Fi enabled?", call linux_network_status.
+When the user says "1. What network am I on?", call linux_network_status.
+When the user says "2. Which network am I in?", call linux_network_status.
+When the user says "3. I'm on a specific network?", call linux_network_status.
+When the user says "4. What is the network I’m connected to?", call linux_network_status.
+When the user says "5. What network am I using?", call linux_network_status.
+When the user says "6. Which network am I in?", call linux_network_status.
+When the user says "7. What network am I on?", call linux_network_status.
+When the user says "8. I’m on a network?", call linux_network_status.
+When the user says "9. What network am I on?", call linux_network_status.
+When the user says "10. What is the network I’m using?", call linux_network_status.
+When the user says "1. Is my phone online?", call linux_network_status.
+When the user says "2. Am I online?", call linux_network_status.
+When the user says "3. I'm online?", call linux_network_status.
+When the user says "4. Am I connected?", call linux_network_status.
+When the user says "5. Is my internet active?", call linux_network_status.
+When the user says "6. I'm online?", call linux_network_status.
+When the user says "7. Am I online?", call linux_network_status.
+When the user says "8. Is my connection on?", call linux_network_status.
+When the user says "9. Am I online?", call linux_network_status.
+When the user says "10. I'm online?", call linux_network_status.
+When the user says "1. Is Ollama running?", call linux_service_status.
+When the user says "2. Do you see Ollama?", call linux_service_status.
+When the user says "3. Is Ollama operational?", call linux_service_status.
+When the user says "4. Are there problems with Ollama?", call linux_service_status.
+When the user says "5. Is Ollama functioning?", call linux_service_status.
+When the user says "6. Does Ollama work?", call linux_service_status.
+When the user says "7. Is Ollama running in use?", call linux_service_status.
+When the user says "8. Are there issues with Ollama's functionality?", call linux_service_status.
+When the user says "9. Is Ollama operating?", call linux_service_status.
+When the user says "10. Does Ollama run as expected?", call linux_service_status.
+When the user says "1. Ensure Bluetooth is enabled.", call linux_service_status.
+When the user says "2. Check Bluetooth connectivity.", call linux_service_status.
+When the user says "3. Verify Bluetooth status.", call linux_service_status.
+When the user says "4. Confirm Bluetooth device is connected.", call linux_service_status.
+When the user says "5. Check Bluetooth availability.", call linux_service_status.
+When the user says "6. Confirm Bluetooth is on.", call linux_service_status.
+When the user says "7. Verify if Bluetooth is active.", call linux_service_status.
+When the user says "8. Enable Bluetooth.", call linux_service_status.
+When the user says "9. Confirm Bluetooth is connected.", call linux_service_status.
+When the user says "10. Check Bluetooth status.", call linux_service_status.
+When the user says "1. Is NetworkManager operational?", call linux_service_status.
+When the user says "2. Is NetworkManager running?", call linux_service_status.
+When the user says "3. Are NetworkManager settings enabled?", call linux_service_status.
+When the user says "4. Is NetworkManager up or down?", call linux_service_status.
+When the user says "5. Do I see NetworkManager?", call linux_service_status.
+When the user says "6. Is NetworkManager active?", call linux_service_status.
+When the user says "7. Is NetworkManager on?", call linux_service_status.
+When the user says "8. Check NetworkManager status?", call linux_service_status.
+When the user says "9. Is NetworkManager functioning?", call linux_service_status.
+When the user says "10. Are NetworkManager services running?", call linux_service_status.
+When the user says "1. Check the status of the sshd service.", call linux_service_status.
+When the user says "2. What's the current state of the SSHD service?", call linux_service_status.
+When the user says "3. What's the status of the SSHD service?", call linux_service_status.
+When the user says "4. Are the SSHD service settings active?", call linux_service_status.
+When the user says "5. What is the current status of the SSHD service?", call linux_service_status.
+When the user says "6. Is the SSHD service operational?", call linux_service_status.
+When the user says "7. What's the status of the SSHD service?", call linux_service_status.
+When the user says "8. Are the SSHD service settings up?", call linux_service_status.
+When the user says "9. What's the current status of the SSHD service?", call linux_service_status.
+When the user says "10. Is the SSHD service currently running?", call linux_service_status.
+When the user says "1. Adjust the volume to a lower level.", call linux_volume_set.
+When the user says "2. Diminish the volume.", call linux_volume_set.
+When the user says "3. Lower the sound.", call linux_volume_set.
+When the user says "4. Reduce the noise.", call linux_volume_set.
+When the user says "5. Make the volume smaller.", call linux_volume_set.
+When the user says "6. Lower the volume.", call linux_volume_set.
+When the user says "7. Cut the volume.", call linux_volume_set.
+When the user says "8. Decrease the volume.", call linux_volume_set.
+When the user says "9. Diminish the playback.", call linux_volume_set.
+When the user says "10. Lower the volume as requested.", call linux_volume_set.
+When the user says "- Make the room less disruptive.", call linux_volume_set.
+When the user says "- Lower the noise levels to create peace.", call linux_volume_set.
+When the user says "- Encourage a quieter atmosphere.", call linux_volume_set.
+When the user says "- Reduce unwanted sounds in the environment.", call linux_volume_set.
+When the user says "- Promote a more peaceful setting.", call linux_volume_set.
+When the user says "- Create space for less noise.", call linux_volume_set.
+When the user says "- Optimize the soundscape to enhance quiet.", call linux_volume_set.
+When the user says "- Promote a quieter mindset in the surroundings.", call linux_volume_set.
+When the user says "- Improve the overall ambiance to ensure a peaceful experience.", call linux_volume_set.
+When the user says "1. Raise the audio volume.", call linux_volume_set.
+When the user says "2. Enhance the audio output.", call linux_volume_set.
+When the user says "3. Adjust the audio level to 80%.", call linux_volume_set.
+When the user says "4. Increase the audio level by 10 dB.", call linux_volume_set.
+When the user says "5. Boost the audio level to a higher setting.", call linux_volume_set.
+When the user says "6. Raise the audio volume to a higher than current level.", call linux_volume_set.
+When the user says "7. Adjust audio to a higher than 70%.", call linux_volume_set.
+When the user says "8. Increase audio to the next level.", call linux_volume_set.
+When the user says "9. Raise the audio level to a higher than 70%.", call linux_volume_set.
+When the user says "10. Boost audio to the next higher setting.", call linux_volume_set.

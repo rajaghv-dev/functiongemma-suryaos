@@ -1,0 +1,15 @@
+up
+down
+active
+inactive
+failed
+deactivating
+activating
+connected
+disconnected
+limited
+portal
+charging
+discharging
+fully-charged
+unknown

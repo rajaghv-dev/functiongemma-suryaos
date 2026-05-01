@@ -1,0 +1,860 @@
+{
+  "tool_name": [
+    {
+      "token": "kde.dialog.confirm",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.dialog.confirm"
+    },
+    {
+      "token": "kde_dialog_confirm",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.dialog.confirm"
+    },
+    {
+      "token": "dialog_confirm",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.dialog.confirm"
+    },
+    {
+      "token": "system_dialog_confirm",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.dialog.confirm"
+    },
+    {
+      "token": "volume_dialog_confirm",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.dialog.confirm"
+    },
+    {
+      "token": "kde.krunner.launch",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.krunner.launch"
+    },
+    {
+      "token": "kde_krunner_launch",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.krunner.launch"
+    },
+    {
+      "token": "krunner_launch",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.krunner.launch"
+    },
+    {
+      "token": "system_krunner_launch",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.krunner.launch"
+    },
+    {
+      "token": "volume_krunner_launch",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.krunner.launch"
+    },
+    {
+      "token": "kde.notifications.send",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.notifications.send"
+    },
+    {
+      "token": "kde_notifications_send",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.notifications.send"
+    },
+    {
+      "token": "notifications_send",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.notifications.send"
+    },
+    {
+      "token": "system_notifications_send",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.notifications.send"
+    },
+    {
+      "token": "volume_notifications_send",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.notifications.send"
+    },
+    {
+      "token": "kde.window.focus",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.window.focus"
+    },
+    {
+      "token": "kde_window_focus",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.window.focus"
+    },
+    {
+      "token": "window_focus",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.window.focus"
+    },
+    {
+      "token": "system_window_focus",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.window.focus"
+    },
+    {
+      "token": "volume_window_focus",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "kde.window.focus"
+    },
+    {
+      "token": "linux.battery.status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.battery.status"
+    },
+    {
+      "token": "linux_battery_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.battery.status"
+    },
+    {
+      "token": "battery_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.battery.status"
+    },
+    {
+      "token": "system_battery_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.battery.status"
+    },
+    {
+      "token": "volume_battery_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.battery.status"
+    },
+    {
+      "token": "kde_battery_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.battery.status"
+    },
+    {
+      "token": "linux.brightness.set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.brightness.set"
+    },
+    {
+      "token": "linux_brightness_set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.brightness.set"
+    },
+    {
+      "token": "brightness_set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.brightness.set"
+    },
+    {
+      "token": "system_brightness_set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.brightness.set"
+    },
+    {
+      "token": "volume_brightness_set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.brightness.set"
+    },
+    {
+      "token": "kde_brightness_set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.brightness.set"
+    },
+    {
+      "token": "linux.disk.usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.disk.usage"
+    },
+    {
+      "token": "linux_disk_usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.disk.usage"
+    },
+    {
+      "token": "disk_usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.disk.usage"
+    },
+    {
+      "token": "system_disk_usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.disk.usage"
+    },
+    {
+      "token": "volume_disk_usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.disk.usage"
+    },
+    {
+      "token": "kde_disk_usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.disk.usage"
+    },
+    {
+      "token": "linux.memory.usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.memory.usage"
+    },
+    {
+      "token": "linux_memory_usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.memory.usage"
+    },
+    {
+      "token": "memory_usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.memory.usage"
+    },
+    {
+      "token": "system_memory_usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.memory.usage"
+    },
+    {
+      "token": "volume_memory_usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.memory.usage"
+    },
+    {
+      "token": "kde_memory_usage",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.memory.usage"
+    },
+    {
+      "token": "linux.metrics.summary",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.metrics.summary"
+    },
+    {
+      "token": "linux_metrics_summary",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.metrics.summary"
+    },
+    {
+      "token": "metrics_summary",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.metrics.summary"
+    },
+    {
+      "token": "system_metrics_summary",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.metrics.summary"
+    },
+    {
+      "token": "volume_metrics_summary",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.metrics.summary"
+    },
+    {
+      "token": "kde_metrics_summary",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.metrics.summary"
+    },
+    {
+      "token": "linux.network.status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.network.status"
+    },
+    {
+      "token": "linux_network_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.network.status"
+    },
+    {
+      "token": "network_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.network.status"
+    },
+    {
+      "token": "system_network_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.network.status"
+    },
+    {
+      "token": "volume_network_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.network.status"
+    },
+    {
+      "token": "kde_network_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.network.status"
+    },
+    {
+      "token": "linux.service.status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.service.status"
+    },
+    {
+      "token": "linux_service_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.service.status"
+    },
+    {
+      "token": "service_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.service.status"
+    },
+    {
+      "token": "system_service_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.service.status"
+    },
+    {
+      "token": "volume_service_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.service.status"
+    },
+    {
+      "token": "kde_service_status",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.service.status"
+    },
+    {
+      "token": "linux.volume.set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.volume.set"
+    },
+    {
+      "token": "linux_volume_set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.volume.set"
+    },
+    {
+      "token": "volume_set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.volume.set"
+    },
+    {
+      "token": "system_volume_set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.volume.set"
+    },
+    {
+      "token": "volume_volume_set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.volume.set"
+    },
+    {
+      "token": "kde_volume_set",
+      "category": "tool_name",
+      "source": "tool_registry",
+      "for_tool": "linux.volume.set"
+    }
+  ],
+  "kde": [
+    {
+      "token": "Plasma",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "KWin",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "KDE",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "Wayland",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "KRunner",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "Kate",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "Dolphin",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "Konsole",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "KMail",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "KOrganizer",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "KDevelop",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "Akonadi",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "Klipper",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "kdialog",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "kstart5",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "kstart6",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "qdbus",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "qdbus5",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "qdbus6",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "kioclient5",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "kioclient6",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "KIO",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "KCM",
+      "category": "kde",
+      "source": "curated"
+    },
+    {
+      "token": "kglobalaccel",
+      "category": "kde",
+      "source": "curated"
+    }
+  ],
+  "system": [
+    {
+      "token": "systemd",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "systemctl",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "journalctl",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "pipewire",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "pulseaudio",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "NetworkManager",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "bluetoothd",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "cupsd",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "ollama",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "udevd",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "dbus-daemon",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "logind",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "rtkit",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "pactl",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "nmcli",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "wmctrl",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "acpi",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "brightnessctl",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "notify-send",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "free",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "df",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "lsblk",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "iotop",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "BAT0",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "wlo1",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "eno2",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "nvme0n1",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "DEFAULT_SINK",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "/proc",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "/sys",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "/etc/systemd",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "/var/log",
+      "category": "system",
+      "source": "curated"
+    },
+    {
+      "token": "/opt/surya-agent",
+      "category": "system",
+      "source": "curated"
+    }
+  ],
+  "arg_value": [
+    {
+      "token": "up",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "down",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "active",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "inactive",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "failed",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "deactivating",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "activating",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "connected",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "disconnected",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "limited",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "portal",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "charging",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "discharging",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "fully-charged",
+      "category": "arg_value",
+      "source": "curated"
+    },
+    {
+      "token": "unknown",
+      "category": "arg_value",
+      "source": "curated"
+    }
+  ],
+  "v4_workflow": [
+    {
+      "token": "compile",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "build",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "test",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "commit",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "push",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "pull",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "rebase",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "merge",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "checkout",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "branch",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "stash",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "pytest",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "cargo",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "make",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "cmake",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    },
+    {
+      "token": "ninja",
+      "category": "v4_workflow",
+      "source": "v4_curated"
+    }
+  ]
+}

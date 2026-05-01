@@ -64,14 +64,20 @@ User query: "how much ram is used"
 | Training time | ~25 min CPU (Intel Meteor Lake, 30 GiB RAM) |
 | Output | `functiongemma:270m-suryaos` Ollama model |
 
-## Dataset
+## Datasets
 
-See [`dataset/README.md`](dataset/README.md) for full description.
+Three separate datasets, each training a different layer of the system:
 
-| File | Lines | Description |
-|---|---|---|
-| `dataset/dispatch_pairs.jsonl` | 77 | (query, schema, tool_call) for functiongemma fine-tune |
-| `dataset/embed_pairs.jsonl` | 48 | (query, tool_name, negative) for embedding fine-tune |
+| Dataset | Items | Trains | Doc |
+|---|---|---|---|
+| `dataset/dispatch_pairs.jsonl` | 462 | functiongemma weights (LoRA) | [dataset/README.md](dataset/README.md) |
+| `dataset/embed_pairs.jsonl` | 461 | all-minilm:22m embedding model | [dataset/README.md](dataset/README.md) |
+| `dataset/tokenizer/` | 156 tokens + 1559 sentences | SentencePiece vocabulary | [dataset/tokenizer/README.md](dataset/tokenizer/README.md) |
+
+**Tokenizer dataset** adds 156 new atomic tokens (12 tool names × 3 forms +
+KDE concepts + Linux daemons + arg values + v4 git/code terms). Without
+extension, `system_metrics_summary` = 5 tokens; with extension = 1 token.
+Saves ~50 prefill tokens per request and makes routing more reliable.
 
 Sources:
 - `yaml` (48): examples from SuryaOS tool YAML catalog

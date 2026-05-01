@@ -1,0 +1,16 @@
+compile
+build
+test
+commit
+push
+pull
+rebase
+merge
+checkout
+branch
+stash
+pytest
+cargo
+make
+cmake
+ninja
