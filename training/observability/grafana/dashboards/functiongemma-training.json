@@ -1,0 +1,543 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Live training telemetry for functiongemma-suryaos. Combines Prometheus time-series (loss, lr, grad_norm, per-tool loss, cosine sims, embedding norms) with Loki event logs (per-tool probe tables, narration, cosine probes, mastered/struggling tools). Compare runs via the run_id selector.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "type": "row",
+      "title": "▌ Live status",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "collapsed": false
+    },
+    {
+      "type": "stat",
+      "title": "Current loss",
+      "description": "The most recent training loss pushed by the training script. Lower is better. <0.5 = adapter has learned.",
+      "id": 1,
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "training_loss{phase=~\"$phase\", run_id=~\"$run_id\"}",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 1.0 },
+              { "color": "red",    "value": 2.0 }
+            ]
+          },
+          "unit": "none",
+          "decimals": 3
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Current step",
+      "description": "Number of optimizer steps completed in this training run.",
+      "id": 2,
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "training_step{phase=~\"$phase\", run_id=~\"$run_id\"}",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Memory (MB)",
+      "description": "Process resident memory of the training script. Watch for steady growth — could indicate a leak.",
+      "id": 3,
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "training_memory_mb{phase=~\"$phase\", run_id=~\"$run_id\"}",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "decmbytes" }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Current epoch",
+      "id": 4,
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "training_epoch{phase=~\"$phase\", run_id=~\"$run_id\"}",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "type": "stat",
+      "title": "Mastered tools",
+      "description": "Tools with epoch-end probe loss < 0.5. The adapter has learned to dispatch these reliably.",
+      "id": 5,
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "count(training_per_tool_loss{run_id=~\"$run_id\"} < 0.5)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Struggling tools",
+      "description": "Tools with probe loss > 1.5 — model still doesn't dispatch these well. Add more examples.",
+      "id": 6,
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "count(training_per_tool_loss{run_id=~\"$run_id\"} > 1.5)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }] }
+        }
+      }
+    },
+
+    {
+      "type": "row",
+      "title": "▌ Loss + learning rate over time",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "Training loss",
+      "description": "Cross-entropy loss over training steps. The hallmark sign of healthy training is a steady downward curve. A plateau means the model has converged for the current learning rate.",
+      "id": 10,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "training_loss{phase=~\"$phase\", run_id=~\"$run_id\"}",
+          "legendFormat": "{{phase}} / {{run_id}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "gradientMode": "opacity"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "transparent", "value": null },
+              { "color": "yellow", "value": 1.0 },
+              { "color": "red",    "value": 2.0 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["min", "lastNotNull"] }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Learning rate schedule",
+      "description": "LR ramps up linearly during warmup (first 10% of steps), then decays. If LR isn't dropping, the schedule is broken.",
+      "id": 11,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "training_learning_rate{phase=~\"$phase\", run_id=~\"$run_id\"}",
+          "legendFormat": "{{run_id}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2 },
+          "unit": "none",
+          "decimals": 6
+        }
+      }
+    },
+
+    {
+      "type": "row",
+      "title": "▌ Stability (gradient + memory)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "Gradient norm (pre-clip)",
+      "description": "L2 norm of gradients before clipping. We clip at 1.0 — values above this mean the optimizer wanted a larger step than was safe. Occasional spikes are normal; sustained values >1.5 = instability.",
+      "id": 20,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "training_grad_norm{phase=~\"$phase\", run_id=~\"$run_id\"}",
+          "legendFormat": "{{run_id}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 1.5, "fillOpacity": 5 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 1.0 },
+              { "color": "red",    "value": 1.5 }
+            ]
+          },
+          "custom_thresholdsStyle": { "mode": "line" }
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Process memory (MB)",
+      "description": "Resident memory of the training process. Steady = healthy. Steady growth = leak (file handles, optimizer state, etc.).",
+      "id": 21,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "training_memory_mb{phase=~\"$phase\", run_id=~\"$run_id\"}",
+          "legendFormat": "{{run_id}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "decmbytes" }
+      }
+    },
+
+    {
+      "type": "row",
+      "title": "▌ Per-tool accuracy (LoRA phase)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "id": 103,
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "Per-tool response loss over epochs",
+      "description": "Lower = adapter has learned this tool. <0.5 mastered, >1.5 struggling. Tools that flatten fast are easy patterns; ones that stay high need more dispatch_pairs.jsonl examples.",
+      "id": 30,
+      "gridPos": { "h": 10, "w": 16, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "training_per_tool_loss{run_id=~\"$run_id\"}",
+          "legendFormat": "{{tool}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 6
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red",    "value": 1.5 }
+            ]
+          },
+          "custom_thresholdsStyle": { "mode": "area" }
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "min"] }
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Latest per-tool loss",
+      "description": "Most recent probe values per tool. Green=mastered, yellow=learning, red=struggling.",
+      "id": 31,
+      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 24 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "training_per_tool_loss{run_id=~\"$run_id\"}",
+          "legendFormat": "{{tool}}",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red",    "value": 1.5 }
+            ]
+          },
+          "max": 3.0,
+          "min": 0
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true
+      }
+    },
+
+    {
+      "type": "row",
+      "title": "▌ Tokenizer phase: cosine similarity probes",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 },
+      "id": 104,
+      "collapsed": false
+    },
+    {
+      "type": "timeseries",
+      "title": "Cosine similarity per probe pair",
+      "description": "Same-tool pairs should rise (>0.5 means model treats them as related). Cross-domain pairs should stay low (<0.3) — high values mean embeddings are collapsing into one cluster.",
+      "id": 40,
+      "gridPos": { "h": 10, "w": 16, "x": 0, "y": 35 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "tokenizer_cosine_sim{run_id=~\"$run_id\"}",
+          "legendFormat": "{{pair}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "showPoints": "always"
+          },
+          "min": -0.2,
+          "max": 1.0
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Embedding norm ratio (new / base)",
+      "description": "How loud the new token embeddings are vs base vocab. 0.7-1.3 is healthy. <0.5 means new tokens may be ignored. >1.5 means they may dominate.",
+      "id": 41,
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 35 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "tokenizer_norm_ratio{run_id=~\"$run_id\"}",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "green",  "value": 0.7 },
+              { "color": "yellow", "value": 1.3 },
+              { "color": "red",    "value": 1.5 }
+            ]
+          },
+          "decimals": 2
+        }
+      },
+      "options": { "graphMode": "area" }
+    },
+    {
+      "type": "stat",
+      "title": "Embedding drift from smart-init",
+      "description": "How far new token embeddings have moved from their smart-init starting point. Higher = more learning. Near zero after corpus training = something is wrong.",
+      "id": 42,
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 40 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "tokenizer_embedding_drift{run_id=~\"$run_id\"}",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "decimals": 4 }
+      }
+    },
+
+    {
+      "type": "row",
+      "title": "▌ Live event log (Loki)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 45 },
+      "id": 105,
+      "collapsed": false
+    },
+    {
+      "type": "logs",
+      "title": "Training events (live tail)",
+      "description": "Every JSONL entry as it arrives. Filter by phase or event in the legend. This is the raw event stream — per-tool tables, cosine probes, narration.",
+      "id": 50,
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 46 },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=\"functiongemma\", phase=~\"$phase\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      }
+    },
+
+    {
+      "type": "row",
+      "title": "▌ Recent epoch probe results",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 58 },
+      "id": 106,
+      "collapsed": false
+    },
+    {
+      "type": "logs",
+      "title": "Per-epoch probe tables (Loki)",
+      "description": "End-of-epoch probe results showing per-tool loss. The freshest entry is the most recent epoch.",
+      "id": 60,
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 59 },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{job=\"functiongemma\", event=\"epoch_probe\"} | json",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": true,
+        "sortOrder": "Descending"
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["functiongemma", "training", "lora"],
+  "templating": {
+    "list": [
+      {
+        "name": "phase",
+        "label": "Training phase",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(training_loss, phase)",
+        "current": { "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "multi": true,
+        "refresh": 2
+      },
+      {
+        "name": "run_id",
+        "label": "Run",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(training_loss, run_id)",
+        "current": { "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "multi": true,
+        "refresh": 2
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "1h"]
+  },
+  "timezone": "browser",
+  "title": "functiongemma — training overview",
+  "uid": "fngemma-training",
+  "version": 1
+}

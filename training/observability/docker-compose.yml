@@ -1,0 +1,125 @@
+# =============================================================================
+# Observability stack for functiongemma training.
+#
+# What runs here:
+#   loki         (3100) — log aggregation; receives JSONL from Promtail
+#   promtail            — agent that tails training/*/train_log.jsonl files
+#   pushgateway  (9091) — receives metric pushes from training scripts
+#   prometheus   (9090) — time-series DB; scrapes pushgateway every 5s
+#   grafana      (3000) — dashboards (admin / admin)
+#
+# Bring up:
+#   cd training/observability && docker compose up -d
+#
+# Access:
+#   Grafana:    http://localhost:3000   (admin / admin)
+#   Prometheus: http://localhost:9090
+#   Pushgateway: http://localhost:9091
+#   Loki API:   http://localhost:3100
+#
+# Tear down (preserves data):
+#   docker compose down
+#
+# Tear down (drops data):
+#   docker compose down -v
+# =============================================================================
+
+services:
+
+  # ── Loki: log aggregation ────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: fngemma-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+
+  # ── Promtail: tails JSONL files and ships to Loki ────────────────────────
+  # We mount the parent training/ dir read-only so promtail sees both
+  # tokenizer_extended/train_log.jsonl and model_lora/training_log.jsonl.
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: fngemma-promtail
+    volumes:
+      - ./promtail/config.yml:/etc/promtail/config.yml:ro
+      - ../../training:/watch/training:ro    # mount training/ from repo
+      - promtail-positions:/var/lib/promtail # remember last-read position
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  # ── Pushgateway: receives metric pushes from training scripts ────────────
+  # Training scripts call MetricsPusher.push() which POSTs metrics here.
+  # Prometheus scrapes pushgateway, so metrics persist across short training jobs.
+  pushgateway:
+    image: prom/pushgateway:v1.7.0
+    container_name: fngemma-pushgateway
+    ports:
+      - "9091:9091"
+    restart: unless-stopped
+    # --persistence.file: write pushed metrics to disk so they survive restarts
+    command:
+      - --persistence.file=/data/metrics
+      - --persistence.interval=30s
+    volumes:
+      - pushgateway-data:/data
+
+  # ── Prometheus: scrapes pushgateway, stores time-series ──────────────────
+  prometheus:
+    image: prom/prometheus:v2.49.1
+    container_name: fngemma-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    depends_on:
+      - pushgateway
+    restart: unless-stopped
+
+  # ── Grafana: dashboards ──────────────────────────────────────────────────
+  # Datasources + dashboards are auto-provisioned from ./grafana/provisioning/
+  # so the stack is usable the moment containers are up.
+  grafana:
+    image: grafana/grafana:10.3.1
+    container_name: fngemma-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      # Default credentials — change in production
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      # No telemetry phone-home
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      # Allow anonymous read-only access (handy for sharing dashboards)
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - loki
+      - prometheus
+    restart: unless-stopped
+
+# ── Persistent volumes ─────────────────────────────────────────────────────
+# Each service stores its data in a named volume so `docker compose up -d`
+# preserves history across restarts. Use `docker compose down -v` to wipe.
+volumes:
+  loki-data:
+  prometheus-data:
+  pushgateway-data:
+  promtail-positions:
+  grafana-data:

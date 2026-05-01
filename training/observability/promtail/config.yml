@@ -1,0 +1,94 @@
+# =============================================================================
+# Promtail config — tails functiongemma training JSONL files and ships to Loki.
+#
+# Two JSONL streams are watched:
+#   /watch/training/tokenizer_extended/train_log.jsonl  (tokenizer phase)
+#   /watch/training/model_lora/training_log.jsonl       (LoRA training phase)
+#
+# Each line is a single JSON object. Promtail parses the JSON and promotes
+# selected fields to Loki labels — these are queryable in Grafana via LogQL.
+#
+# Labels we extract:
+#   job          — always "functiongemma"
+#   phase        — "tokenizer" | "lora_train"  (set by the file path)
+#   event        — "step" | "epoch_end" | "epoch_probe" | "fragmentation_before" ...
+#   tool         — tool name when present (per-tool probe rows expand this)
+#   epoch        — epoch number when present
+#
+# Why labels instead of just JSON parse?
+#   Labels are indexed in Loki — fast filtering. JSON-parsed fields are queryable
+#   via LogQL but slower. We label the dimensions we filter/group by most often.
+# =============================================================================
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+# Where promtail remembers what byte offset it has already shipped per file.
+# Survives restarts so we don't re-ship logs after a container bounce.
+positions:
+  filename: /var/lib/promtail/positions.yaml
+
+# Where to send the logs
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+
+  # ── Tokenizer phase JSONL ────────────────────────────────────────────────
+  - job_name: functiongemma_tokenizer
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: functiongemma
+          phase: tokenizer
+          __path__: /watch/training/tokenizer_extended/train_log.jsonl
+    pipeline_stages:
+      # Parse JSON line so we can promote fields to labels
+      - json:
+          expressions:
+            event:  event
+            epoch:  epoch
+            step:   step
+            phase_inner: phase   # the tokenizer log uses 'phase' for sub-phase name
+
+      # Promote fields to labels (selectively — too many = high cardinality)
+      - labels:
+          event:
+          epoch:
+          phase_inner:
+
+      # If the JSON entry has a numeric "step", use that as the timestamp dim;
+      # otherwise let Promtail use the file-read time
+      - timestamp:
+          source: ts
+          format: RFC3339Nano
+          fallback_formats:
+            - Unix
+            - UnixMs
+
+  # ── LoRA training JSONL ──────────────────────────────────────────────────
+  - job_name: functiongemma_lora
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: functiongemma
+          phase: lora_train
+          __path__: /watch/training/model_lora/training_log.jsonl
+    pipeline_stages:
+      - json:
+          expressions:
+            event: event
+            epoch: epoch
+            step:  step
+
+      - labels:
+          event:
+          epoch:
+
+      - timestamp:
+          source: ts
+          format: RFC3339Nano
+          fallback_formats:
+            - Unix
+            - UnixMs

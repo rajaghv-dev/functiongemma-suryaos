@@ -1,0 +1,31 @@
+# =============================================================================
+# Prometheus configuration for functiongemma training metrics.
+#
+# Single scrape target: pushgateway. Training scripts push metrics there and
+# Prometheus scrapes pushgateway every 5 seconds.
+#
+# Why Pushgateway and not direct scraping?
+#   Training is a SHORT-LIVED batch job (15-25 min) — Prometheus's normal
+#   pull-based model would miss data because the training process exits before
+#   most scrapes happen. Pushgateway is the canonical solution: training scripts
+#   push their state to it, and Pushgateway is always up to be scraped.
+# =============================================================================
+
+global:
+  scrape_interval:     5s    # how often to scrape pushgateway
+  evaluation_interval: 15s   # how often to evaluate alerting/recording rules
+  external_labels:
+    monitor: 'functiongemma-training'
+
+scrape_configs:
+
+  # Pushgateway: receives all training metrics
+  - job_name: 'pushgateway'
+    honor_labels: true       # respect labels set by the training script (e.g. run_id)
+    static_configs:
+      - targets: ['pushgateway:9091']
+
+  # Prometheus self-monitoring — useful to know if Prometheus itself is healthy
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

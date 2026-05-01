@@ -33,3 +33,7 @@ sentencepiece>=0.1.99
 psutil>=5.9.0
 tqdm>=4.66.0
 rich>=13.0.0
+
+# Pushgateway client for Grafana/Prometheus dashboard. Optional — training
+# silently runs without it (MetricsPusher gracefully no-ops).
+prometheus_client>=0.20.0

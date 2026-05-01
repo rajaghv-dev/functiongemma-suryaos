@@ -1,0 +1,23 @@
+# =============================================================================
+# Grafana dashboard auto-provisioning.
+#
+# At startup, Grafana scans /var/lib/grafana/dashboards/ for *.json dashboard
+# files and loads them automatically. This means our pre-built training
+# dashboard is available the moment the stack comes up — no manual import.
+#
+# Dashboards mounted at: /var/lib/grafana/dashboards/  (see docker-compose.yml)
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  - name: functiongemma
+    orgId: 1
+    folder: 'functiongemma'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30   # re-scan every 30s; edit JSON & it reloads
+    allowUiUpdates: true        # allow editing in UI (saves back to disk)
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

@@ -138,6 +138,55 @@ def _elapsed(start: float) -> str:
     return f"{secs // 60}m {secs % 60}s"
 
 
+def _get_hf_token() -> Optional[str]:
+    """
+    Resolve HuggingFace auth token from env vars or the cli login file.
+
+    Gemma 3 is a GATED model — accessing it from the Hub requires authentication
+    even with a paid HF account. We check three places, in order:
+      1. HF_TOKEN              env var (preferred)
+      2. HUGGINGFACE_HUB_TOKEN  env var (legacy name)
+      3. ~/.cache/huggingface/token  (from `huggingface-cli login`)
+
+    Returns the token string, or None if no token found.
+    """
+    tok = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
+    if tok:
+        return tok.strip()
+
+    token_file = Path.home() / ".cache" / "huggingface" / "token"
+    if token_file.exists():
+        try:
+            t = token_file.read_text().strip()
+            if t:
+                return t
+        except Exception:
+            pass
+
+    return None
+
+
+def _print_hf_auth_help() -> None:
+    """Print exact commands to set up HF authentication for gated models."""
+    print()
+    _err("Gemma 3 is a GATED model — needs HuggingFace authentication.")
+    print()
+    print("  Fix in 2 steps:")
+    print("    1. Accept the license (one-time, in browser):")
+    print("       https://huggingface.co/google/gemma-3-270m-it")
+    print()
+    print("    2. Set your token (pick ONE of these):")
+    print("       a) export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxx")
+    print("          (then re-run this script in the same shell)")
+    print()
+    print("       b) huggingface-cli login")
+    print("          (one-time; writes ~/.cache/huggingface/token)")
+    print()
+    print("    Get your token at: https://huggingface.co/settings/tokens")
+    print("    (any 'read' scope token works)")
+    print()
+
+
 def _detect_hardware() -> dict:
     """
     Inspect the available GPU (if any) and return a training profile.
@@ -556,6 +605,15 @@ class DispatchCallback(_TrainerCallbackBase):
         self.narrator    = _LoRANarrator()   # live commentary engine
         self._last_loss  = None              # for narration of cumulative trends
 
+        # Prometheus Pushgateway pusher — silently no-ops if stack not running.
+        # Lazy import keeps this file usable without prometheus_client installed.
+        try:
+            from .metrics import MetricsPusher
+        except ImportError:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            from metrics import MetricsPusher
+        self.pusher = MetricsPusher(phase="lora_train")
+
     # ---- TrainerCallback hook: fires every logging_steps ----
 
     def on_log(self, args, state, control, logs=None, **kwargs) -> None:
@@ -591,6 +649,17 @@ class DispatchCallback(_TrainerCallbackBase):
             loss      = logs.get("loss"),
             grad_norm = logs.get("grad_norm"),
             lr        = logs.get("learning_rate"),
+        )
+
+        # Push metrics to Prometheus Pushgateway for Grafana visualisation.
+        # Silently no-ops if the observability stack isn't running.
+        self.pusher.push_step(
+            step      = state.global_step,
+            loss      = logs.get("loss"),
+            lr        = logs.get("learning_rate"),
+            grad_norm = logs.get("grad_norm"),
+            memory_mb = mem_mb,
+            epoch     = state.epoch,
         )
 
     # ---- TrainerCallback hook: fires at end of each epoch ----
@@ -695,6 +764,10 @@ class DispatchCallback(_TrainerCallbackBase):
         # Plain-English interpretation: which tools are mastered, which need work,
         # and how things moved since the previous epoch.
         self.narrator.tool_table(epoch, per_tool)
+
+        # Push per-tool loss to Pushgateway → Grafana per-tool heatmap panel
+        per_tool_means = {t: sum(v)/len(v) for t, v in per_tool.items() if v}
+        self.pusher.push_per_tool_loss(epoch=epoch, per_tool=per_tool_means)
 
         self._buf.append({
             "event":    "epoch_probe",
@@ -1298,16 +1371,20 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
     # 1. Decide which model to load: local model_hf/ or HF Hub
     # -----------------------------------------------------------------------
 
-    if MODEL_HF_DIR.exists() and any(MODEL_HF_DIR.iterdir()):
+    using_local_model = MODEL_HF_DIR.exists() and any(MODEL_HF_DIR.iterdir())
+    if using_local_model:
         model_path = str(MODEL_HF_DIR)
+        hf_token   = None  # local files don't need auth
         _ok(f"Loading model from local model_hf/ ({model_path})")
     else:
         model_path = HF_MODEL_ID
+        hf_token   = _get_hf_token()
         _ok(f"model_hf/ not found — loading from HuggingFace Hub: {model_path}")
-        _warn("This requires internet access and acceptance of Gemma licence.")
-        hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
-        if not hf_token:
-            _warn("Set HF_TOKEN if the model is gated.")
+        if hf_token:
+            _ok(f"HuggingFace token found (length={len(hf_token)}) — authenticated download")
+        else:
+            _print_hf_auth_help()
+            sys.exit(1)
 
     # -----------------------------------------------------------------------
     # 2. Load tokenizer — prefer pre-trained extension from train_tokenizer.py
@@ -1325,12 +1402,21 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
         _warn("tokenizer_extended/ not found — loading base tokenizer + adding 12 DOMAIN_TOKENS")
         _warn("  Run python3 training/train_tokenizer.py first for better embedding init.")
 
+    # Pass token only when fetching from the Hub. tok_source may be local (extended
+    # tokenizer dir or model_hf/) — those don't need auth and passing a stale token
+    # could cause needless network calls.
+    tok_token = hf_token if tok_source == HF_MODEL_ID else None
     try:
-        tokenizer = AutoTokenizer.from_pretrained(tok_source, trust_remote_code=False)
+        tokenizer = AutoTokenizer.from_pretrained(
+            tok_source, trust_remote_code=False, token=tok_token,
+        )
     except Exception as e:
         _err(f"Tokenizer load failed: {e}")
-        _err("If using local model_hf/, ensure tokenizer.model is present.")
-        _err(f"If missing, copy from HF Hub: huggingface-cli download {HF_MODEL_ID} tokenizer.model")
+        if "gated" in str(e).lower() or "401" in str(e) or "403" in str(e):
+            _print_hf_auth_help()
+        else:
+            _err("If using local model_hf/, ensure tokenizer.model is present.")
+            _err(f"If missing: huggingface-cli download {HF_MODEL_ID} tokenizer.model")
         sys.exit(1)
 
     if tokenizer.pad_token is None:
@@ -1367,9 +1453,12 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
             device_map=device_map,
             trust_remote_code=False,
             low_cpu_mem_usage=True,
+            token=hf_token,  # None for local; explicit token for gated Hub model
         )
     except Exception as e:
         _err(f"Model load failed: {e}")
+        if "gated" in str(e).lower() or "401" in str(e) or "403" in str(e):
+            _print_hf_auth_help()
         sys.exit(1)
 
     _ok(f"Model loaded in {_elapsed(load_start)}")

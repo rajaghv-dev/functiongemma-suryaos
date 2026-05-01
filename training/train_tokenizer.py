@@ -83,6 +83,60 @@ LOG_FILE        = OUTPUT_DIR / "train_log.jsonl"          # structured telemetry
 HF_MODEL_ID  = "google/gemma-3-270m-it"
 MODEL_HF_DIR = TRAINING_DIR / "model_hf"
 
+
+def _get_hf_token() -> Optional[str]:
+    """
+    Resolve the HuggingFace auth token from any standard location.
+
+    Gemma 3 is a GATED model — you must accept the license at
+    https://huggingface.co/google/gemma-3-270m-it before downloading.
+    Once accepted, the Hub requires an authenticated request.
+
+    We check, in order:
+      1. HF_TOKEN              env var (preferred — set this in your shell)
+      2. HUGGINGFACE_HUB_TOKEN  env var (legacy name; transformers also reads this)
+      3. ~/.cache/huggingface/token  (written by `huggingface-cli login`)
+
+    Returns the token string, or None if no token found anywhere.
+    """
+    # 1+2: environment variables
+    tok = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
+    if tok:
+        return tok.strip()
+
+    # 3: token file written by huggingface-cli login
+    token_file = Path.home() / ".cache" / "huggingface" / "token"
+    if token_file.exists():
+        try:
+            t = token_file.read_text().strip()
+            if t:
+                return t
+        except Exception:
+            pass
+
+    return None
+
+
+def _print_hf_auth_help() -> None:
+    """Print exact commands to set up HF authentication for gated models."""
+    print()
+    _err("Gemma 3 is a GATED model — needs HuggingFace authentication.")
+    print()
+    print("  Fix in 2 steps:")
+    print("    1. Accept the license (one-time, in browser):")
+    print("       https://huggingface.co/google/gemma-3-270m-it")
+    print()
+    print("    2. Set your token (pick ONE of these):")
+    print("       a) export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxx")
+    print("          (then re-run this script in the same shell)")
+    print()
+    print("       b) huggingface-cli login")
+    print("          (one-time; writes ~/.cache/huggingface/token)")
+    print()
+    print("    Get your token at: https://huggingface.co/settings/tokens")
+    print("    (any 'read' scope token works)")
+    print()
+
 # ---------------------------------------------------------------------------
 # Semantic probe pairs — tracked throughout training to verify that embeddings
 # are converging toward meaningful clusters.
@@ -390,14 +444,30 @@ def phase_add_tokens() -> tuple[list[str], "AutoTokenizer"]:
 
     # Prefer local model_hf/ if it exists (avoids HF Hub download).
     # model_hf/ is created by finetune.py --mode convert.
-    model_path = (str(MODEL_HF_DIR)
-                  if MODEL_HF_DIR.exists() and any(MODEL_HF_DIR.iterdir())
-                  else HF_MODEL_ID)
+    using_local = MODEL_HF_DIR.exists() and any(MODEL_HF_DIR.iterdir())
+    model_path  = str(MODEL_HF_DIR) if using_local else HF_MODEL_ID
+
+    # Hub access requires a token for gated Gemma. Local files don't.
+    hf_token = None if using_local else _get_hf_token()
+    if not using_local:
+        if hf_token:
+            _ok(f"HuggingFace token found (length={len(hf_token)}) — authenticated download")
+        else:
+            _print_hf_auth_help()
+            sys.exit(1)
+
     _ok(f"Loading tokenizer from {model_path} ...")
     try:
-        tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=False)
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_path,
+            trust_remote_code=False,
+            token=hf_token,  # None for local files; explicit token for Hub
+        )
     except Exception as e:
         _err(f"Tokenizer load failed: {e}")
+        # Friendly hint when the failure looks like an auth problem
+        if "gated" in str(e).lower() or "401" in str(e) or "403" in str(e):
+            _print_hf_auth_help()
         sys.exit(1)
 
     base_vocab_size = len(tokenizer)
@@ -593,9 +663,9 @@ def phase_smart_init(
         _err("Run:  bash training/bootstrap.sh")
         sys.exit(1)
 
-    model_path = (str(MODEL_HF_DIR)
-                  if MODEL_HF_DIR.exists() and any(MODEL_HF_DIR.iterdir())
-                  else HF_MODEL_ID)
+    using_local = MODEL_HF_DIR.exists() and any(MODEL_HF_DIR.iterdir())
+    model_path  = str(MODEL_HF_DIR) if using_local else HF_MODEL_ID
+    hf_token    = None if using_local else _get_hf_token()  # gated-model auth
 
     # Detect GPU and choose the right dtype.
     # Using fp16/bf16 on GPU cuts memory by 2x vs float32 and speeds up init.
@@ -622,13 +692,20 @@ def phase_smart_init(
 
     # low_cpu_mem_usage=True: loads tensors one-by-one instead of all at once,
     # cutting peak RAM from ~4 GB to ~2 GB during the load phase.
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path,
-        torch_dtype=dtype,
-        device_map=device,
-        low_cpu_mem_usage=True,
-        trust_remote_code=False,
-    )
+    try:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            torch_dtype=dtype,
+            device_map=device,
+            low_cpu_mem_usage=True,
+            trust_remote_code=False,
+            token=hf_token,  # None for local files; explicit token for gated Hub model
+        )
+    except Exception as e:
+        _err(f"Model load failed: {e}")
+        if "gated" in str(e).lower() or "401" in str(e) or "403" in str(e):
+            _print_hf_auth_help()
+        sys.exit(1)
     _ok(f"Model loaded in {_elapsed(t0)}")
 
     # Resize the embedding table to accommodate the new tokens.
@@ -852,6 +929,16 @@ def phase_corpus_train(
     narrator = Narrator("tokenizer-corpus-train")
     initial_embeds = embed_weight[base_vocab_size:].detach().clone().cpu().float()
 
+    # Initialize Prometheus Pushgateway pusher (silent no-op if not running).
+    # All pushes are best-effort — never block training on a network call.
+    try:
+        from .metrics import MetricsPusher
+    except ImportError:
+        # Direct script invocation (no package context) — fall back to local import
+        sys.path.insert(0, str(TRAINING_DIR))
+        from metrics import MetricsPusher
+    pusher = MetricsPusher(phase="tokenizer_corpus_train")
+
     t_train     = time.time()
     prev_epoch_loss = None  # for epoch-over-epoch comparison narration
     prev_sims       = None  # for cosine change interpretation
@@ -916,6 +1003,16 @@ def phase_corpus_train(
             narrator.step(global_step, total_steps, loss_val,
                           grad_norm=grad_norm_val, lr=lr)
 
+            # Push to Pushgateway every 5 steps to avoid spamming the network.
+            # Prometheus scrapes Pushgateway every 5s anyway, so finer pushes
+            # would get coalesced. 5 steps is a good balance of resolution and cost.
+            if global_step % 5 == 0:
+                pusher.push_step(
+                    step=global_step, loss=loss_val,
+                    lr=lr, grad_norm=grad_norm_val,
+                    epoch=epoch + (b / n_batches),  # fractional epoch
+                )
+
             # Log every step at the structured level (machine-readable)
             _log({
                 "phase":     "corpus_train",
@@ -969,6 +1066,11 @@ def phase_corpus_train(
                 for desc in sim_epoch
             ]
             narrator.cosine_change(changes)
+
+        # Push tokenizer-phase epoch metrics to Pushgateway / Grafana
+        pusher.push_cosine_probes(epoch=epoch, sims=sim_epoch)
+        norm_ratio = new_norm_mean / base_norm_mean if base_norm_mean > 0 else 0.0
+        pusher.push_norm_ratio(ratio=norm_ratio, drift=drift)
 
         prev_epoch_loss = avg_loss
         prev_sims       = sim_epoch

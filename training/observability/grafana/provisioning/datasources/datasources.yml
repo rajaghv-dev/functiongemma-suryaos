@@ -1,0 +1,32 @@
+# =============================================================================
+# Grafana data source auto-provisioning.
+#
+# Grafana reads this file at startup and creates two data sources:
+#   - Loki (logs)        → http://loki:3100
+#   - Prometheus (metrics) → http://prometheus:9090
+#
+# Container hostnames work because all services share the docker-compose network.
+# No manual UI clicking needed; data sources are ready when Grafana boots.
+# =============================================================================
+
+apiVersion: 1
+
+datasources:
+
+  # Prometheus — for training time-series (loss, lr, grad_norm, etc.)
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true             # default for new panels
+    jsonData:
+      timeInterval: 5s          # matches Prometheus scrape interval
+      httpMethod: POST
+
+  # Loki — for training event logs (per-tool tables, cosine probes, narration)
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      maxLines: 5000            # plenty for a single training run's logs
