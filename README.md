@@ -35,7 +35,7 @@ After   →  "how much ram is used"   →  linux_memory_usage({})
 
 ```
 [1] Tokenizer extension      [2] Functiongemma LoRA
-   156 atomic tokens     →     1564 (query, schema, tool_call) pairs
+   319 atomic tokens     →     1564 (query, schema, tool_call) pairs
    1605-sentence corpus   →    LoRA r=8 on q_proj + v_proj
    ─────────────────────────────────────────────────────
    Result: model treats `metrics_summary` as 1 token (not 5)
@@ -53,8 +53,8 @@ random.
 
 | File | Lines | Trains | Status |
 |---|---|---|---|
-| [`dataset/tokenizer/new_tokens.json`](dataset/tokenizer/) | 156 tokens | SentencePiece vocabulary | Ready |
-| [`dataset/tokenizer/corpus.txt`](dataset/tokenizer/) | 1605 sentences | Token embeddings | Ready (≥5 occurrences each) |
+| [`dataset/tokenizer/new_tokens.json`](dataset/tokenizer/) | 319 tokens | SentencePiece vocabulary | Ready |
+| [`dataset/tokenizer/corpus.txt`](dataset/tokenizer/) | 3849 sentences | Token embeddings | Ready (≥5 occurrences each) |
 | [`dataset/dispatch_pairs.jsonl`](dataset/dispatch_pairs.jsonl) | 1564 pairs | Tool dispatch (LoRA) | Ready |
 | [`dataset/apps/launch_pairs.jsonl`](dataset/apps/) | 1450 pairs | App-launch subset | Included in dispatch |
 | [`dataset/embed_pairs.jsonl`](dataset/embed_pairs.jsonl) | 151 pairs | all-minilm:22m embedder | Optional second stage |
@@ -183,9 +183,23 @@ fine-tuned model. See [`docs/integration.md`](docs/integration.md).
 
 ---
 
+## Documentation
+
+| Doc | Purpose |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | System design (context builder + fine-tune) |
+| [`docs/training-guide.md`](docs/training-guide.md) | Step-by-step GPU/CPU training |
+| [`docs/multi-model-training.md`](docs/multi-model-training.md) | Same dataset → both Gemma + Qwen |
+| [`docs/scenarios.md`](docs/scenarios.md) | 205 test cases catalog |
+| [`docs/policy-tiers.md`](docs/policy-tiers.md) | Green/yellow/red enforcement |
+| [`docs/integration.md`](docs/integration.md) | Deploy back to ~/raja/oc |
+| [`docs/test-results.md`](docs/test-results.md) | Current baseline + auto-fix history |
+| [`docs/learnings.md`](docs/learnings.md) | Decision log — why we made each choice |
+| [`docs/v4-roadmap.md`](docs/v4-roadmap.md) | Chain-of-task scale plan |
+
 ## Status & next steps
 
-- [x] Dataset built: 1564 dispatch + 156 tokens + 1450 app launches
+- [x] Dataset built: 1564 dispatch + 319 tokens + 1450 app launches
 - [x] Test harness: 205 cases at L1 (FTS) / L2 (dispatcher) / L3 (model)
 - [x] L1 retrieval: 84% pass (rest are v2 tools or correctly denied)
 - [ ] Run training on RTX 3080 box → `functiongemma:270m-suryaos`

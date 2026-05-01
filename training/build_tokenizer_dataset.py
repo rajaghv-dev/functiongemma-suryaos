@@ -84,6 +84,65 @@ V4_TERMS = [
     "pytest", "cargo", "make", "cmake", "ninja",
 ]
 
+# Git tokens — full set for v3 git workflow tools
+GIT_TERMS = [
+    # Core commands
+    "clone", "fetch", "diff", "status", "log", "blame", "bisect", "reflog",
+    "cherry-pick", "revert", "reset", "restore", "switch", "tag",
+    # Concepts
+    "HEAD", "origin", "upstream", "remote", "submodule", "worktree",
+    "staged", "unstaged", "untracked", "conflict", "hunk",
+    # Hosting + tools
+    "github", "gitlab", "gitea", "codeberg", "gh-cli", "lazygit", "tig",
+    # Workflow
+    "PR", "MR", "merge-queue", "fast-forward", "squash-merge",
+    "conventional-commits",
+    # Files
+    ".gitignore", ".gitattributes", ".gitmodules",
+]
+
+# File format + document tooling tokens
+FILE_FORMAT_TERMS = [
+    # PDF
+    "PDF", ".pdf", "pdftotext", "pdftoppm", "qpdf", "poppler", "ghostscript",
+    "pdfunite", "pdfseparate", "evince", "MuPDF",
+    # LibreOffice / Office
+    "LibreOffice", "Writer", "Calc", "Impress", "Draw", "Base", "Math",
+    "soffice", "OnlyOffice", "Calligra",
+    ".odt", ".ods", ".odp", ".odg", ".docx", ".xlsx", ".pptx",
+    ".doc", ".xls", ".ppt", ".rtf", ".csv", ".tsv",
+    # Image formats
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".tiff", ".bmp",
+    ".avif", ".heif", ".heic", ".raw", ".dng",
+    # Audio / video
+    ".mp3", ".flac", ".ogg", ".wav", ".mp4", ".mkv", ".webm", ".mov",
+    "ffmpeg", "ffprobe", "ImageMagick", "convert", "mogrify",
+    # Archive
+    ".zip", ".tar", ".gz", ".xz", ".7z", ".rar", ".zst",
+    # Text / data
+    ".md", "Markdown", ".rst", "AsciiDoc", "LaTeX", ".tex",
+    ".json", ".yaml", ".yml", ".toml", ".ini", ".xml",
+    # Code-file markers (binary names commonly appearing in queries)
+    "pandoc", "pdftk",
+]
+
+# ML / training tokens — used by docs and v4 chain-of-task workflows
+ML_TERMS = [
+    # PyTorch
+    "torch", "pytorch", "cuda", "cudnn", "fp16", "bf16", "fp32", "int8", "int4",
+    # HuggingFace
+    "transformers", "datasets", "accelerate", "tokenizers", "peft", "trl",
+    "AutoModel", "AutoTokenizer", "from_pretrained", "safetensors",
+    # Models
+    "Llama", "Gemma", "Qwen", "Mistral", "Phi",
+    # Quantization formats
+    "GGUF", "GGML", "Q8_0", "Q5_K_M", "Q4_K_S", "AWQ", "GPTQ",
+    # Serving
+    "vllm", "sglang", "ollama", "llama.cpp", "TGI",
+    # Hardware
+    "RTX", "A100", "H100", "Meteor-Lake", "OpenVINO", "ROCm",
+]
+
 
 # =============================================================================
 # Step 1: Extract tool tokens from YAML catalog
@@ -276,6 +335,9 @@ def main() -> int:
     token_list.extend({"token": t, "category": "arg_value", "source": "curated"} for t in ARG_VALUES)
     token_list.extend(extract_arg_value_tokens())
     token_list.extend({"token": t, "category": "v4_workflow", "source": "v4_curated"} for t in V4_TERMS)
+    token_list.extend({"token": t, "category": "git",          "source": "curated"} for t in GIT_TERMS)
+    token_list.extend({"token": t, "category": "file_format",  "source": "curated"} for t in FILE_FORMAT_TERMS)
+    token_list.extend({"token": t, "category": "ml",           "source": "curated"} for t in ML_TERMS)
 
     # Deduplicate by token (keep first occurrence/category)
     seen: dict[str, dict] = {}

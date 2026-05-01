@@ -856,5 +856,826 @@
       "category": "v4_workflow",
       "source": "v4_curated"
     }
+  ],
+  "git": [
+    {
+      "token": "clone",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "fetch",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "diff",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "status",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "log",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "blame",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "bisect",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "reflog",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "cherry-pick",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "revert",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "reset",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "restore",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "switch",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "tag",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "HEAD",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "origin",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "upstream",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "remote",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "submodule",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "worktree",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "staged",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "unstaged",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "untracked",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "conflict",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "hunk",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "github",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "gitlab",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "gitea",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "codeberg",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "gh-cli",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "lazygit",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "tig",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "PR",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "MR",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "merge-queue",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "fast-forward",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "squash-merge",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": "conventional-commits",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": ".gitignore",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": ".gitattributes",
+      "category": "git",
+      "source": "curated"
+    },
+    {
+      "token": ".gitmodules",
+      "category": "git",
+      "source": "curated"
+    }
+  ],
+  "file_format": [
+    {
+      "token": "PDF",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".pdf",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "pdftotext",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "pdftoppm",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "qpdf",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "poppler",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "ghostscript",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "pdfunite",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "pdfseparate",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "evince",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "MuPDF",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "LibreOffice",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "Writer",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "Calc",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "Impress",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "Draw",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "Base",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "Math",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "soffice",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "OnlyOffice",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "Calligra",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".odt",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".ods",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".odp",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".odg",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".docx",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".xlsx",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".pptx",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".doc",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".xls",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".ppt",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".rtf",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".csv",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".tsv",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".png",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".jpg",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".jpeg",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".gif",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".webp",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".svg",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".tiff",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".bmp",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".avif",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".heif",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".heic",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".raw",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".dng",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".mp3",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".flac",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".ogg",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".wav",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".mp4",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".mkv",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".webm",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".mov",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "ffmpeg",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "ffprobe",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "ImageMagick",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "convert",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "mogrify",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".zip",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".tar",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".gz",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".xz",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".7z",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".rar",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".zst",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".md",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "Markdown",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".rst",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "AsciiDoc",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "LaTeX",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".tex",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".json",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".yaml",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".yml",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".toml",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".ini",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": ".xml",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "pandoc",
+      "category": "file_format",
+      "source": "curated"
+    },
+    {
+      "token": "pdftk",
+      "category": "file_format",
+      "source": "curated"
+    }
+  ],
+  "ml": [
+    {
+      "token": "torch",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "pytorch",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "cuda",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "cudnn",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "fp16",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "bf16",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "fp32",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "int8",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "int4",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "transformers",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "datasets",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "accelerate",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "tokenizers",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "peft",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "trl",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "AutoModel",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "AutoTokenizer",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "from_pretrained",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "safetensors",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "Llama",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "Gemma",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "Qwen",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "Mistral",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "Phi",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "GGUF",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "GGML",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "Q8_0",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "Q5_K_M",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "Q4_K_S",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "AWQ",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "GPTQ",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "vllm",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "sglang",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "llama.cpp",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "TGI",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "RTX",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "A100",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "H100",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "Meteor-Lake",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "OpenVINO",
+      "category": "ml",
+      "source": "curated"
+    },
+    {
+      "token": "ROCm",
+      "category": "ml",
+      "source": "curated"
+    }
   ]
 }
