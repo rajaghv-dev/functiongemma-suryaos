@@ -138,43 +138,72 @@ def _elapsed(start: float) -> str:
 
 
 def _detect_hardware() -> dict:
-    """Return device profile: device, dtype, fp16/bf16 flags, recommended batch size."""
+    """
+    Inspect the available GPU (if any) and return a training profile.
+
+    Why this matters:
+      Using the wrong dtype or batch size causes either OOM errors or wastes
+      10-30% of GPU utilization. This function makes those decisions once so
+      every downstream function just reads from the returned dict.
+
+    dtype selection:
+      bfloat16 — Ampere datacenter (A100, H100): wider exponent range means
+                 training is numerically stable even with large gradients. BF16
+                 tensor cores on these chips are as fast as FP16.
+      float16  — Consumer RTX 30xx/40xx, Turing (RTX 20xx), Tesla T4: slightly
+                 narrower exponent range than bf16 but tensor cores are fast.
+                 Works fine for LoRA adapters on small models.
+      float32  — CPU fallback: the only stable option without FP16 hardware.
+                 Much slower but numerically exact.
+
+    Batch size heuristic:
+      270M model weights in fp16 = ~540 MB
+      LoRA adapter (r=8)         = ~4 MB
+      Activations per sample (seq_len=512) = ~150-300 MB depending on layer count
+      So for 16 GB VRAM: 16384 MB - 540 MB model - 200 MB overhead = ~15 GB for
+      activations → batch 8 x 300 MB = ~2.4 GB → safely fits with headroom.
+    """
     try:
         import torch
     except ImportError:
+        # torch not installed — return safe CPU defaults
         return {"device": "cpu", "dtype": "float32", "fp16": False, "bf16": False,
                 "batch_size": 1, "grad_accum": 4, "gpu_name": None, "vram_gb": 0.0}
 
     if not torch.cuda.is_available():
+        # No CUDA-capable GPU found — fall back to CPU training
         return {"device": "cpu", "dtype": "float32", "fp16": False, "bf16": False,
                 "batch_size": 1, "grad_accum": 4, "gpu_name": None, "vram_gb": 0.0}
 
-    props    = torch.cuda.get_device_properties(0)
+    props    = torch.cuda.get_device_properties(0)  # device index 0 = first GPU
     gpu_name = props.name
-    vram_gb  = props.total_memory / 1e9
-    compute  = (props.major, props.minor)
+    vram_gb  = props.total_memory / 1e9              # bytes -> GB
+    compute  = (props.major, props.minor)            # e.g. (8, 6) for RTX 3080 Ti
 
-    # bf16 native: Ampere datacenter (A100, H100, A40, A10G …)
-    # fp16:        Ampere consumer (RTX 30xx/40xx) and Turing (RTX 20xx, T4)
-    _dc_keywords = ("A100", "H100", "H200", "A40", "A10G", "A10 ", "V100")
+    # Keywords that identify datacenter / server-class GPUs.
+    # These prefer bf16; consumer GPUs (RTX, Quadro) work better with fp16.
+    _dc_keywords  = ("A100", "H100", "H200", "A40", "A10G", "A10 ", "V100")
     is_datacenter = any(kw in gpu_name for kw in _dc_keywords)
-    is_ampere_plus = compute[0] >= 8
+    is_ampere_plus = compute[0] >= 8  # Ampere = compute 8.x; Hopper = 9.x
 
-    use_bf16 = is_datacenter and is_ampere_plus
-    use_fp16 = (not use_bf16) and compute[0] >= 7   # Volta and newer
+    use_bf16 = is_datacenter and is_ampere_plus   # bf16: stable + fast on datacenter
+    use_fp16 = (not use_bf16) and compute[0] >= 7 # fp16: Volta (7.x) and newer consumer
 
     dtype = "bfloat16" if use_bf16 else ("float16" if use_fp16 else "float32")
 
-    # Recommended batch size by VRAM
-    # 270M model in fp16 ~540 MB; activations for seq_len=512 ~100–200 MB/sample
-    if   vram_gb >= 40:  batch = 16   # A100 80GB / H100
-    elif vram_gb >= 24:  batch = 12   # A100 40GB / RTX 4090 24GB
-    elif vram_gb >= 16:  batch = 8    # RTX 3080 Ti 16GB / RTX 4080 16GB
-    elif vram_gb >= 10:  batch = 4    # RTX 3080 10GB / RTX 4070
-    elif vram_gb >= 8:   batch = 2    # RTX 3060 Ti / T4
-    else:                batch = 1    # small cards
+    # Batch size scaled to VRAM — keeps GPU utilization high without OOM.
+    # Model (fp16) ~540 MB; activations ~150-300 MB/sample at seq_len=512.
+    if   vram_gb >= 40:  batch = 16  # A100 80 GB / H100 80 GB
+    elif vram_gb >= 24:  batch = 12  # A100 40 GB / RTX 4090 24 GB
+    elif vram_gb >= 16:  batch = 8   # RTX 3080 Ti 16 GB / RTX 4080 16 GB  ← this machine
+    elif vram_gb >= 10:  batch = 4   # RTX 3080 10 GB / RTX 4070 12 GB
+    elif vram_gb >= 8:   batch = 2   # RTX 3060 Ti 8 GB / Tesla T4 16 GB (conservative)
+    else:                batch = 1   # anything smaller — single-sample to avoid OOM
 
-    # Keep effective batch ~8; fewer grad_accum steps when batch is larger
+    # Keep effective_batch = batch * grad_accum around 8.
+    # Larger effective batch = smoother gradient estimates = more stable training.
+    # But larger per-step batch = more memory. Grad accumulation simulates a
+    # bigger batch by summing gradients over N micro-batches before updating.
     grad_accum = max(1, 8 // batch)
 
     return {
@@ -191,49 +220,108 @@ def _detect_hardware() -> dict:
 
 
 # ===========================================================================
-# Dataset formatting helpers (module-level so callback can reuse them)
+# Dataset formatting helpers — module-level so DispatchCallback can reuse them
 # ===========================================================================
 
 def _fmt_example(ex: dict, tokenizer) -> Optional[str]:
-    """Full training string: user prompt + model response (for SFT loss)."""
+    """
+    Convert one dispatch_pairs.jsonl entry into a Gemma 3 SFT training string.
+
+    Input  (ex):
+      {
+        "messages": [
+          {"role": "system",  "content": "Call the right tool."},
+          {"role": "user",    "content": "how much ram is used"}
+        ],
+        "tools":  [{ ...tool schema JSON... }],
+        "target": {"name": "linux_memory_usage", "arguments": {}}
+      }
+
+    Output (Gemma 3 chat template string):
+      <bos><start_of_turn>user
+      Call the right tool.
+
+      Available tools: [{...}]
+
+      User request: how much ram is used
+      <end_of_turn>
+      <start_of_turn>model
+      {"name":"linux_memory_usage","arguments":{}}
+      <end_of_turn>
+
+    SFTTrainer computes cross-entropy loss on the FULL sequence but the model
+    is only evaluated on the model-turn tokens. The user-turn tokens are used
+    as context (input) only, not penalized.
+
+    Returns None for malformed examples (missing messages or target).
+    """
     messages = ex.get("messages", [])
     tools    = ex.get("tools", [])
     target   = ex.get("target", {})
     if not messages or not target:
         return None
 
+    # Extract system and user content from the message list
     system = next((m["content"] for m in messages if m["role"] == "system"),
                   "Call the right tool.")
     user   = next((m["content"] for m in messages if m["role"] == "user"), "")
 
+    # Compact JSON serialization — no extra spaces — keeps sequences short
     tools_text  = json.dumps(tools,  separators=(",", ":"))
     target_json = json.dumps(target, separators=(",", ":"))
 
     turns = [
-        {"role": "user",  "content": f"{system}\n\nAvailable tools: {tools_text}\n\nUser request: {user}"},
+        # User turn: system instruction + tool schema + query all in one message
+        {"role": "user",  "content": (f"{system}\n\n"
+                                      f"Available tools: {tools_text}\n\n"
+                                      f"User request: {user}")},
+        # Model turn: the correct tool call as compact JSON
         {"role": "model", "content": target_json},
     ]
     try:
-        return tokenizer.apply_chat_template(turns, tokenize=False, add_generation_prompt=False)
+        # apply_chat_template produces the exact token sequence Gemma 3 expects
+        # add_generation_prompt=False: include the model response so SFT can
+        # compute loss on it — if True, the template would stop at "<start_of_turn>model"
+        return tokenizer.apply_chat_template(
+            turns, tokenize=False, add_generation_prompt=False
+        )
     except Exception:
-        return (f"<bos><start_of_turn>user\n{system}\n\nAvailable tools: {tools_text}\n\n"
-                f"User request: {user}\n<end_of_turn>\n<start_of_turn>model\n{target_json}\n<end_of_turn>")
+        # Fallback for tokenizers that don't support apply_chat_template
+        return (f"<bos><start_of_turn>user\n{system}\n\n"
+                f"Available tools: {tools_text}\n\n"
+                f"User request: {user}\n<end_of_turn>\n"
+                f"<start_of_turn>model\n{target_json}\n<end_of_turn>")
 
 
 def _fmt_prompt_only(ex: dict, tokenizer) -> str:
-    """User-turn only with generation prompt (for probe: length of masked prefix)."""
-    messages = ex.get("messages", [])
-    tools    = ex.get("tools", [])
-    system = next((m["content"] for m in messages if m["role"] == "system"),
-                  "Call the right tool.")
-    user   = next((m["content"] for m in messages if m["role"] == "user"), "")
+    """
+    Format only the USER-TURN of an example (no model response).
+
+    Used by DispatchCallback to compute the length of the prompt prefix in
+    tokens. The callback then sets labels=-100 for those prefix positions so
+    the validation loss only measures how well the model generates the response,
+    not how well it "memorized" the input.
+
+    add_generation_prompt=True: appends "<start_of_turn>model\n" so the
+    tokenized length includes the turn-start token (which is part of the input
+    context, not the response we measure).
+    """
+    messages   = ex.get("messages", [])
+    tools      = ex.get("tools", [])
+    system     = next((m["content"] for m in messages if m["role"] == "system"),
+                      "Call the right tool.")
+    user       = next((m["content"] for m in messages if m["role"] == "user"), "")
     tools_text = json.dumps(tools, separators=(",", ":"))
 
-    turns = [{"role": "user", "content": f"{system}\n\nAvailable tools: {tools_text}\n\nUser request: {user}"}]
+    turns = [{"role": "user",
+               "content": f"{system}\n\nAvailable tools: {tools_text}\n\nUser request: {user}"}]
     try:
-        return tokenizer.apply_chat_template(turns, tokenize=False, add_generation_prompt=True)
+        return tokenizer.apply_chat_template(
+            turns, tokenize=False, add_generation_prompt=True
+        )
     except Exception:
-        return (f"<bos><start_of_turn>user\n{system}\n\nAvailable tools: {tools_text}\n\n"
+        return (f"<bos><start_of_turn>user\n{system}\n\n"
+                f"Available tools: {tools_text}\n\n"
                 f"User request: {user}\n<end_of_turn>\n<start_of_turn>model\n")
 
 
@@ -249,66 +337,124 @@ except ImportError:
 
 class DispatchCallback(_TrainerCallbackBase):
     """
-    HuggingFace TrainerCallback that adds structured telemetry to LoRA training.
+    HuggingFace TrainerCallback wired into SFTTrainer for live telemetry.
 
-    Per step (every logging_steps):
-      - Writes loss, learning_rate, grad_norm, memory_mb to training_log.jsonl
+    How TrainerCallback works:
+      HuggingFace Trainer calls specific methods at specific training events.
+      We override the ones we care about and ignore the rest.
+      The Trainer passes the current model, state, and log dict to each hook.
 
-    Per epoch end:
-      - Runs a fast response-loss probe on N sample examples
-      - Prints a per-tool loss table showing which tools the model is learning
-      - Loss going down = model is internalising the dispatch pattern
+    What this callback does:
 
-    The probe is "response-only loss": we mask the prompt tokens so the loss
-    reflects only how well the model generates the correct tool-call JSON.
-    Lower = better.  Tracked per tool so you see which ones are still struggling.
+    on_log  (fires every logging_steps, default=5):
+      Captures the loss/lr/grad_norm dict that the Trainer computed and
+      appends a JSON entry to training_log.jsonl. Also records RAM usage
+      via psutil so you can spot memory leaks over time.
+
+      Reading the log:
+        {"event":"step", "step":10, "epoch":0.129, "loss":2.341,
+         "learning_rate":0.000198, "grad_norm":0.42, "memory_mb":4821}
+        loss:          cross-entropy; lower=better; healthy range 0.1-1.0 at end
+        learning_rate: should decay from initial lr to ~0 over training
+        grad_norm:     should be < 1.0 (we clip at 1.0); spike = instability
+        memory_mb:     watch for steady growth = memory leak
+
+    on_epoch_end  (fires once per epoch):
+      Runs the "response-only loss probe": forward passes on 20 sampled
+      examples with the prompt positions masked from the loss. Reports a
+      per-tool table. Seeing which tools have high loss at the end of each
+      epoch tells you which ones need more training examples.
+
+      Reading the table:
+        Tool                           n    mean loss    bar
+        linux_memory_usage             3      0.2341     ████████████████░░░░
+        kde_krunner_launch             2      1.8700     ███████░░░░░░░░░░░░░
+        → krunner_launch still has high loss = model struggles with app launch queries
+        → Add more app-launch examples to dataset/dispatch_pairs.jsonl
+
+    on_train_end  (fires after the last training step):
+      Runs one final probe for a clean end-of-training summary.
     """
 
     def __init__(self, probe_data: list, tokenizer, log_path: Path) -> None:
-        # probe_data: list of (full_text, prompt_token_len, tool_name)
+        # probe_data: list of (full_text_string, prompt_token_length, tool_name_string)
+        # full_text       — the complete training example as a formatted string
+        # prompt_token_len — number of tokens in the user-turn prefix (for masking)
+        # tool_name       — expected tool name (for per-tool grouping in reports)
         self.probe_data = probe_data
         self.tokenizer  = tokenizer
         self.log_path   = log_path
-        self._buf: list[dict] = []
+        self._buf: list[dict] = []  # in-memory write buffer, flushed to disk each step
 
-    # --- TrainerCallback interface ---
+    # ---- TrainerCallback hook: fires every logging_steps ----
 
     def on_log(self, args, state, control, logs=None, **kwargs) -> None:
+        """Capture per-step metrics from the Trainer's internal log dict."""
         if not logs:
             return
+
+        # psutil gives us the process RSS (resident set size) = actual RAM used.
+        # Optional — the callback works without it, just with memory_mb=null.
         try:
             import psutil
             mem_mb = psutil.Process(os.getpid()).memory_info().rss / 1e6
         except ImportError:
-            mem_mb = None
+            mem_mb = None  # psutil not installed — telemetry still works, just no memory
 
         entry = {
             "event":         "step",
-            "step":          state.global_step,
-            "epoch":         round(state.epoch or 0, 3),
-            "loss":          logs.get("loss"),
-            "learning_rate": logs.get("learning_rate"),
-            "grad_norm":     logs.get("grad_norm"),
-            "memory_mb":     mem_mb,
+            "step":          state.global_step,             # absolute step count
+            "epoch":         round(state.epoch or 0, 3),    # fractional epoch (e.g. 1.5)
+            "loss":          logs.get("loss"),               # training loss this window
+            "learning_rate": logs.get("learning_rate"),      # current LR on the schedule
+            "grad_norm":     logs.get("grad_norm"),          # gradient L2 norm pre-clip
+            "memory_mb":     mem_mb,                         # process RAM in MB
         }
         self._buf.append(entry)
-        self._flush()
+        self._flush()  # write immediately so we have logs even if training crashes
+
+    # ---- TrainerCallback hook: fires at end of each epoch ----
 
     def on_epoch_end(self, args, state, control, model=None, **kwargs) -> None:
+        """Run the response-loss probe and print the per-tool table."""
         if model is None or not self.probe_data:
             return
         epoch = int(state.epoch or 0)
         self._run_probe(model, epoch)
 
+    # ---- TrainerCallback hook: fires once after training completes ----
+
     def on_train_end(self, args, state, control, model=None, **kwargs) -> None:
+        """Final probe after training — definitive end-of-run performance summary."""
         if model is None or not self.probe_data:
             return
         print("\n  [Callback] Final post-training probe:")
-        self._run_probe(model, epoch=-1)
+        self._run_probe(model, epoch=-1)  # epoch=-1 prints as "Final" in the table
 
-    # --- Internal ---
+    # ---- Internal probe runner ----
 
     def _run_probe(self, model, epoch: int) -> None:
+        """
+        Compute response-only loss for each probe example.
+
+        Why "response-only" loss?
+          If we computed loss on the full sequence (prompt + response), most of
+          the loss would come from the model predicting the prompt tokens, which
+          is irrelevant — the prompt is always given as input, not generated.
+          We want to measure: given the right context, does the model produce
+          the correct tool call?
+
+        How it works:
+          1. Tokenize the full example (prompt + response).
+          2. Set labels=-100 for all prompt positions.
+             CrossEntropyLoss skips positions where label=-100.
+          3. Forward pass → loss only over response tokens.
+          4. Group by tool name and average.
+
+        This is a forward-pass-only probe (no generation), so it's fast:
+          ~0.5s per example on GPU, ~2s on CPU.
+          20 examples = ~10s GPU / ~40s CPU per epoch.
+        """
         try:
             import torch
             from collections import defaultdict
@@ -316,10 +462,10 @@ class DispatchCallback(_TrainerCallbackBase):
             return
 
         tokenizer = self.tokenizer
-        model.eval()
+        model.eval()  # disable dropout and batch norm in eval mode
         per_tool: dict[str, list[float]] = defaultdict(list)
 
-        with torch.no_grad():
+        with torch.no_grad():  # no gradient computation needed — saves memory
             for full_text, prompt_len, tool_name in self.probe_data:
                 try:
                     enc = tokenizer(
@@ -327,19 +473,21 @@ class DispatchCallback(_TrainerCallbackBase):
                         truncation=True, max_length=512,
                     )
                     labels = enc.input_ids.clone()
-                    # Mask prompt positions: loss computed only on model response
+                    # Mask the prompt prefix: loss is computed ONLY on the model
+                    # response (the tool-call JSON after <start_of_turn>model)
                     labels[0, :prompt_len] = -100
-                    # Mask any padding
+                    # Also mask padding tokens if any
                     if "attention_mask" in enc:
                         labels[enc.attention_mask == 0] = -100
 
                     out = model(**enc, labels=labels)
+                    # Skip NaN/Inf (can happen with fp16 edge cases)
                     if not torch.isnan(out.loss) and not torch.isinf(out.loss):
                         per_tool[tool_name].append(out.loss.item())
                 except Exception:
-                    pass
+                    pass  # skip malformed examples silently
 
-        model.train()
+        model.train()  # return to training mode for the next step
 
         if not per_tool:
             return
@@ -1073,28 +1221,65 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
         _ok(f"Resized embeddings to {len(tokenizer):,} tokens (random init for new tokens)")
 
     # -----------------------------------------------------------------------
-    # 4. Apply LoRA
+    # 4. Apply LoRA — inject trainable adapter matrices into attention layers
     # -----------------------------------------------------------------------
-
-    # target_modules: we adapt q_proj and v_proj in every transformer layer.
-    # These are the attention projections that determine "what to attend to" —
-    # directly responsible for tool selection routing decisions.
-    # k_proj is deliberately excluded: key projections encode position/content
-    # of the context, which we don't need to change for tool routing.
+    #
+    # How LoRA works:
+    #   For each target weight matrix W (shape [out, in]), LoRA adds two small
+    #   matrices A (shape [r, in]) and B (shape [out, r]) where r << min(out,in).
+    #   The effective weight becomes:  W + (lora_alpha/r) * B @ A
+    #   During training: W stays frozen; only A and B are updated.
+    #   During inference: B @ A can be merged into W (merge_and_unload) so there
+    #   is zero overhead — the adapter "disappears" into the base weights.
+    #
+    # Why q_proj and v_proj (not k_proj or mlp)?
+    #   q_proj = query projection: controls WHAT the model pays attention to.
+    #            Changing q_proj steers which context tokens influence the output.
+    #            This is the key lever for changing "which tool to call".
+    #   v_proj = value projection: controls WHAT information is extracted when
+    #            attending. Adapting this lets the model extract tool-relevant
+    #            features (e.g. "memory" → dispatch to linux_memory_usage).
+    #   k_proj = key projection: encodes where context tokens "are" in the
+    #            attention key space. This encodes content/position, not routing.
+    #            Leaving it frozen preserves the model's positional understanding.
+    #   mlp    = fully-connected layers: general reasoning + factual knowledge.
+    #            We don't need to change general reasoning for tool dispatch.
+    #
+    # Why rank r=8?
+    #   The rank r controls how many "directions" the adapter can change.
+    #   r=1  → extremely limited, may not learn dispatch at all
+    #   r=8  → standard for small fine-tuning tasks; ~4M extra params on 268M base
+    #   r=32 → used for larger tasks; 4x more params, 4x more memory
+    #   r=8 is the right choice here: 12 tools is a small task with clear patterns.
+    #
+    # Why lora_alpha=16 with r=8?
+    #   The effective update scale = lora_alpha / r = 16 / 8 = 2.0
+    #   This scales the adapter output before adding to the frozen weight.
+    #   Convention: set alpha = 2*r for a scale of 2.0 (empirically robust).
+    #   Higher alpha → adapter has more influence → faster learning but more risk
+    #   of overwriting base knowledge (catastrophic forgetting).
+    #
+    # Why lora_dropout=0.05?
+    #   Dropout randomly zeros adapter activations during training (5% of them).
+    #   On small datasets (< 1000 examples), this prevents memorization of
+    #   training examples. At 0.05 it's light enough to not hurt convergence.
+    #
+    # Expected print_trainable_parameters output:
+    #   trainable params: ~4,194,304 || all params: ~272,000,000
+    #   trainable%: ~0.35% (the LoRA adapter is <1% of total params)
 
     lora_config = LoraConfig(
-        task_type       = TaskType.CAUSAL_LM,
-        r               = 8,            # rank: adapter hidden dim
-        lora_alpha      = 16,           # scale α: effective LR multiplier = α/r = 2.0
-        lora_dropout    = 0.05,         # light regularisation
-        target_modules  = ["q_proj", "v_proj"],
-        bias            = "none",       # don't adapt bias terms (fewer params)
-        inference_mode  = False,
+        task_type      = TaskType.CAUSAL_LM,  # we're doing causal language modeling
+        r              = 8,                    # adapter rank (see above)
+        lora_alpha     = 16,                   # scale = alpha/r = 2.0 (see above)
+        lora_dropout   = 0.05,                 # light regularization (see above)
+        target_modules = ["q_proj", "v_proj"], # attention query + value (see above)
+        bias           = "none",               # don't adapt bias terms → fewer params
+        inference_mode = False,                # keep adapter in training mode
     )
 
     model = get_peft_model(model, lora_config)
-    model.print_trainable_parameters()
-    # Expected output: ~0.3–0.5% of parameters are trainable with r=8
+    model.print_trainable_parameters()  # prints trainable% — expect ~0.3-0.5%
 
     # -----------------------------------------------------------------------
     # 5. Format the dataset into Gemma 3 chat template strings
@@ -1312,34 +1497,78 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
           f"~{int(n_steps * sec_per_step // 60)} minutes")
     print(f"  (Actual time depends on sequence length and GPU/CPU speed)\n")
 
-    # GPU: use fused optimizer + gradient checkpointing for speed + memory
-    use_gc    = hw["device"] == "cuda"   # gradient checkpointing
+    # gradient_checkpointing trades compute for memory: instead of storing all
+    # intermediate activations for backprop, they are recomputed on the backward
+    # pass. On GPU this frees ~30% VRAM at ~15% extra compute — worth it.
+    # On CPU it's slower and RAM isn't usually the bottleneck, so we skip it.
+    use_gc = hw["device"] == "cuda"
+
+    # adamw_torch_fused: PyTorch 2.0+ fused CUDA kernel for AdamW — combines
+    # the element-wise operations into one GPU kernel call, ~10-20% faster.
+    # Only available on CUDA; CPU must use the standard adamw_torch.
     optim_str = "adamw_torch_fused" if hw["device"] == "cuda" else "adamw_torch"
 
     try:
-        # SFTConfig is the modern interface (trl >= 0.8); it inherits TrainingArguments
+        # SFTConfig (trl >= 0.8) is the modern interface; falls back to TrainingArguments
         training_args = SFTConfig(
-            output_dir                  = str(MODEL_LORA),
-            num_train_epochs            = epochs,
+            output_dir                  = str(MODEL_LORA),  # where checkpoints are saved
+            num_train_epochs            = epochs,            # full passes over the dataset
+
+            # Batch size and accumulation: set from _detect_hardware() above
             per_device_train_batch_size = effective_batch,
             gradient_accumulation_steps = effective_grad_accum,
+            # effective_batch_size = per_device * grad_accum (= 8 for RTX 3080 Ti)
+
+            # Learning rate: 2e-4 is the standard LoRA LR.
+            # Higher than full fine-tuning because adapters are small and need
+            # more aggressive updates. Range: 1e-4 (conservative) to 5e-4 (aggressive).
             learning_rate               = lr,
+
+            # Warmup: linear ramp from 0 to lr over first 10% of steps.
+            # Prevents large gradient updates at the start when the adapter weights
+            # are randomly initialized and may point in chaotic directions.
             warmup_ratio                = 0.1,
+
+            # Weight decay: L2 penalty on adapter weights (not on base model).
+            # Keeps adapter weights from growing too large → prevents overfitting.
             weight_decay                = 0.01,
+
+            # Log metrics every 5 steps → DispatchCallback.on_log fires every 5 steps
             logging_steps               = 5,
+
+            # Save a checkpoint every 50 steps; keep at most 2 (older ones deleted)
             save_steps                  = 50,
             save_total_limit            = 2,
+
+            # Mixed precision: set from _detect_hardware()
+            # fp16=True on RTX 30xx/40xx, bf16=True on A100/H100, both False on CPU
             fp16                        = hw["fp16"],
             bf16                        = hw["bf16"],
-            optim                       = optim_str,
-            gradient_checkpointing      = use_gc,
+
+            optim                       = optim_str,       # fused AdamW on GPU
+            gradient_checkpointing      = use_gc,          # recompute activations on GPU
+
+            # 0 workers = dataset loaded in main process; avoids forking issues
+            # on Windows/WSL where multiprocessing fork can hang
             dataloader_num_workers      = 0,
+
+            # Disable external reporters (WandB, TensorBoard, etc.)
+            # Our DispatchCallback handles all logging to training_log.jsonl
             report_to                   = "none",
+
+            # Max sequence length: tool schema + query + response = ~200-400 tokens.
+            # 512 gives headroom without wasting memory on padding.
             max_seq_length              = 512,
-            dataset_text_field          = "text",
+            dataset_text_field          = "text",   # column name in our Dataset dict
+
+            # Packing: disabled. Packing concatenates multiple short sequences to
+            # fill max_seq_length, which improves GPU utilization on large datasets.
+            # On our small dataset it makes loss masking harder and can confuse the
+            # model by mixing tool-call boundaries between examples.
             packing                     = False,
         )
     except TypeError:
+        # Older trl versions (< 0.8) don't have SFTConfig — fall back to TrainingArguments
         _warn("SFTConfig not found in this trl version — using TrainingArguments")
         from transformers import TrainingArguments
         training_args = TrainingArguments(
@@ -1362,16 +1591,33 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
         )
 
     # -----------------------------------------------------------------------
-    # 7. Create SFTTrainer and train
+    # 7. Create SFTTrainer and kick off training
     # -----------------------------------------------------------------------
-
-    # SFTTrainer wraps HuggingFace Trainer with:
-    #   - Automatic chat template application
-    #   - Packing support
-    #   - Response template masking (train only on assistant turns)
     #
-    # We already applied the chat template ourselves, so we pass raw text and
-    # set dataset_text_field="text".
+    # SFTTrainer (Supervised Fine-Tuning Trainer) from the TRL library wraps
+    # HuggingFace Trainer with a few extras:
+    #   - Understands dataset_text_field and handles tokenization automatically
+    #   - Supports packing (disabled here) and response-template masking
+    #
+    # We pre-applied the chat template ourselves (_format_example above), so we
+    # pass raw text strings and tell SFTTrainer which column to read via
+    # dataset_text_field="text".
+    #
+    # DispatchCallback is registered here so the Trainer will call its hooks
+    # at every logging step and at the end of each epoch.
+    #
+    # What happens during trainer.train():
+    #   For each step:
+    #     1. Sample a mini-batch of examples
+    #     2. Forward pass → compute cross-entropy loss on model-response tokens
+    #     3. Backward pass → compute gradients for LoRA A, B matrices only
+    #        (base model weights have requires_grad=False → no gradients flow to them)
+    #     4. (every grad_accum steps) optimizer step → update A and B
+    #     5. (every logging_steps steps) DispatchCallback.on_log → write to jsonl
+    #   For each epoch end:
+    #     DispatchCallback.on_epoch_end → run response-loss probe → print table
+    #   After all epochs:
+    #     DispatchCallback.on_train_end → final probe
 
     try:
         trainer = SFTTrainer(
