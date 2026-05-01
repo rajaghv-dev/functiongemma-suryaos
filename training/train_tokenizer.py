@@ -308,13 +308,27 @@ def phase_smart_init(
         sys.exit(1)
 
     model_path = str(MODEL_HF_DIR) if (MODEL_HF_DIR.exists() and any(MODEL_HF_DIR.iterdir())) else HF_MODEL_ID
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if device == "cuda":
+        gpu_name = torch.cuda.get_device_name(0)
+        vram_gb  = torch.cuda.get_device_properties(0).total_memory / 1e9
+        compute  = torch.cuda.get_device_capability(0)
+        # bf16 for datacenter Ampere; fp16 for consumer RTX; float32 for CPU
+        _dc = any(k in gpu_name for k in ("A100", "H100", "H200", "A40", "A10G"))
+        dtype = torch.bfloat16 if (_dc and compute[0] >= 8) else torch.float16
+        _ok(f"GPU: {gpu_name} ({vram_gb:.1f} GB) — using {dtype}")
+    else:
+        dtype = torch.float32
+        _ok("No GPU detected — using CPU + float32 (slow but works)")
+
     _ok(f"Loading model embeddings from {model_path} (this takes 1-2 min) …")
     t0 = time.time()
 
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
-        torch_dtype=torch.float32,
-        device_map="cpu",
+        torch_dtype=dtype,
+        device_map=device,
         low_cpu_mem_usage=True,
         trust_remote_code=False,
     )
@@ -422,6 +436,9 @@ def phase_corpus_train(
         _err(f"Corpus not found: {CORPUS_FILE}")
         sys.exit(1)
 
+    device = next(model.parameters()).device
+    _ok(f"Corpus training device: {device}")
+
     sentences = [s.strip() for s in CORPUS_FILE.read_text().splitlines() if s.strip()]
     _ok(f"Corpus: {len(sentences)} sentences from {CORPUS_FILE}")
 
@@ -474,12 +491,10 @@ def phase_corpus_train(
         for b in range(n_batches):
             start = b * batch_size
             end   = min(start + batch_size, n_sentences)
-            ids   = input_ids_shuf[start:end]
-            mask  = mask_shuf[start:end]
+            ids   = input_ids_shuf[start:end].to(device)
+            mask  = mask_shuf[start:end].to(device)
 
-            # Shift for causal LM: labels = ids shifted left
             labels = ids.clone()
-            # Mask out padding from loss
             labels[mask == 0] = -100
 
             outputs = model(input_ids=ids, attention_mask=mask, labels=labels)

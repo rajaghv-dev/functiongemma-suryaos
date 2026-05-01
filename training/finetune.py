@@ -137,6 +137,59 @@ def _elapsed(start: float) -> str:
     return f"{secs // 60}m {secs % 60}s"
 
 
+def _detect_hardware() -> dict:
+    """Return device profile: device, dtype, fp16/bf16 flags, recommended batch size."""
+    try:
+        import torch
+    except ImportError:
+        return {"device": "cpu", "dtype": "float32", "fp16": False, "bf16": False,
+                "batch_size": 1, "grad_accum": 4, "gpu_name": None, "vram_gb": 0.0}
+
+    if not torch.cuda.is_available():
+        return {"device": "cpu", "dtype": "float32", "fp16": False, "bf16": False,
+                "batch_size": 1, "grad_accum": 4, "gpu_name": None, "vram_gb": 0.0}
+
+    props    = torch.cuda.get_device_properties(0)
+    gpu_name = props.name
+    vram_gb  = props.total_memory / 1e9
+    compute  = (props.major, props.minor)
+
+    # bf16 native: Ampere datacenter (A100, H100, A40, A10G …)
+    # fp16:        Ampere consumer (RTX 30xx/40xx) and Turing (RTX 20xx, T4)
+    _dc_keywords = ("A100", "H100", "H200", "A40", "A10G", "A10 ", "V100")
+    is_datacenter = any(kw in gpu_name for kw in _dc_keywords)
+    is_ampere_plus = compute[0] >= 8
+
+    use_bf16 = is_datacenter and is_ampere_plus
+    use_fp16 = (not use_bf16) and compute[0] >= 7   # Volta and newer
+
+    dtype = "bfloat16" if use_bf16 else ("float16" if use_fp16 else "float32")
+
+    # Recommended batch size by VRAM
+    # 270M model in fp16 ~540 MB; activations for seq_len=512 ~100–200 MB/sample
+    if   vram_gb >= 40:  batch = 16   # A100 80GB / H100
+    elif vram_gb >= 24:  batch = 12   # A100 40GB / RTX 4090 24GB
+    elif vram_gb >= 16:  batch = 8    # RTX 3080 Ti 16GB / RTX 4080 16GB
+    elif vram_gb >= 10:  batch = 4    # RTX 3080 10GB / RTX 4070
+    elif vram_gb >= 8:   batch = 2    # RTX 3060 Ti / T4
+    else:                batch = 1    # small cards
+
+    # Keep effective batch ~8; fewer grad_accum steps when batch is larger
+    grad_accum = max(1, 8 // batch)
+
+    return {
+        "device":     "cuda",
+        "dtype":      dtype,
+        "fp16":       use_fp16,
+        "bf16":       use_bf16,
+        "batch_size": batch,
+        "grad_accum": grad_accum,
+        "gpu_name":   gpu_name,
+        "vram_gb":    vram_gb,
+        "compute":    compute,
+    }
+
+
 # ===========================================================================
 # Dataset formatting helpers (module-level so callback can reuse them)
 # ===========================================================================
@@ -403,21 +456,33 @@ def mode_check() -> bool:
             _err(f"{display_name} not installed — run --mode setup")
             ok = False
 
-    # --- CPU / hardware ---
+    # --- hardware ---
     print("\n  [hardware]")
     try:
         import torch
-        _ok(f"CPU threads available: {torch.get_num_threads()}")
-        if torch.cuda.is_available():
-            _ok(f"CUDA also available: {torch.cuda.get_device_name(0)}")
-        else:
-            _ok("CUDA not available — training will run on CPU (expected)")
-        # Estimate available RAM
+        hw = _detect_hardware()
+
+        _ok(f"CPU threads: {torch.get_num_threads()}")
         try:
             mem_bytes = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
             _ok(f"System RAM: {mem_bytes / 1e9:.1f} GB")
         except Exception:
             pass
+
+        if hw["device"] == "cuda":
+            _ok(f"GPU:         {hw['gpu_name']}")
+            _ok(f"VRAM:        {hw['vram_gb']:.1f} GB")
+            _ok(f"Compute cap: {hw['compute'][0]}.{hw['compute'][1]}")
+            _ok(f"CUDA:        {torch.version.cuda}")
+            _ok(f"Training:    dtype={hw['dtype']}  "
+                f"fp16={hw['fp16']}  bf16={hw['bf16']}")
+            _ok(f"Auto batch:  per_device={hw['batch_size']}  "
+                f"grad_accum={hw['grad_accum']}  "
+                f"effective={hw['batch_size'] * hw['grad_accum']}")
+        else:
+            _warn("No CUDA GPU detected — training on CPU (slow)")
+            _warn("  Install CUDA PyTorch: bash training/bootstrap.sh")
+            _ok(f"Training:    dtype=float32  batch=1  grad_accum=4")
     except ImportError:
         pass
 
@@ -823,38 +888,37 @@ def _hf_download_fallback() -> None:
 # MODE: train
 # ===========================================================================
 
-def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 1,
-               grad_accum: int = 4) -> None:
-    """LoRA fine-tuning with SFTTrainer.
+def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
+               grad_accum: int = 0) -> None:
+    """LoRA fine-tuning with SFTTrainer — GPU or CPU.
 
     WHAT HAPPENS HERE
     -----------------
-    1. Load tokenizer — Gemma 3 uses SentencePiece with a 256 000-token vocab.
-    2. Add domain tokens — 12 tool-name tokens so the model can emit them cleanly.
-    3. Load base model — float32 on CPU (no quantisation during training).
-    4. Apply LoRA — inject rank-8 adapter matrices into q_proj and v_proj.
-    5. Format dataset — convert dispatch_pairs to Gemma 3 chat template strings.
-    6. Train with SFTTrainer — 3 epochs, batch=1, grad_accum=4 (effective batch=4).
-    7. Save adapter — writes adapter_model.safetensors + adapter_config.json.
+    1. Detect hardware — GPU (RTX/A100/H100) or CPU; choose dtype + batch size.
+    2. Load tokenizer — from tokenizer_extended/ if train_tokenizer.py has run,
+       otherwise adds 12 DOMAIN_TOKENS to base Gemma 3 tokenizer.
+    3. Load base model — fp16/bf16 on GPU, float32 on CPU.
+    4. Restore embeddings — loads embed_init.pt warm embeddings when available.
+    5. Apply LoRA — rank-8 adapter on q_proj + v_proj.
+    6. Format dataset — convert dispatch_pairs to Gemma 3 chat template strings.
+    7. Train with SFTTrainer + DispatchCallback — per-step telemetry and
+       per-epoch per-tool accuracy probe.
+    8. Save adapter — adapter_model.safetensors + adapter_config.json.
 
-    TIMING ESTIMATES (Intel Meteor Lake, 30 GB RAM, CPU-only)
-    ----------------------------------------------------------
-    48 examples × 3 epochs = 144 gradient steps (effective after grad_accum)
-    Average sequence length ~200 tokens for Gemma 3 with tool schema.
-    Expected: ~15–25 minutes for 48 examples, 3 epochs.
-    At 500 examples: ~2.5–4 hours.
-    At 2000 examples (v4 target): ~10–16 hours (consider overnight run).
+    TIMING ESTIMATES
+    ----------------
+    RTX 3080 Ti 16GB (fp16):   ~1–3 min for 77 examples, 3 epochs
+    CPU (Intel Meteor Lake):   ~15–25 min for 48 examples, 3 epochs
 
     LoRA HYPERPARAMETERS
     --------------------
     r=8      : rank — controls adapter capacity. 8 is standard for small tasks.
     alpha=16 : scaling factor α/r = 2.0. Higher alpha = larger effective LR.
     dropout=0.05 : light regularisation to prevent overfitting on small data.
-    target_modules: q_proj, v_proj — the key/query projections in attention.
-                    These control *what* the model attends to, which directly
-                    influences tool selection behaviour.
+    target_modules: q_proj, v_proj — attention projections that control tool
+                    routing decisions. k_proj omitted (encodes content, not routing).
     """
-    _banner("TRAIN — LoRA fine-tuning on CPU")
+    _banner("TRAIN — LoRA fine-tuning (GPU/CPU auto-detected)")
     t0 = time.time()
 
     # -- Import heavy deps here so setup/check still work without them --
@@ -866,8 +930,31 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 1,
         from trl import SFTTrainer, SFTConfig
     except ImportError as e:
         _err(f"Missing dependency: {e}")
-        _err("Run --mode setup for install commands, then install and retry.")
+        _err("Run:  bash training/bootstrap.sh")
         sys.exit(1)
+
+    # -----------------------------------------------------------------------
+    # 0. Detect hardware — GPU wins; CPU is fallback
+    # -----------------------------------------------------------------------
+
+    hw = _detect_hardware()
+
+    if hw["device"] == "cuda":
+        _ok(f"GPU: {hw['gpu_name']}  ({hw['vram_gb']:.1f} GB VRAM)")
+        _ok(f"     dtype={hw['dtype']}  fp16={hw['fp16']}  bf16={hw['bf16']}")
+    else:
+        _ok("No GPU detected — training on CPU (slow; run bootstrap.sh on a GPU machine)")
+
+    # Resolve batch / grad_accum: 0 means "auto-detect from hardware"
+    effective_batch      = batch_size  if batch_size  > 0 else hw["batch_size"]
+    effective_grad_accum = grad_accum  if grad_accum  > 0 else hw["grad_accum"]
+    _ok(f"     batch={effective_batch}  grad_accum={effective_grad_accum}  "
+        f"effective={effective_batch * effective_grad_accum}")
+
+    torch_dtype = (torch.bfloat16 if hw["bf16"] else
+                   torch.float16  if hw["fp16"] else
+                   torch.float32)
+    device_map  = "auto" if hw["device"] == "cuda" else "cpu"
 
     # -----------------------------------------------------------------------
     # 1. Decide which model to load: local model_hf/ or HF Hub
@@ -931,16 +1018,17 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 1,
     # 3. Load base model in float32 on CPU
     # -----------------------------------------------------------------------
 
-    _ok("Loading base model (float32, CPU) — this takes 1–2 minutes …")
+    load_desc = f"{torch_dtype} on {device_map}"
+    _ok(f"Loading base model ({load_desc}) — this takes 1–2 minutes …")
     load_start = time.time()
 
     try:
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
-            torch_dtype=torch.float32,   # float32 needed for stable CPU training
-            device_map="cpu",            # force CPU — no CUDA on this machine
+            torch_dtype=torch_dtype,
+            device_map=device_map,
             trust_remote_code=False,
-            low_cpu_mem_usage=True,      # load tensors one at a time; saves ~2 GB peak RAM
+            low_cpu_mem_usage=True,
         )
     except Exception as e:
         _err(f"Model load failed: {e}")
@@ -1217,52 +1305,58 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 1,
     _ok(f"Telemetry log: {log_path}")
 
     # Estimate training time for the user
-    n_steps = (len(formatted) * epochs) // (batch_size * grad_accum)
+    n_steps = (len(formatted) * epochs) // max(1, effective_batch * effective_grad_accum)
+    sec_per_step = 0.3 if hw["device"] == "cuda" else 5.0   # rough GPU vs CPU estimate
     print(f"\n  Estimated training steps: {n_steps}")
-    print(f"  Rough timing @ ~5 sec/step on CPU: ~{n_steps * 5 // 60} minutes")
-    print(f"  (Actual time depends on sequence length and CPU speed)\n")
+    print(f"  Rough timing @ ~{sec_per_step}s/step ({hw['device'].upper()}): "
+          f"~{int(n_steps * sec_per_step // 60)} minutes")
+    print(f"  (Actual time depends on sequence length and GPU/CPU speed)\n")
+
+    # GPU: use fused optimizer + gradient checkpointing for speed + memory
+    use_gc    = hw["device"] == "cuda"   # gradient checkpointing
+    optim_str = "adamw_torch_fused" if hw["device"] == "cuda" else "adamw_torch"
 
     try:
         # SFTConfig is the modern interface (trl >= 0.8); it inherits TrainingArguments
         training_args = SFTConfig(
             output_dir                  = str(MODEL_LORA),
             num_train_epochs            = epochs,
-            per_device_train_batch_size = batch_size,
-            gradient_accumulation_steps = grad_accum,
+            per_device_train_batch_size = effective_batch,
+            gradient_accumulation_steps = effective_grad_accum,
             learning_rate               = lr,
             warmup_ratio                = 0.1,
             weight_decay                = 0.01,
-            logging_steps               = 10,
+            logging_steps               = 5,
             save_steps                  = 50,
-            save_total_limit            = 2,        # keep only 2 checkpoints
-            fp16                        = False,    # CPU doesn't support fp16 training
-            bf16                        = False,    # requires AVX512BF16 or CUDA
-            dataloader_num_workers      = 0,        # 0 = main process; avoids fork issues
-            report_to                   = "none",   # no WandB/TensorBoard
+            save_total_limit            = 2,
+            fp16                        = hw["fp16"],
+            bf16                        = hw["bf16"],
+            optim                       = optim_str,
+            gradient_checkpointing      = use_gc,
+            dataloader_num_workers      = 0,
+            report_to                   = "none",
             max_seq_length              = 512,
-            dataset_text_field          = "text",   # the column name in our Dataset
-            # Packing: disabled. Packing concatenates short sequences to fill
-            # max_seq_length, which increases GPU/CPU utilisation. But it makes
-            # loss masking harder and can confuse the model on tiny datasets.
+            dataset_text_field          = "text",
             packing                     = False,
         )
     except TypeError:
-        # Older trl versions use TrainingArguments instead of SFTConfig
         _warn("SFTConfig not found in this trl version — using TrainingArguments")
         from transformers import TrainingArguments
         training_args = TrainingArguments(
             output_dir                  = str(MODEL_LORA),
             num_train_epochs            = epochs,
-            per_device_train_batch_size = batch_size,
-            gradient_accumulation_steps = grad_accum,
+            per_device_train_batch_size = effective_batch,
+            gradient_accumulation_steps = effective_grad_accum,
             learning_rate               = lr,
             warmup_ratio                = 0.1,
             weight_decay                = 0.01,
-            logging_steps               = 10,
+            logging_steps               = 5,
             save_steps                  = 50,
             save_total_limit            = 2,
-            fp16                        = False,
-            bf16                        = False,
+            fp16                        = hw["fp16"],
+            bf16                        = hw["bf16"],
+            optim                       = optim_str,
+            gradient_checkpointing      = use_gc,
             dataloader_num_workers      = 0,
             report_to                   = "none",
         )

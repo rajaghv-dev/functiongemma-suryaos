@@ -1,28 +1,35 @@
-# PyTorch CPU-only build — must come before the packages so pip resolves it
---extra-index-url https://download.pytorch.org/whl/cpu
-torch>=2.2.0
-torchvision
-torchaudio
+# ── PyTorch — installed by bootstrap.sh (selects CPU or CUDA wheel) ────────
+#
+# bootstrap.sh auto-detects GPU and runs the right command:
+#   CUDA 12.x:  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+#   CUDA 11.x:  pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+#   CPU-only:   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+#
+# Do NOT add torch here — wrong wheel ends up installed and silently runs on CPU.
+# Run:  bash training/bootstrap.sh
 
-# HuggingFace ecosystem
+# ── HuggingFace ecosystem ───────────────────────────────────────────────────
 transformers>=4.40.0
 datasets>=2.18.0
 accelerate>=0.29.0
 safetensors>=0.4.0
 
-# LoRA adapter + supervised fine-tuning trainer
+# ── LoRA + supervised fine-tuning ───────────────────────────────────────────
 peft>=0.10.0
 trl>=0.8.6
 
-# GGUF read/write (Ollama model blob conversion)
+# ── GGUF read/write (Ollama model blob conversion) ──────────────────────────
 gguf>=0.6.0
 
-# Gemma tokenizer backend
+# ── Gemma tokenizer backend ─────────────────────────────────────────────────
 sentencepiece>=0.1.99
 
-# Memory usage telemetry (optional — callback falls back gracefully without it)
-psutil>=5.9.0
+# ── GPU: 4-bit quantisation for QLoRA (optional — skip on CPU) ─────────────
+# bootstrap.sh installs this only when GPU is detected.
+# Manual: pip install bitsandbytes>=0.43.0
+# bitsandbytes>=0.43.0
 
-# Progress + display
+# ── Telemetry + display ──────────────────────────────────────────────────────
+psutil>=5.9.0
 tqdm>=4.66.0
 rich>=13.0.0
