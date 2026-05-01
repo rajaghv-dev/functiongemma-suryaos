@@ -16,6 +16,8 @@ examples:
   - Show network status.
   - Am I online?
 
+  - internet connection
+  - is wfi connected
 aliases:
   - linux.wifi.status
   - network.check

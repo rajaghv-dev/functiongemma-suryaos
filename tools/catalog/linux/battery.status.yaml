@@ -16,6 +16,7 @@ examples:
   - Is the laptop charging?
   - How long until the battery dies?
 
+  - BATTRY
 aliases:
   - linux.battery.check
   - battery.level

@@ -21,6 +21,23 @@ examples:
   - Is NetworkManager up?
   - What's the status of the sshd service?
 
+  - is cups active
+  - is docker running
+  - is ufw firewall active
+  - is bluetooth on
+  - check bt
+  - is the printer service running
+  - is printing service active
+  - ssh status
+  - is ssh up
+  - is firewall on
+  - is the audio service running
+  - is sound working
+  - is the web server up
+  - is nginx running
+  - is docker daemon up
+  - are services up
+  - is bleutooth running?
 aliases:
   - linux.service.check
   - systemd.status

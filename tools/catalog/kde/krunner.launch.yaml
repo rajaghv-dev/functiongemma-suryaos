@@ -22,6 +22,20 @@ examples:
   - Start Firefox.
   - Open the file manager.
 
+  - open konsole
+  - run spotify
+  - open files
+  - launch the browser
+  - open web browser
+  - open the text editor
+  - open code editor
+  - start the email client
+  - open settings
+  - open system settings
+  - show calculator
+  - open music player
+  - lanch dolphin
+  - opn firefox
 aliases:
   - kde.app.launch
   - app.open

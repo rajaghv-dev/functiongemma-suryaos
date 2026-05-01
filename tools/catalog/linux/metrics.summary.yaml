@@ -22,6 +22,9 @@ examples:
   - What are the system stats?
   - Show me CPU and RAM usage.
 
+  - is everything ok
+  - show me what's running
+  - status
 aliases:
   - linux.system.status
   - system.health

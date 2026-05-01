@@ -16,6 +16,8 @@ examples:
   - Is the system running low on memory?
   - Show RAM stats.
 
+  - is memory full
+  - memry usage
 aliases:
   - linux.ram.usage
   - memory.check
