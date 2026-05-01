@@ -443,3 +443,63 @@ What we'd keep:
 3. **Real failures in the dataset** — `source: "failure"` examples lifted
    accuracy faster than synthetic ones
 4. **Auto-fix loop** — converged in 2-3 iterations, beats manual YAML editing
+
+---
+
+## L13 — Tokenizer training run #1 (postmortem)
+
+### What happened
+
+First real run of `train_tokenizer.py` — RTX 3080 Ti, 18 min, 2 epochs.
+Loss dropped 8.51 → 6.73. Looked like progress. **Was actually broken.**
+
+```
+[OK]   Smart init complete: 0 via subword avg, 251 via global mean fallback
+[OK]   New token embedding norms (post-init) — mean=0.4962  std=0.0000
+```
+
+`std=0.0000` is the smoking gun: every new token got the *same* embedding
+(the global mean of 262K base vocab embeddings). 251 identical clones.
+
+### Why every symptom made sense once we knew
+
+| Symptom | Explanation |
+|---|---|
+| All cosine sims at +0.92 (incl. cross-domain) | Embeddings literally identical → cosine ≈ 1 by construction |
+| Loss plateau at 6.7 | Model can't distinguish tools that occupy the same point |
+| `<image_soft_token>` neighbour for every new token | Global mean of multilingual vocab happens to live near it |
+| Sustained grad_norms 4-7 | Optimizer fighting the bad init for the entire run |
+
+### The bug
+
+```python
+subword_ids = tokenizer.encode(token_str, add_special_tokens=False)
+base_ids = [sid for sid in subword_ids if sid < base_vocab_size]
+# encode() returns the NEW ID (because we already added the token);
+# filter then drops everything; base_ids is always [];
+# fallback uses global vocab mean → all 251 tokens identical.
+```
+
+We tokenized through the *already-extended* tokenizer, which had the new
+tokens in its added-tokens trie. Every encode short-circuited to the new ID.
+
+### Fix
+
+Keep a separate base-tokenizer instance (loaded fresh, no `add_tokens()`)
+solely for smart-init lookups. Encoding goes through the original vocab,
+so subword decomposition actually works.
+
+### Strategies + roadmap
+
+Documented in [tokenizer-improvements.md](tokenizer-improvements.md).
+Highest-leverage moves identified:
+1. Fix smart-init bug (5 lines, unblocks everything)
+2. Replace 70% templated corpus with co-occurrence-rich natural text
+3. Defaults: 2 → 5 epochs (loss was still trending down at epoch 2)
+
+### What this means for the project
+
+The 18-minute training output is **discarded**. None of the new embeddings
+are useful — they all point in the same direction. Re-running after the
+fix is necessary; cached `tokenizer_extended/embed_init.pt` should be
+deleted before the next run.

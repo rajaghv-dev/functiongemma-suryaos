@@ -6,6 +6,92 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased] — first training iteration + observability + bug fixes
+
+### Fixed
+- **BUG-001 — Smart-init produces 251 identical embeddings** (`train_tokenizer.py`).
+  `tokenizer.encode(token_str)` was being called on the already-extended tokenizer,
+  so the added-tokens trie short-circuited subword decomposition. Every new token
+  fell through to the global-mean fallback, producing 251 identical clones with
+  `std=0.0000`. Fixed by loading a separate clean base tokenizer for subword
+  lookup. See [docs/bug-fixes.md](docs/bug-fixes.md) BUG-001 for full diagnosis.
+- **BUG-002 — Gated Gemma 3 fails to download even with paid HF account.**
+  Added `_get_hf_token()` helper that resolves token from `HF_TOKEN`,
+  `HUGGINGFACE_HUB_TOKEN`, or `~/.cache/huggingface/token`, then passes it
+  explicitly to every `from_pretrained()` call. On 401/403, prints exact
+  2-step recovery (license URL + token export).
+- **BUG-003 — CPU torch silently installed on GPU machines.** Removed torch
+  from `requirements.txt`; `bootstrap.sh` now installs the right wheel based
+  on detected CUDA version. Uninstalls existing CPU torch before installing
+  GPU variant.
+- **BUG-004 — bootstrap.sh slow on re-runs.** Added `[SKIP]` early-exits for
+  each install step when packages are already importable. New flags:
+  `--no-dashboard`, `--dashboard-only`, `--reinstall`.
+
+### Changed
+- `train_tokenizer.py` default epochs: 2 → 5 (loss was still trending down
+  at epoch 2 in run #1; see learnings.md L13).
+- `bootstrap.sh` now also brings up the Grafana/Loki/Prometheus stack as
+  the final step (idempotent — skipped if all 5 containers are running).
+- `requirements.txt` removed torch entirely; bootstrap installs it with
+  the correct CUDA wheel based on detection.
+
+### Added — observability stack
+- **`training/observability/`** — full local Grafana / Loki / Prometheus stack
+  via `docker compose`. Pre-provisioned dashboard with 18 panels covering
+  loss curve, lr schedule, gradient norm, memory, per-tool loss heatmap,
+  cosine probe evolution, embedding norm ratio, drift, live event log tail,
+  and per-epoch probe results. Multi-run comparison via `run_id` selector.
+- **`training/metrics.py`** — `MetricsPusher` class that pushes time-series
+  metrics to Prometheus Pushgateway from training scripts. Gracefully
+  no-ops if `prometheus_client` is missing or Pushgateway is unreachable.
+- **Promtail config** — auto-tails `training/*/train_log.jsonl` files
+  and ships them to Loki with phase/event/epoch labels.
+
+### Added — live training narration
+- `train_tokenizer.py` prints intuitive interpretation during corpus
+  training: `[LEARN]` for milestones, `[PROGRESS]` for steady convergence,
+  `[PLATEAU]` when loss stabilises, `[WARN]` for gradient anomalies.
+  Concrete before/after fragmentation demos.
+- `finetune.py` `DispatchCallback` writes structured JSONL telemetry plus
+  per-step terminal narration. Per-epoch probe table now annotates each
+  tool with `(mastered)` / `(learning)` / `(struggling)` status tags.
+- `[DELTA]` block after each epoch shows the 5 biggest tool-loss changes
+  vs the previous epoch.
+
+### Added — GPU training support
+- `_detect_hardware()` auto-selects bf16 on A100/H100, fp16 on RTX
+  30xx/40xx/T4, float32 on CPU. Auto batch-size scaling by VRAM:
+  16GB → batch=8 (RTX 3080 Ti), 10GB → batch=4, 40GB+ → batch=16.
+- `bootstrap.sh` detects CUDA via nvcc + nvidia-smi, picks `cu121` for
+  CUDA 12.x, `cu118` for CUDA 11.x, `cpu` otherwise.
+- `bitsandbytes` installed automatically on GPU systems (for QLoRA).
+
+### Added — tokenizer warm-up phase
+- **`training/train_tokenizer.py`** — new standalone script that runs
+  BEFORE the LoRA fine-tune. Adds 319 domain tokens, smart-initialises
+  new embeddings as the average of their subword pieces (after BUG-001
+  fix), and trains only the new embedding rows on `corpus.txt` while
+  keeping the base 262K vocab embeddings frozen via gradient hook.
+- Output: `training/tokenizer_extended/` with extended tokenizer +
+  `embed_init.pt` containing the warmed-up embeddings.
+- `finetune.py` auto-detects this directory and loads the warmed-up
+  embeddings into the model before starting LoRA training.
+
+### Added — comprehensive documentation
+- **`docs/bug-fixes.md`** — running log of every bug caught during
+  real training runs. Each entry has Symptom → Root cause → Mental
+  model → Fix → Validation → Lesson.
+- **`docs/tokenizer-improvements.md`** — strategy register identifying
+  5 tiers of improvements (bugs, corpus, token list, training procedure,
+  validation) with prioritised recommendations.
+- **`docs/learnings.md` L13** — postmortem of the first (broken)
+  tokenizer training run.
+- Inline comments throughout `train_tokenizer.py`, `finetune.py`, and
+  `bootstrap.sh` explaining the WHY at every decision point.
+
+---
+
 ## [Unreleased] — pre-training baseline
 
 ### Added

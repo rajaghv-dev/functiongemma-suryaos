@@ -667,6 +667,24 @@ def phase_smart_init(
     model_path  = str(MODEL_HF_DIR) if using_local else HF_MODEL_ID
     hf_token    = None if using_local else _get_hf_token()  # gated-model auth
 
+    # ---- BUG FIX (L13 postmortem) ----
+    # Load a SECOND tokenizer instance — clean, with no added tokens.
+    # Why: the `tokenizer` we received already had add_tokens() called on it.
+    # Calling `tokenizer.encode("linux_memory_usage")` on it returns the new
+    # token ID (e.g. 262148) because the added-tokens trie short-circuits the
+    # subword splitter. We then filter `< base_vocab_size` and get an empty
+    # list, falling back to the global mean for every token. Result: 251
+    # identical embeddings, training collapses.
+    #
+    # The clean instance still has the original SentencePiece subword splitter,
+    # so encode("linux_memory_usage") returns ["linux", "_", "memory", "_",
+    # "usage"] (or whatever subwords the base vocab uses). We average THOSE.
+    from transformers import AutoTokenizer
+    _ok("Loading clean base tokenizer (for subword decomposition) ...")
+    base_tokenizer = AutoTokenizer.from_pretrained(
+        model_path, trust_remote_code=False, token=hf_token,
+    )
+
     # Detect GPU and choose the right dtype.
     # Using fp16/bf16 on GPU cuts memory by 2x vs float32 and speeds up init.
     # We use bfloat16 on datacenter Ampere cards (A100, H100) because their
@@ -748,11 +766,14 @@ def phase_smart_init(
             _warn(f"Token index {new_id} out of range for {token_str!r} — skipping")
             continue
 
-        # Tokenize using the EXTENDED tokenizer, but filter out any newly added IDs.
-        # This gives us only the original base-vocab piece IDs for this token string.
-        # e.g. 'linux_memory_usage' → [12345, 432, 6789, 432, 4567] (hypothetical)
-        #   → only keep IDs < base_vocab_size (original vocab pieces)
-        subword_ids = tokenizer.encode(token_str, add_special_tokens=False)
+        # Tokenize using the CLEAN base tokenizer (loaded above) which doesn't
+        # have the new tokens in its added-tokens trie. This forces the
+        # SentencePiece subword splitter to actually run.
+        # e.g. 'linux_memory_usage' → ['linux', '_', 'memory', '_', 'usage']
+        #                          → [12345, 432, 6789, 432, 4567]
+        # All resulting IDs are guaranteed < base_vocab_size by construction.
+        subword_ids = base_tokenizer.encode(token_str, add_special_tokens=False)
+        # Filter is now a no-op safety check (all should already be < base_vocab_size)
         base_ids    = [sid for sid in subword_ids if sid < base_vocab_size]
 
         if base_ids:
@@ -789,9 +810,10 @@ def phase_smart_init(
     print(f"\n  [DEMO] Smart init seeded each new token from its subword pieces:")
     sample_tokens = [t for t in new_token_strings if "_" in t][:5]
     for ts in sample_tokens:
-        sub_ids   = tokenizer.encode(ts, add_special_tokens=False)
+        # Use the CLEAN base tokenizer here too — same reason as the bug fix above
+        sub_ids   = base_tokenizer.encode(ts, add_special_tokens=False)
         base_only = [sid for sid in sub_ids if sid < base_vocab_size]
-        pieces    = [tokenizer.decode([i]) for i in base_only]
+        pieces    = [base_tokenizer.decode([i]) for i in base_only]
         print(f"    {ts!r:35s} init = mean({pieces})")
     print(f"  [LEARN] Each new token starts in the right neighborhood —")
     print(f"  [LEARN] e.g. 'linux_memory_usage' is already near 'linux'+'memory'+'usage'")
@@ -1395,10 +1417,11 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "--epochs", type=int, default=2,
-        help="Corpus training epochs (default: 2). "
-             "2 epochs is usually enough for convergence on a 3800-sentence corpus. "
-             "Use 3+ if same-tool cosine similarities stay below 0.5 after training.",
+        "--epochs", type=int, default=5,
+        help="Corpus training epochs (default: 5). "
+             "Bumped from 2 after run #1 (see learnings.md L13) — loss was still "
+             "trending down at epoch 2, embeddings hadn't converged. "
+             "Use 3 for quick iteration; 7-10 for highest quality.",
     )
     parser.add_argument(
         "--lr", type=float, default=5e-4,
