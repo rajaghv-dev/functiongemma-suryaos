@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 # =============================================================================
-# bootstrap.sh — One-shot environment setup for functiongemma training.
+# bootstrap.sh — Idempotent environment + observability setup for training.
+#
+# IDEMPOTENT: every step checks current state and skips if already satisfied.
+# Re-running this script after a successful run is a no-op (just verifies).
 #
 # What this script does, in order:
 #   1. Detect GPU (nvidia-smi) and CUDA toolkit version (nvcc)
 #   2. Choose the correct PyTorch wheel (cu121, cu118, or cpu-only)
 #   3. Create the Python virtual environment (.fngemma-suryaos/) if missing
-#   4. Install PyTorch with the right CUDA wheel
-#   5. Install all other training dependencies from requirements.txt
-#   6. Install bitsandbytes for 4-bit QLoRA (GPU only — skipped on CPU)
+#   4. Install PyTorch IF not already installed with right CUDA support
+#   5. Install requirements.txt IF any required package is missing
+#   6. Install bitsandbytes for QLoRA (GPU only) IF not already installed
 #   7. Verify every critical import and print versions
+#   8. Bring up the observability stack (Grafana + Loki + Prometheus)
+#      IF Docker is available and stack is not already running
 #
 # Supported hardware:
 #   RTX 30xx / 40xx (Ampere / Ada)    CUDA 12.x → cu121 wheel, fp16 training
@@ -18,7 +23,10 @@
 #   CPU-only (no GPU)                 cpu wheel, float32 training (slow)
 #
 # Usage (run from repo root):
-#   bash training/bootstrap.sh
+#   bash training/bootstrap.sh                  # default: install + start dashboard
+#   bash training/bootstrap.sh --no-dashboard   # skip docker compose step
+#   bash training/bootstrap.sh --reinstall      # force reinstall all packages
+#   bash training/bootstrap.sh --dashboard-only # skip Python deps; just start stack
 #
 # After bootstrap completes, run in order:
 #   .fngemma-suryaos/bin/python training/train_tokenizer.py
@@ -28,10 +36,33 @@
 
 set -euo pipefail  # -e: exit on error  -u: error on undefined vars  -o pipefail: pipe errors propagate
 
+# ── Parse flags ─────────────────────────────────────────────────────────────
+WITH_DASHBOARD=true   # default: also bring up the Grafana stack
+FORCE_REINSTALL=false # default: skip install if package already present
+SKIP_PY_DEPS=false    # default: install Python deps
+
+for arg in "$@"; do
+    case "$arg" in
+        --no-dashboard)    WITH_DASHBOARD=false ;;
+        --dashboard-only)  SKIP_PY_DEPS=true ;;
+        --reinstall)       FORCE_REINSTALL=true ;;
+        -h|--help)
+            sed -n '2,/^# ===/p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'
+            exit 0
+            ;;
+        *)
+            echo "Unknown flag: $arg" >&2
+            echo "Use --help for usage" >&2
+            exit 2
+            ;;
+    esac
+done
+
 # Resolve paths relative to this script, regardless of working directory
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VENV="$REPO_ROOT/.fngemma-suryaos"    # virtual environment directory
+VENV="$REPO_ROOT/.fngemma-suryaos"          # virtual environment directory
 REQ="$REPO_ROOT/training/requirements.txt"  # non-torch dependencies
+OBS_DIR="$REPO_ROOT/training/observability" # docker compose stack location
 
 # =============================================================================
 # STEP 1 — Detect GPU and choose the right PyTorch wheel
@@ -164,6 +195,29 @@ echo "[bootstrap] STEP 3: Upgrading pip ..."
 echo "[bootstrap]   pip upgraded to $("$PIP" --version | awk '{print $2}')"
 echo ""
 
+# ── Helper: are all listed packages already importable? ───────────────────
+# Returns 0 (success) when every package is importable, 1 otherwise.
+# Used to decide whether to skip an install step.
+_all_importable() {
+    local missing=()
+    for pkg in "$@"; do
+        if ! "$PYTHON" -c "import $pkg" 2>/dev/null; then
+            missing+=("$pkg")
+        fi
+    done
+    if [ ${#missing[@]} -eq 0 ]; then
+        return 0
+    fi
+    echo "[bootstrap]   Missing packages: ${missing[*]}"
+    return 1
+}
+
+# ── Helper: short-circuit a step if --skip-py-deps was passed ─────────────
+if [ "$SKIP_PY_DEPS" = true ]; then
+    echo "[bootstrap] --dashboard-only — skipping Python dependency steps 4-7"
+    echo ""
+fi
+
 # =============================================================================
 # STEP 4 — Install PyTorch with the correct CUDA wheel
 # =============================================================================
@@ -177,16 +231,63 @@ echo ""
 # Other packages in this command still resolve from PyPI.
 # =============================================================================
 
-echo "[bootstrap] STEP 4: Installing PyTorch ($TORCH_LABEL) ..."
-echo "[bootstrap]   Downloading ~600 MB for GPU builds, ~200 MB for CPU ..."
-echo "[bootstrap]   This can take 3-10 minutes depending on your connection."
-echo ""
+if [ "$SKIP_PY_DEPS" = false ]; then
 
-"$PIP" install torch torchvision torchaudio --index-url "$TORCH_INDEX"
+    echo "[bootstrap] STEP 4: Checking PyTorch ..."
 
-echo ""
-echo "[bootstrap]   PyTorch installed: $("$PYTHON" -c "import torch; print(torch.__version__)")"
-echo ""
+    # Decide if we can skip the install.
+    # When GPU is expected, torch must report CUDA available; otherwise reinstall.
+    # When CPU-only, any working torch is fine.
+    NEED_TORCH_INSTALL=true
+    if [ "$FORCE_REINSTALL" = true ]; then
+        echo "[bootstrap]   --reinstall flag set — will reinstall PyTorch"
+    elif [ "$HAS_GPU" = true ]; then
+        # GPU machine — require torch with CUDA available
+        if "$PYTHON" -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
+            TORCH_VER=$("$PYTHON" -c "import torch; print(torch.__version__)")
+            CUDA_RT=$("$PYTHON"  -c "import torch; print(torch.version.cuda)")
+            echo "[bootstrap]   [SKIP]  PyTorch $TORCH_VER with CUDA $CUDA_RT already installed"
+            NEED_TORCH_INSTALL=false
+        elif "$PYTHON" -c "import torch" 2>/dev/null; then
+            echo "[bootstrap]   PyTorch installed but CUDA unavailable — reinstalling GPU build"
+        fi
+    else
+        # CPU-only machine — any torch import is fine
+        if "$PYTHON" -c "import torch" 2>/dev/null; then
+            TORCH_VER=$("$PYTHON" -c "import torch; print(torch.__version__)")
+            echo "[bootstrap]   [SKIP]  PyTorch $TORCH_VER already installed (CPU-only OK)"
+            NEED_TORCH_INSTALL=false
+        fi
+    fi
+
+    if [ "$NEED_TORCH_INSTALL" = true ]; then
+        # If torch is already installed (e.g. CPU build when we need GPU), pip
+        # will say "already satisfied" because the package name "torch" matches —
+        # it doesn't know we want a different wheel variant. Uninstall first to
+        # force a clean install from the cu121/cu118 index URL.
+        if "$PYTHON" -c "import torch" 2>/dev/null; then
+            EXISTING_TORCH=$("$PYTHON" -c "import torch; print(torch.__version__)")
+            echo "[bootstrap]   Removing wrong-variant torch ($EXISTING_TORCH) before reinstall ..."
+            "$PIP" uninstall -y torch torchvision torchaudio 2>/dev/null || true
+        fi
+
+        echo "[bootstrap]   Installing PyTorch ($TORCH_LABEL) ..."
+        echo "[bootstrap]   Downloading ~600 MB for GPU builds, ~200 MB for CPU ..."
+        echo "[bootstrap]   This can take 3-10 minutes depending on your connection."
+        echo ""
+        "$PIP" install torch torchvision torchaudio --index-url "$TORCH_INDEX"
+        echo ""
+        echo "[bootstrap]   PyTorch installed: $("$PYTHON" -c "import torch; print(torch.__version__)")"
+        if "$PYTHON" -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
+            echo "[bootstrap]   CUDA available: $("$PYTHON" -c "import torch; print(torch.version.cuda)")"
+        elif [ "$HAS_GPU" = true ]; then
+            echo "[bootstrap]   WARN: GPU detected but torch.cuda.is_available()=False"
+            echo "[bootstrap]         Possible CUDA driver / wheel mismatch."
+        fi
+    fi
+    echo ""
+
+fi
 
 # =============================================================================
 # STEP 5 — Install remaining requirements (HuggingFace, LoRA, etc.)
@@ -205,9 +306,32 @@ echo ""
 #   psutil        — process memory measurement for telemetry (optional)
 # =============================================================================
 
-echo "[bootstrap] STEP 5: Installing remaining requirements from $REQ ..."
-"$PIP" install -r "$REQ"
-echo ""
+if [ "$SKIP_PY_DEPS" = false ]; then
+
+    echo "[bootstrap] STEP 5: Checking requirements.txt packages ..."
+
+    # Critical packages from requirements.txt — note Python import names (not pip names).
+    # Most pip names match import names, but a few differ:
+    #   prometheus-client → import prometheus_client
+    #   sentencepiece    → import sentencepiece (matches)
+    REQUIRED_IMPORTS=(
+        transformers datasets accelerate safetensors
+        peft trl gguf sentencepiece
+        psutil tqdm rich prometheus_client
+    )
+
+    if [ "$FORCE_REINSTALL" = true ]; then
+        echo "[bootstrap]   --reinstall flag set — will reinstall all packages"
+        "$PIP" install --force-reinstall -r "$REQ"
+    elif _all_importable "${REQUIRED_IMPORTS[@]}"; then
+        echo "[bootstrap]   [SKIP]  All ${#REQUIRED_IMPORTS[@]} required packages already importable"
+    else
+        echo "[bootstrap]   Installing from $REQ ..."
+        "$PIP" install -r "$REQ"
+    fi
+    echo ""
+
+fi
 
 # =============================================================================
 # STEP 6 — Install bitsandbytes for QLoRA (GPU only, optional)
@@ -223,17 +347,26 @@ echo ""
 # Regular fp16/bf16 LoRA training works perfectly without it.
 # =============================================================================
 
-if [ "$HAS_GPU" = true ]; then
-    echo "[bootstrap] STEP 6: Installing bitsandbytes (optional QLoRA support) ..."
-    if "$PIP" install "bitsandbytes>=0.43.0" 2>/dev/null; then
-        BNB_VER=$("$PYTHON" -c "import bitsandbytes; print(bitsandbytes.__version__)" 2>/dev/null || echo "unknown")
-        echo "[bootstrap]   bitsandbytes $BNB_VER installed — QLoRA (4-bit) available"
+if [ "$SKIP_PY_DEPS" = false ] && [ "$HAS_GPU" = true ]; then
+
+    echo "[bootstrap] STEP 6: Checking bitsandbytes (optional QLoRA support) ..."
+
+    if [ "$FORCE_REINSTALL" = false ] && "$PYTHON" -c "import bitsandbytes" 2>/dev/null; then
+        BNB_VER=$("$PYTHON" -c "import bitsandbytes; print(bitsandbytes.__version__)")
+        echo "[bootstrap]   [SKIP]  bitsandbytes $BNB_VER already installed (QLoRA ready)"
     else
-        echo "[bootstrap]   WARN: bitsandbytes failed to install"
-        echo "[bootstrap]         Regular fp16/bf16 LoRA training still works fine."
-        echo "[bootstrap]         QLoRA is only needed for models > 7B parameters."
+        echo "[bootstrap]   Installing bitsandbytes ..."
+        if "$PIP" install "bitsandbytes>=0.43.0" 2>/dev/null; then
+            BNB_VER=$("$PYTHON" -c "import bitsandbytes; print(bitsandbytes.__version__)" 2>/dev/null || echo "unknown")
+            echo "[bootstrap]   bitsandbytes $BNB_VER installed — QLoRA (4-bit) available"
+        else
+            echo "[bootstrap]   WARN: bitsandbytes failed to install"
+            echo "[bootstrap]         Regular fp16/bf16 LoRA training still works fine."
+            echo "[bootstrap]         QLoRA is only needed for models > 7B parameters."
+        fi
     fi
     echo ""
+
 fi
 
 # =============================================================================
@@ -246,6 +379,11 @@ fi
 # Each _verify call runs a one-liner in the venv Python. If it fails (exit != 0),
 # we print FAIL with the package name so you know exactly what to fix.
 # =============================================================================
+
+if [ "$SKIP_PY_DEPS" = true ]; then
+    echo "[bootstrap] Skipping Step 7 (verify) — --dashboard-only flag set"
+    echo ""
+else
 
 echo "[bootstrap] STEP 7: Verifying installation ..."
 echo ""
@@ -286,6 +424,101 @@ _verify "psutil"        "import psutil;       print('psutil', psutil.__version__
 # bitsandbytes is optional — don't fail if absent
 if [ "$HAS_GPU" = true ]; then
     _verify "bitsandbytes" "import bitsandbytes; print('bitsandbytes', bitsandbytes.__version__, '(QLoRA ready)')"
+fi
+
+fi  # end of "if SKIP_PY_DEPS = false" block (Step 7)
+
+# =============================================================================
+# STEP 8 — Bring up the Grafana / Loki / Prometheus observability stack
+# =============================================================================
+#
+# Idempotent: if all 5 containers are already running, this step is a no-op.
+# Otherwise runs `docker compose up -d` which:
+#   - creates containers that don't exist
+#   - starts containers that are stopped
+#   - leaves running containers untouched
+#
+# Skipped when:
+#   - Docker is not installed
+#   - Docker daemon is not running
+#   - User passed --no-dashboard
+#
+# After this step, dashboards are at http://localhost:3000 (admin/admin).
+# =============================================================================
+
+if [ "$WITH_DASHBOARD" = false ]; then
+    echo ""
+    echo "[bootstrap] Skipping Step 8 (dashboard) — --no-dashboard flag set"
+else
+    echo ""
+    echo "[bootstrap] STEP 8: Observability stack (Grafana + Loki + Prometheus) ..."
+
+    # Verify Docker is available before attempting docker compose
+    if ! command -v docker &>/dev/null; then
+        echo "[bootstrap]   [SKIP]  Docker not installed — skipping dashboard."
+        echo "[bootstrap]           Install: https://docs.docker.com/engine/install/"
+        echo "[bootstrap]           Or run with --no-dashboard to silence this message."
+    elif ! docker info &>/dev/null; then
+        echo "[bootstrap]   [SKIP]  Docker daemon not running — skipping dashboard."
+        echo "[bootstrap]           Start it: sudo systemctl start docker"
+        echo "[bootstrap]           Or on WSL: open Docker Desktop"
+    elif [ ! -f "$OBS_DIR/docker-compose.yml" ]; then
+        echo "[bootstrap]   [SKIP]  $OBS_DIR/docker-compose.yml not found"
+    else
+        # Pick the right docker compose subcommand (newer "docker compose" vs older "docker-compose")
+        if docker compose version &>/dev/null; then
+            DC="docker compose"
+        elif command -v docker-compose &>/dev/null; then
+            DC="docker-compose"
+        else
+            DC=""
+        fi
+
+        if [ -z "$DC" ]; then
+            echo "[bootstrap]   [SKIP]  Neither 'docker compose' nor 'docker-compose' found"
+            echo "[bootstrap]           Install Compose: https://docs.docker.com/compose/install/"
+        else
+            cd "$OBS_DIR"
+
+            # Count running services from this compose project
+            RUNNING=$($DC ps --services --filter status=running 2>/dev/null | wc -l || echo 0)
+            EXPECTED=5  # loki, promtail, pushgateway, prometheus, grafana
+
+            if [ "$FORCE_REINSTALL" = true ]; then
+                echo "[bootstrap]   --reinstall flag set — recreating containers"
+                $DC up -d --force-recreate
+            elif [ "$RUNNING" -ge "$EXPECTED" ]; then
+                echo "[bootstrap]   [SKIP]  All $EXPECTED containers already running"
+                echo "[bootstrap]           Restart with: cd $OBS_DIR && $DC restart"
+            else
+                echo "[bootstrap]   Starting $EXPECTED-container observability stack ..."
+                echo "[bootstrap]   First run downloads ~500 MB of images (loki, prometheus, grafana, etc.)"
+                echo ""
+                $DC up -d
+                echo ""
+
+                # Wait briefly for Grafana to come online (max 30s)
+                echo -n "[bootstrap]   Waiting for Grafana ..."
+                for _ in $(seq 1 30); do
+                    if curl -sf http://localhost:3000/api/health &>/dev/null; then
+                        echo " ready"
+                        break
+                    fi
+                    echo -n "."
+                    sleep 1
+                done
+            fi
+
+            cd "$REPO_ROOT"
+
+            echo ""
+            echo "[bootstrap]   Dashboard endpoints:"
+            echo "[bootstrap]     Grafana:     http://localhost:3000  (admin / admin)"
+            echo "[bootstrap]     Prometheus:  http://localhost:9090"
+            echo "[bootstrap]     Pushgateway: http://localhost:9091"
+            echo "[bootstrap]     Loki API:    http://localhost:3100"
+        fi
+    fi
 fi
 
 # =============================================================================
