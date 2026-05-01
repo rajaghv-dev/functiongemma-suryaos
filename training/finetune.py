@@ -57,6 +57,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -326,6 +327,173 @@ def _fmt_prompt_only(ex: dict, tokenizer) -> str:
 
 
 # ===========================================================================
+# Narrator — runtime commentary on what the LoRA adapter just learned
+# ===========================================================================
+
+class _LoRANarrator:
+    """
+    Live commentary on LoRA training progress.
+
+    Unlike the silent JSONL log, this class WRITES TO THE TERMINAL with
+    plain-English interpretation of every notable event:
+
+      [LEARN]    Step 50: loss crossed 1.0 — model can now reproduce tool calls
+      [PROGRESS] Step 100: loss down 35% in last 20 steps — healthy convergence
+      [PLATEAU]  Step 200: loss stable at 0.4 — adapter has converged
+      [WARN]     Step 75: grad_norm=2.1 — clipping prevented instability spike
+
+    The narrator rate-limits itself (one emit per ~10 steps) so it doesn't
+    flood the terminal during normal smooth training.
+    """
+
+    def __init__(self) -> None:
+        self.loss_history     = []        # list of (step, loss)
+        self.grad_history     = []        # list of (step, grad_norm)
+        self.last_emit_step   = -100      # rate limiter
+        self.milestones       = set()     # one-shot threshold announcements
+        self.prev_epoch_per_tool = {}     # for cross-epoch tool comparison
+
+    def _emit(self, prefix: str, msg: str) -> None:
+        print(f"  [{prefix:8s}] {msg}")
+
+    def step(self, step: int, loss: Optional[float],
+             grad_norm: Optional[float], lr: Optional[float]) -> None:
+        """Called from on_log. Emits commentary when the metrics shift meaningfully."""
+        if loss is None:
+            return
+
+        self.loss_history.append((step, loss))
+        if grad_norm is not None and not math.isnan(grad_norm):
+            self.grad_history.append((step, grad_norm))
+
+        # Always print the first sample to set the baseline
+        if step == self.loss_history[0][0]:
+            self._emit("LEARN",
+                f"First sample at step {step}: loss={loss:.3f}. "
+                f"This is what the adapter looks like before any real updates.")
+
+        # ---- Loss milestones — these tell the user "the model just got X capability" ----
+        if loss < 1.5 and "loss_below_1_5" not in self.milestones:
+            self._emit("LEARN",
+                f"Step {step}: loss below 1.5 (={loss:.3f}). "
+                f"Adapter is starting to influence the response — model can produce "
+                f"the JSON envelope ({{'name':...}}) reliably.")
+            self.milestones.add("loss_below_1_5")
+
+        if loss < 1.0 and "loss_below_1" not in self.milestones:
+            self._emit("LEARN",
+                f"Step {step}: loss crossed 1.0 (={loss:.3f}). "
+                f"Model can predict the correct tool name for most training examples.")
+            self.milestones.add("loss_below_1")
+
+        if loss < 0.5 and "loss_below_05" not in self.milestones:
+            self._emit("LEARN",
+                f"Step {step}: loss below 0.5 (={loss:.3f}). "
+                f"Adapter has learned the dispatch patterns and argument structures.")
+            self.milestones.add("loss_below_05")
+
+        if loss < 0.2 and "loss_below_02" not in self.milestones:
+            self._emit("LEARN",
+                f"Step {step}: loss below 0.2 (={loss:.3f}). "
+                f"Near-perfect reproduction of training examples — watch for overfitting.")
+            self.milestones.add("loss_below_02")
+
+        # Rate-limit other narration to ~once per 10 steps
+        if step - self.last_emit_step < 10:
+            return
+
+        # ---- Trend detection: improving, plateaued, diverging ----
+        if len(self.loss_history) >= 20:
+            recent = [l for _, l in self.loss_history[-10:]]
+            older  = [l for _, l in self.loss_history[-20:-10]]
+            r_avg  = sum(recent) / len(recent)
+            o_avg  = sum(older)  / len(older)
+
+            if o_avg > 0:
+                pct = (o_avg - r_avg) / o_avg * 100   # positive = improving
+
+                if pct > 25:
+                    self._emit("PROGRESS",
+                        f"Step {step}: loss down {pct:.0f}% (last 10 steps avg "
+                        f"{o_avg:.3f} -> {r_avg:.3f}) — adapter is learning fast")
+                    self.last_emit_step = step
+                elif pct > 8:
+                    self._emit("PROGRESS",
+                        f"Step {step}: loss down {pct:.0f}% — steady convergence")
+                    self.last_emit_step = step
+                elif abs(pct) < 1.5:
+                    self._emit("PLATEAU",
+                        f"Step {step}: loss stable at {r_avg:.3f} "
+                        f"({pct:+.1f}% over 10 steps) — adapter has converged")
+                    self.last_emit_step = step
+                elif pct < -8:
+                    self._emit("WARN",
+                        f"Step {step}: loss INCREASED {-pct:.0f}% "
+                        f"({o_avg:.3f} -> {r_avg:.3f}) — possible overfitting; "
+                        f"check next epoch's probe table for tool-specific damage")
+                    self.last_emit_step = step
+
+        # ---- Gradient anomalies ----
+        if grad_norm is not None and grad_norm > 1.5:
+            self._emit("WARN",
+                f"Step {step}: grad_norm={grad_norm:.2f} above clip threshold (1.0). "
+                f"Clipping activated — adapter wanted to make a big jump.")
+
+    def tool_table(self, epoch: int, per_tool: dict) -> None:
+        """
+        Interpret the per-tool loss breakdown after each epoch's probe.
+
+        Tells the user concretely:
+          - which tools the adapter has mastered (low loss)
+          - which tools are still struggling (high loss)
+          - which tools improved most since last epoch
+        """
+        if not per_tool:
+            return
+
+        # Compute per-tool means and sort by performance
+        means = {t: sum(v)/len(v) for t, v in per_tool.items()}
+
+        # Mastered (loss < 0.5) vs struggling (loss > 1.5)
+        mastered   = sorted([t for t, m in means.items() if m < 0.5])
+        struggling = sorted([t for t, m in means.items() if m > 1.5])
+
+        if mastered:
+            self._emit("LEARN",
+                f"Mastered tools (loss < 0.5): {', '.join(mastered)}")
+            self._emit("LEARN",
+                f"  Any user phrasing matching these tools should dispatch correctly now.")
+
+        if struggling:
+            self._emit("WARN",
+                f"Still struggling (loss > 1.5): {', '.join(struggling)}")
+            self._emit("WARN",
+                f"  Add more dispatch_pairs.jsonl examples for these tools.")
+
+        # Show biggest movers vs previous epoch (improvement or regression)
+        if self.prev_epoch_per_tool:
+            improvements = []
+            for t, cur in means.items():
+                prev = self.prev_epoch_per_tool.get(t)
+                if prev is None or prev == 0:
+                    continue
+                delta = prev - cur
+                if abs(delta) > 0.2:  # only mention meaningful changes
+                    improvements.append((t, prev, cur, delta))
+
+            improvements.sort(key=lambda x: -x[3])  # biggest improvement first
+            if improvements:
+                print(f"\n  [DELTA]    Largest changes vs previous epoch:")
+                for t, prev, cur, delta in improvements[:5]:
+                    arrow = "->"
+                    sign  = "improved" if delta > 0 else "regressed"
+                    print(f"             {t:<28s} {prev:.3f} {arrow} {cur:.3f}  "
+                          f"({sign} {abs(delta):.3f})")
+
+        self.prev_epoch_per_tool = means
+
+
+# ===========================================================================
 # DispatchCallback — telemetry and per-epoch accuracy probe
 # ===========================================================================
 
@@ -384,7 +552,9 @@ class DispatchCallback(_TrainerCallbackBase):
         self.probe_data = probe_data
         self.tokenizer  = tokenizer
         self.log_path   = log_path
-        self._buf: list[dict] = []  # in-memory write buffer, flushed to disk each step
+        self._buf: list[dict] = []           # in-memory write buffer, flushed to disk each step
+        self.narrator    = _LoRANarrator()   # live commentary engine
+        self._last_loss  = None              # for narration of cumulative trends
 
     # ---- TrainerCallback hook: fires every logging_steps ----
 
@@ -412,6 +582,16 @@ class DispatchCallback(_TrainerCallbackBase):
         }
         self._buf.append(entry)
         self._flush()  # write immediately so we have logs even if training crashes
+
+        # ---- LIVE NARRATION ----
+        # Print plain-English interpretation of the metrics to the terminal so
+        # the user can SEE what the adapter just learned without parsing JSON.
+        self.narrator.step(
+            step      = state.global_step,
+            loss      = logs.get("loss"),
+            grad_norm = logs.get("grad_norm"),
+            lr        = logs.get("learning_rate"),
+        )
 
     # ---- TrainerCallback hook: fires at end of each epoch ----
 
@@ -497,14 +677,24 @@ class DispatchCallback(_TrainerCallbackBase):
 
         label = f"Epoch {epoch}" if epoch >= 0 else "Final"
         print(f"\n  [{label} probe — response loss per tool]")
+        print(f"  How to read: lower loss = adapter has learned this tool.")
+        print(f"               loss < 0.5 = mastered;  > 1.5 = still struggling.\n")
         print(f"  {'Tool':<30s} {'n':>4s}  {'mean loss':>10s}")
         print(f"  {'-'*30} {'-'*4}  {'-'*10}")
         for tool, losses in sorted(per_tool.items()):
             mean_loss = sum(losses) / len(losses)
             bar_len   = max(0, int(20 * (2.0 - mean_loss) / 2.0))  # rough visual
             bar       = "█" * bar_len + "░" * (20 - bar_len)
-            print(f"  {tool:<30s} {len(losses):>4d}  {mean_loss:>10.4f}  {bar}")
+            # Append a status tag so the user sees state at a glance
+            tag = "(mastered)"   if mean_loss < 0.5 else \
+                  "(learning)"   if mean_loss < 1.5 else \
+                  "(struggling)"
+            print(f"  {tool:<30s} {len(losses):>4d}  {mean_loss:>10.4f}  {bar}  {tag}")
         print(f"  {'OVERALL':<30s} {len(all_losses):>4d}  {mean_all:>10.4f}")
+
+        # Plain-English interpretation: which tools are mastered, which need work,
+        # and how things moved since the previous epoch.
+        self.narrator.tool_table(epoch, per_tool)
 
         self._buf.append({
             "event":    "epoch_probe",

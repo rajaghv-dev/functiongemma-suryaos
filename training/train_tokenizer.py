@@ -143,6 +143,187 @@ def _elapsed(start: float) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Narrator — emits intuitive plain-English commentary as training proceeds.
+#
+# The point: when you watch the terminal during a training run, you should
+# learn what's happening at every micro-step, not just see numbers fly by.
+# This class tracks history and emits messages like:
+#   [LEARN]    Step 50: loss dropped 40% — embeddings settling into clusters
+#   [INSIGHT]  Cosine 'memory_usage' vs 'linux_memory_usage' rose 0.32→0.71
+#              The model now treats these as the same concept.
+#   [WARN]     Gradient norm spiked to 1.8 — clipping prevented instability
+# ---------------------------------------------------------------------------
+
+class Narrator:
+    """
+    Live training commentary. Tracks loss/grad history and emits insights.
+
+    Prefixes used:
+      [LEARN]    The model just learned something concrete (loss milestone hit)
+      [PROGRESS] Healthy ongoing improvement
+      [INSIGHT]  A pattern was detected in the metrics
+      [PLATEAU]  Loss has stopped improving — maybe done training
+      [WARN]     Anomaly that needs attention
+    """
+
+    def __init__(self, name: str = "training"):
+        self.name              = name
+        self.loss_history      = []   # list of (step, loss) tuples
+        self.grad_norm_history = []   # list of (step, grad_norm) tuples
+        self.last_emit_step    = -100 # rate-limit narration
+        self.milestones        = set() # avoid re-announcing thresholds
+
+    def _emit(self, prefix: str, msg: str) -> None:
+        """All narrations go through here so we can rate-limit/style consistently."""
+        print(f"  [{prefix:8s}] {msg}")
+
+    def step(self, step: int, total_steps: int, loss: float,
+             grad_norm: Optional[float] = None, lr: Optional[float] = None) -> None:
+        """
+        Called every training step. Emits commentary on notable changes.
+        Most steps don't trigger output — only when something interesting happens.
+        """
+        self.loss_history.append((step, loss))
+        if grad_norm is not None and not math.isnan(grad_norm):
+            self.grad_norm_history.append((step, grad_norm))
+
+        # Very early steps: explain what's happening at the start
+        if step == 1:
+            self._emit("LEARN",
+                f"Step 1/{total_steps}: initial loss={loss:.3f}. "
+                f"Embeddings start near random — this is the baseline.")
+            return
+
+        # ---- Loss milestones ----
+        # Crossing key loss thresholds tells the user the model has reached
+        # a specific competence level.
+        if loss < 3.0 and "loss_below_3" not in self.milestones:
+            self._emit("LEARN",
+                f"Step {step}: loss dropped below 3.0 (={loss:.3f}). "
+                f"Model is starting to predict context tokens correctly.")
+            self.milestones.add("loss_below_3")
+
+        if loss < 1.5 and "loss_below_1_5" not in self.milestones:
+            self._emit("LEARN",
+                f"Step {step}: loss below 1.5 (={loss:.3f}). "
+                f"New token embeddings are settling into meaningful clusters.")
+            self.milestones.add("loss_below_1_5")
+
+        if loss < 0.8 and "loss_below_08" not in self.milestones:
+            self._emit("LEARN",
+                f"Step {step}: loss below 0.8 (={loss:.3f}). "
+                f"Embeddings are well-formed; further training has diminishing returns.")
+            self.milestones.add("loss_below_08")
+
+        # Rate-limit other narrations to every 10 steps so we don't flood
+        if step - self.last_emit_step < 10:
+            return
+
+        # ---- Trend detection ----
+        # Compare last 10 steps to previous 10 to detect rapid improvement,
+        # plateau, or instability.
+        if len(self.loss_history) >= 20:
+            recent = [l for _, l in self.loss_history[-10:]]
+            older  = [l for _, l in self.loss_history[-20:-10]]
+            recent_avg = sum(recent) / len(recent)
+            older_avg  = sum(older) / len(older)
+
+            if older_avg > 0:
+                pct = (older_avg - recent_avg) / older_avg * 100  # positive = improving
+
+                if pct > 30:
+                    self._emit("PROGRESS",
+                        f"Step {step}: loss down {pct:.0f}% in last 10 steps "
+                        f"(was {older_avg:.3f}, now {recent_avg:.3f}) — rapid learning")
+                    self.last_emit_step = step
+                elif pct > 10:
+                    self._emit("PROGRESS",
+                        f"Step {step}: loss down {pct:.0f}% — steady convergence")
+                    self.last_emit_step = step
+                elif abs(pct) < 2:
+                    self._emit("PLATEAU",
+                        f"Step {step}: loss stable at ~{recent_avg:.3f} "
+                        f"(<2% change) — model has converged for this lr")
+                    self.last_emit_step = step
+                elif pct < -10:
+                    self._emit("WARN",
+                        f"Step {step}: loss INCREASED {-pct:.0f}% "
+                        f"(was {older_avg:.3f}, now {recent_avg:.3f}) — "
+                        f"check grad_norm and consider lowering lr")
+                    self.last_emit_step = step
+
+        # ---- Gradient stability ----
+        if grad_norm is not None and grad_norm > 1.5:
+            self._emit("WARN",
+                f"Step {step}: grad_norm={grad_norm:.2f} exceeded clip threshold (1.0). "
+                f"Gradient was clipped — preventing instability but slowing learning.")
+
+    def epoch_end(self, epoch: int, total_epochs: int, loss: float,
+                  prev_loss: Optional[float] = None,
+                  new_norm_mean: Optional[float] = None,
+                  base_norm_mean: Optional[float] = None) -> None:
+        """Rich end-of-epoch interpretation."""
+        print()  # blank line for readability
+        if prev_loss is None:
+            self._emit("LEARN",
+                f"Epoch {epoch}/{total_epochs} done. Loss={loss:.4f}. "
+                f"This is the baseline; we'll measure progress against this.")
+        else:
+            delta = prev_loss - loss
+            pct   = delta / prev_loss * 100 if prev_loss > 0 else 0
+            if delta > 0.1:
+                self._emit("PROGRESS",
+                    f"Epoch {epoch}/{total_epochs}: loss {prev_loss:.4f} -> {loss:.4f} "
+                    f"({pct:+.0f}%). Embeddings continue to improve.")
+            elif delta > 0.01:
+                self._emit("PROGRESS",
+                    f"Epoch {epoch}/{total_epochs}: loss {prev_loss:.4f} -> {loss:.4f} "
+                    f"({pct:+.0f}%). Diminishing returns — close to convergence.")
+            else:
+                self._emit("PLATEAU",
+                    f"Epoch {epoch}/{total_epochs}: loss barely changed "
+                    f"({prev_loss:.4f} -> {loss:.4f}). "
+                    f"More epochs unlikely to help; consider stopping or raising lr.")
+
+        # Norm health check: new tokens should approach base vocab norm magnitude
+        if new_norm_mean is not None and base_norm_mean is not None and base_norm_mean > 0:
+            ratio = new_norm_mean / base_norm_mean
+            if ratio < 0.5:
+                self._emit("INSIGHT",
+                    f"New token norms are only {ratio*100:.0f}% of base vocab. "
+                    f"Embeddings are still 'quiet' — model may underweight them.")
+            elif ratio > 1.5:
+                self._emit("INSIGHT",
+                    f"New token norms are {ratio*100:.0f}% of base vocab. "
+                    f"Embeddings are 'loud' — may dominate attention; reduce lr next time.")
+            else:
+                self._emit("INSIGHT",
+                    f"New token norms at {ratio*100:.0f}% of base vocab "
+                    f"— in healthy range, embeddings will integrate cleanly with base model.")
+
+    def cosine_change(self, label_changes: list[tuple[str, float, float]]) -> None:
+        """Interpret cosine similarity changes between epochs.
+        label_changes: list of (description, old_sim, new_sim).
+        """
+        for desc, old, new in label_changes:
+            if old is None or new is None:
+                continue
+            delta = new - old
+            if "same-tool" in desc and delta > 0.1:
+                self._emit("LEARN",
+                    f"'{desc}' similarity {old:+.2f} -> {new:+.2f}: "
+                    f"model now treats these as the same concept.")
+            elif "cross-domain" in desc and delta > 0.1:
+                self._emit("WARN",
+                    f"'{desc}' similarity {old:+.2f} -> {new:+.2f}: "
+                    f"unrelated tools getting closer — possible embedding collapse.")
+            elif abs(delta) > 0.15:
+                arrow = "rising" if delta > 0 else "dropping"
+                self._emit("INSIGHT",
+                    f"'{desc}' similarity {arrow} fast: {old:+.2f} -> {new:+.2f}")
+
+
+# ---------------------------------------------------------------------------
 # Structured logging — all telemetry is buffered and flushed to train_log.jsonl
 # at save time so we have a machine-readable record of every training run.
 # ---------------------------------------------------------------------------
@@ -226,10 +407,21 @@ def phase_add_tokens() -> tuple[list[str], "AutoTokenizer"]:
     # This shows us how badly the base tokenizer splits our domain terms.
     # e.g. 'linux_memory_usage' → ['linux', '_', 'memory', '_', 'usage'] = 5 pieces
     frag_before = _measure_fragmentation(tokenizer, all_tokens)
-    _ok(f"Fragmentation before extension: avg {frag_before['mean']:.1f} subwords/token "
+    _ok(f"Fragmentation BEFORE extension: avg {frag_before['mean']:.1f} subwords/token "
         f"(max {frag_before['max']:.0f}, "
         f"{frag_before['already_single']}/{len(all_tokens)} already single-token)")
     _log({"phase": "add_tokens", "event": "fragmentation_before", **frag_before})
+
+    # Show concrete examples so the user understands the problem visually.
+    # Pick 5 representative tokens that demonstrate the fragmentation.
+    print(f"\n  [DEMO] Without extension, the base tokenizer breaks up domain terms:")
+    demo_tokens = [t for t in all_tokens if "_" in t or "." in t][:5]
+    for t in demo_tokens:
+        ids    = tokenizer.encode(t, add_special_tokens=False)
+        pieces = [tokenizer.decode([i]) for i in ids]
+        print(f"    {t!r:35s} -> {pieces}  ({len(ids)} tokens)")
+    print(f"  [DEMO] The model has to predict each piece in order. With 4-5 pieces")
+    print(f"  [DEMO] per tool name, even small per-token errors compound badly.\n")
 
     # Add all tokens that aren't already in the vocabulary.
     # special_tokens=False: treat as regular vocab (not EOS/BOS/PAD/etc.)
@@ -249,10 +441,23 @@ def phase_add_tokens() -> tuple[list[str], "AutoTokenizer"]:
     # ---- Fragmentation probe AFTER adding tokens ----
     # Should show 'already_single' close to total — most tokens now map to 1 ID.
     frag_after = _measure_fragmentation(tokenizer, all_tokens)
-    _ok(f"Fragmentation after extension:  avg {frag_after['mean']:.1f} subwords/token "
+    _ok(f"Fragmentation AFTER extension:  avg {frag_after['mean']:.1f} subwords/token "
         f"(max {frag_after['max']:.0f}, "
         f"{frag_after['already_single']}/{len(all_tokens)} now single-token)")
     _log({"phase": "add_tokens", "event": "fragmentation_after", **frag_after})
+
+    # Show same examples after extension — should be 1 token each
+    print(f"\n  [DEMO] After extension, the same terms tokenize as a single ID:")
+    for t in demo_tokens:
+        ids = tokenizer.encode(t, add_special_tokens=False)
+        if len(ids) == 1:
+            print(f"    {t!r:35s} -> [{ids[0]}]  (1 token — single embedding to learn)")
+        else:
+            # Edge case: token was already in vocab as multi-piece (rare)
+            print(f"    {t!r:35s} -> {ids}  ({len(ids)} tokens still)")
+    print(f"  [DEMO] Now the model only needs to learn one embedding per tool name.")
+    print(f"  [LEARN] Improvement: {frag_before['mean']:.1f} -> {frag_after['mean']:.1f} "
+          f"avg pieces per token (lower = easier to learn).\n")
 
     # Verify the corpus covers every token enough times for embeddings to converge
     _report_coverage(all_tokens)
@@ -501,11 +706,26 @@ def phase_smart_init(
         _warn(f"New token norms ({new_norm_mean:.3f}) are much smaller than base "
               f"({base_norm_mean:.3f}) — corpus training should fix this.")
 
+    # Concrete demo: show what subwords each new token started from.
+    # This makes "smart init" feel real: you see which base concepts the model
+    # is averaging to seed each new domain token.
+    print(f"\n  [DEMO] Smart init seeded each new token from its subword pieces:")
+    sample_tokens = [t for t in new_token_strings if "_" in t][:5]
+    for ts in sample_tokens:
+        sub_ids   = tokenizer.encode(ts, add_special_tokens=False)
+        base_only = [sid for sid in sub_ids if sid < base_vocab_size]
+        pieces    = [tokenizer.decode([i]) for i in base_only]
+        print(f"    {ts!r:35s} init = mean({pieces})")
+    print(f"  [LEARN] Each new token starts in the right neighborhood —")
+    print(f"  [LEARN] e.g. 'linux_memory_usage' is already near 'linux'+'memory'+'usage'")
+    print(f"  [LEARN] in embedding space, not at random.\n")
+
     # Cosine similarity probe to verify the embeddings started in the right place.
     # At this point we expect moderate similarity (0.3–0.6) for same-tool forms
     # because the subword averaging captures shared concepts but isn't refined yet.
     sim_before = _cosine_probe(tokenizer, embed_weight)
     _print_cosine_table(sim_before, label="cosine similarities after smart-init (before corpus training)")
+    _interpret_cosine_table(sim_before, phase_label="post smart-init")
 
     _log({
         "phase":          "smart_init",
@@ -620,11 +840,23 @@ def phase_corpus_train(
     n_sentences    = input_ids.shape[0]
 
     n_batches = math.ceil(n_sentences / batch_size)
+    total_steps = n_batches * epochs
     _ok(f"Training plan: {n_sentences} sentences x {epochs} epochs, "
-        f"batch={batch_size} ({n_batches} steps/epoch)")
+        f"batch={batch_size} ({n_batches} steps/epoch, {total_steps} total)")
     _ok(f"Learning rate: {lr}  |  Gradient clip: 1.0  |  Optimizer: AdamW")
+    print()
 
-    t_train = time.time()
+    # Initialize the narrator — it tracks history and emits insights live.
+    # Also baseline a sample of new-token embeddings so we can measure how
+    # far they have moved by the end of training.
+    narrator = Narrator("tokenizer-corpus-train")
+    initial_embeds = embed_weight[base_vocab_size:].detach().clone().cpu().float()
+
+    t_train     = time.time()
+    prev_epoch_loss = None  # for epoch-over-epoch comparison narration
+    prev_sims       = None  # for cosine change interpretation
+
+    global_step = 0
 
     for epoch in range(1, epochs + 1):
         t_epoch    = time.time()
@@ -638,6 +870,7 @@ def phase_corpus_train(
         mask_shuf      = attention_mask[perm]
 
         for b in range(n_batches):
+            global_step += 1
             start = b * batch_size
             end   = min(start + batch_size, n_sentences)
 
@@ -667,12 +900,31 @@ def phase_corpus_train(
 
             # Clip gradient norm to 1.0 to prevent large gradient updates
             # from destabilizing embeddings (common with fp16 and high lr)
-            torch.nn.utils.clip_grad_norm_([embed_weight], max_norm=1.0)
+            grad_norm_val = torch.nn.utils.clip_grad_norm_(
+                [embed_weight], max_norm=1.0
+            ).item()
             optimizer.step()
             # The gradient hook fires here, zeroing base vocab rows before
             # AdamW applies the update — so only new rows actually change.
 
-            epoch_loss += loss.item()
+            loss_val    = loss.item()
+            epoch_loss += loss_val
+
+            # ---- LIVE NARRATION ----
+            # Tell the user what just happened in plain English. The narrator
+            # rate-limits itself so the terminal isn't flooded.
+            narrator.step(global_step, total_steps, loss_val,
+                          grad_norm=grad_norm_val, lr=lr)
+
+            # Log every step at the structured level (machine-readable)
+            _log({
+                "phase":     "corpus_train",
+                "event":     "step",
+                "epoch":     epoch,
+                "step":      global_step,
+                "loss":      loss_val,
+                "grad_norm": grad_norm_val,
+            })
 
         # ---- End of epoch: compute stats and probes ----
         avg_loss = epoch_loss / n_batches if n_batches > 0 else float("nan")
@@ -684,30 +936,69 @@ def phase_corpus_train(
         new_norm_mean = new_embeds.norm(dim=1).mean().item()
         new_norm_std  = new_embeds.norm(dim=1).std().item()
 
+        # How far have the new embeddings drifted from their smart-init values?
+        # This shows actual learning happened (drift > 0) vs no learning (drift ≈ 0).
+        drift = (new_embeds.cpu().float() - initial_embeds).norm(dim=1).mean().item()
+
         # Cosine similarity probes — track whether semantic clusters are forming
         model.eval()
         sim_epoch = _cosine_probe(tokenizer, embed_weight.detach())
         model.train()
 
-        _ok(f"Epoch {epoch}/{epochs}  "
+        # Compare to base norms for the narrator's health interpretation
+        base_norm_mean = embed_weight[:base_vocab_size].detach().norm(dim=1).mean().item()
+
+        _ok(f"Epoch {epoch}/{epochs} stats  "
             f"loss={avg_loss:.4f}  "
             f"new_norm={new_norm_mean:.4f}+-{new_norm_std:.4f}  "
+            f"drift_from_init={drift:.4f}  "
             f"time={_elapsed(t_epoch)}")
         _print_cosine_table(sim_epoch, label=f"  cosine similarities after epoch {epoch}")
+        _interpret_cosine_table(sim_epoch, phase_label=f"epoch {epoch}/{epochs}")
+
+        # Per-epoch narrator commentary
+        narrator.epoch_end(epoch, epochs, avg_loss,
+                           prev_loss=prev_epoch_loss,
+                           new_norm_mean=new_norm_mean,
+                           base_norm_mean=base_norm_mean)
+
+        # Cosine change narration vs previous epoch
+        if prev_sims is not None:
+            changes = [
+                (desc, prev_sims.get(desc), sim_epoch.get(desc))
+                for desc in sim_epoch
+            ]
+            narrator.cosine_change(changes)
+
+        prev_epoch_loss = avg_loss
+        prev_sims       = sim_epoch
 
         _log({
-            "phase":         "corpus_train",
-            "epoch":         epoch,
-            "loss":          avg_loss,
-            "new_norm_mean": new_norm_mean,
-            "new_norm_std":  new_norm_std,
-            "cosine_probes": sim_epoch,
+            "phase":           "corpus_train",
+            "event":           "epoch_end",
+            "epoch":           epoch,
+            "loss":            avg_loss,
+            "new_norm_mean":   new_norm_mean,
+            "new_norm_std":    new_norm_std,
+            "drift_from_init": drift,
+            "cosine_probes":   sim_epoch,
         })
 
     # Remove the gradient hook — good practice to avoid memory leaks if the
     # model is reused elsewhere in the same process.
     hook_handle.remove()
     _ok(f"Corpus training complete in {_elapsed(t_train)}")
+
+    # Final summary of what the model has learned in this phase.
+    print(f"\n  [SUMMARY] Tokenizer warm-up complete:")
+    print(f"  [SUMMARY]   - {len(initial_embeds)} new token embeddings trained")
+    print(f"  [SUMMARY]   - Base vocab ({base_vocab_size:,} embeddings) untouched")
+    print(f"  [SUMMARY]   - Total trainable rows updated: {len(initial_embeds)} of "
+          f"{embed_weight.shape[0]:,}")
+    print(f"  [SUMMARY] What this means for finetune.py:")
+    print(f"  [SUMMARY]   - Tool-name tokens now have meaningful starting embeddings")
+    print(f"  [SUMMARY]   - LoRA training won't waste steps learning what tokens 'mean'")
+    print(f"  [SUMMARY]   - Adapter can focus on routing logic from step 1\n")
 
 
 # ===========================================================================
@@ -885,6 +1176,52 @@ def _print_cosine_table(sims: dict, label: str = "") -> None:
             bar    = "█" * filled + "░" * (20 - filled)
             bar    = f"{sim:+.4f}  {bar}"
         print(f"    {desc:40s} {bar}")
+
+
+def _interpret_cosine_table(sims: dict, phase_label: str = "") -> None:
+    """
+    Print plain-English interpretation of the cosine probe results.
+
+    The point: numbers alone don't tell you if training is healthy.
+    "0.42" means nothing without context — but "0.42 between two same-tool
+    forms" means the model is starting to recognize them as related.
+    """
+    same_tool   = []  # values for "same-tool" pairs
+    cross       = []  # values for cross-domain pairs
+    for desc, sim in sims.items():
+        if sim is None:
+            continue
+        if "same-tool" in desc:
+            same_tool.append(sim)
+        elif "cross-domain" in desc:
+            cross.append(sim)
+
+    print(f"  [INSIGHT] How to read these numbers ({phase_label}):")
+
+    if same_tool:
+        avg = sum(same_tool) / len(same_tool)
+        if avg < 0.3:
+            print(f"    same-tool forms avg sim = {avg:+.2f} — WEAK clustering. "
+                  f"Different naming variants (e.g. 'memory_usage' vs 'linux_memory_usage')")
+            print(f"    are still seen as unrelated. More corpus training will help.")
+        elif avg < 0.6:
+            print(f"    same-tool forms avg sim = {avg:+.2f} — moderate clustering. "
+                  f"Model is starting to see naming variants as related concepts.")
+        else:
+            print(f"    same-tool forms avg sim = {avg:+.2f} — STRONG clustering. "
+                  f"Model treats naming variants as essentially the same concept.")
+
+    if cross:
+        avg = sum(cross) / len(cross)
+        if avg > 0.5:
+            print(f"    cross-domain avg sim = {avg:+.2f} — DANGER: unrelated tools "
+                  f"are too similar. Embeddings may be collapsing into one cluster.")
+        elif avg > 0.3:
+            print(f"    cross-domain avg sim = {avg:+.2f} — slight bleed; acceptable.")
+        else:
+            print(f"    cross-domain avg sim = {avg:+.2f} — clean separation. "
+                  f"Different tool categories are well-separated in embedding space.")
+    print()
 
 
 def _report_nearest_neighbors(
