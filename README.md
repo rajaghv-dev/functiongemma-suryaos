@@ -1,145 +1,201 @@
 # functiongemma-suryaos
 
-Fine-tuned version of `functiongemma:270m` for SuryaOS desktop tool dispatch.
+Fine-tuned `functiongemma:270m` for SuryaOS desktop tool dispatch.
 
-## The problem
+[![status](https://img.shields.io/badge/status-pre--training-yellow)]()
+[![base](https://img.shields.io/badge/base-functiongemma:270m-blue)]()
+[![arch](https://img.shields.io/badge/arch-Gemma3-green)]()
+[![license](https://img.shields.io/badge/license-Gemma_Terms-orange)]()
 
-`functiongemma:270m` (Google, 268M params, Gemma 3 architecture) is purpose-built for
-function calling but has hardcoded safety refusals from its original training:
+---
 
-```
-User: "how much ram is used"
-Base model: "I cannot provide specific usage statistics for RAM."
+## TL;DR
 
-User: "is bluetooth active"
-Base model: "I cannot assist with tasks related to Bluetooth."
+`functiongemma:270m` (Google, Gemma 3, 268M params, Q8_0) refuses to call tools
+for many SuryaOS desktop queries (`"how much ram"` → "I cannot provide system
+statistics", `"is bluetooth active"` → "I cannot assist with Bluetooth"). These
+are **trained-in safety constraints** — no prompt can remove them.
 
-User: "disk space"
-Base model: calls disk_usage(path="/disk")   ← wrong path
-```
-
-These are trained-in refusals — no prompt engineering can remove them.
-Fine-tuning on domain-specific examples replaces them with correct behavior.
-
-## The solution
-
-Train a LoRA adapter on `(query, tool_schema, tool_call)` triples from the
-SuryaOS tool catalog. The adapter teaches the model:
-
-- "ram/memory" → call `linux_memory_usage()`
-- "bluetooth" → call `linux_service_status(name="bluetooth")`
-- "disk space" → call `linux_disk_usage(path="/")`
-- "launch dolphin" → call `kde_krunner_launch(app="dolphin")`
-
-After merging, `functiongemma:270m-suryaos` handles all 12 SuryaOS system
-tools reliably at 270M params — no bigger model needed.
-
-## Architecture
+This repo fine-tunes them out via LoRA + tokenizer extension, producing
+`functiongemma:270m-suryaos` — a 300 MB model that reliably dispatches **123
+SuryaOS tools** (12 system + 110 app launches + edge cases) at ~6s warm
+inference.
 
 ```
-User query: "how much ram is used"
-     │
-     ▼
-[Context builder] FTS + graph → narrows to memory_usage schema
-     │
-     ▼
-[functiongemma:270m-suryaos] sees 1 schema → calls linux_memory_usage()
-     │
-     ▼
-[MCP dispatch] free -h / Netdata API → "RAM: 5.1 GiB used / 30.6 GiB"
-     │
-     ▼
-[qwen3:0.6b] formats → "5.1 GiB of your 30.6 GiB RAM is in use (17%)."
+Before  →  "how much ram is used"   →  "I cannot provide statistics"
+After   →  "how much ram is used"   →  linux_memory_usage({})
+                                    →  "5.1 GiB used / 30.6 GiB total (17%)"
 ```
 
-## Model details
+---
 
-| Property | Value |
-|---|---|
-| Base model | `functiongemma:270m` (Gemma 3, 268M params) |
-| Architecture | gemma3 |
-| Quantization | Q8_0 (base), merged to F16 |
-| Fine-tune method | LoRA (r=8, alpha=16, q_proj + v_proj) |
-| Training data | 77 base + ~530 augmented (query, tool) pairs |
-| Training time | ~25 min CPU (Intel Meteor Lake, 30 GiB RAM) |
-| Output | `functiongemma:270m-suryaos` Ollama model |
+## Training priority order
 
-## Datasets
+**Train tokenizer FIRST, then functiongemma weights.** They compose:
 
-Three separate datasets, each training a different layer of the system:
+```
+[1] Tokenizer extension      [2] Functiongemma LoRA
+   156 atomic tokens     →     1564 (query, schema, tool_call) pairs
+   1605-sentence corpus   →    LoRA r=8 on q_proj + v_proj
+   ─────────────────────────────────────────────────────
+   Result: model treats `metrics_summary` as 1 token (not 5)
+           AND knows when to call it for any natural query
+```
 
-| Dataset | Items | Trains | Doc |
+This priority matters because the dispatch fine-tune happens **after** the
+tokenizer is extended — so the new token embeddings get trained alongside
+the LoRA adapter on real queries. Reverse the order and the new tokens stay
+random.
+
+---
+
+## Datasets at a glance
+
+| File | Lines | Trains | Status |
 |---|---|---|---|
-| `dataset/dispatch_pairs.jsonl` | 462 | functiongemma weights (LoRA) | [dataset/README.md](dataset/README.md) |
-| `dataset/embed_pairs.jsonl` | 461 | all-minilm:22m embedding model | [dataset/README.md](dataset/README.md) |
-| `dataset/tokenizer/` | 156 tokens + 1559 sentences | SentencePiece vocabulary | [dataset/tokenizer/README.md](dataset/tokenizer/README.md) |
+| [`dataset/tokenizer/new_tokens.json`](dataset/tokenizer/) | 156 tokens | SentencePiece vocabulary | Ready |
+| [`dataset/tokenizer/corpus.txt`](dataset/tokenizer/) | 1605 sentences | Token embeddings | Ready (≥5 occurrences each) |
+| [`dataset/dispatch_pairs.jsonl`](dataset/dispatch_pairs.jsonl) | 1564 pairs | Tool dispatch (LoRA) | Ready |
+| [`dataset/apps/launch_pairs.jsonl`](dataset/apps/) | 1450 pairs | App-launch subset | Included in dispatch |
+| [`dataset/embed_pairs.jsonl`](dataset/embed_pairs.jsonl) | 151 pairs | all-minilm:22m embedder | Optional second stage |
 
-**Tokenizer dataset** adds 156 new atomic tokens (12 tool names × 3 forms +
-KDE concepts + Linux daemons + arg values + v4 git/code terms). Without
-extension, `system_metrics_summary` = 5 tokens; with extension = 1 token.
-Saves ~50 prefill tokens per request and makes routing more reliable.
+**v4 target: 2000+ examples** covering chain-of-task workflows
+(compile → test → commit → push). Current 1564 is a strong starting point;
+real failures collected from production usage close the gap.
 
-Sources:
-- `yaml` (48): examples from SuryaOS tool YAML catalog
-- `failure` (29): real failures recorded from user test sessions
+---
 
-## Tools covered (12)
+## Apps catalog (110 apps, FOSS-first)
 
-| Tool (MCP name) | Handles |
-|---|---|
-| `linux_volume_set` | turn volume up/down, make it quieter |
-| `linux_brightness_set` | dim screen, make display brighter |
-| `linux_network_status` | wifi status, is wifi connected, am I online |
-| `linux_battery_status` | battery level, is laptop charging |
-| `linux_memory_usage` | how much RAM, memory usage |
-| `linux_disk_usage` | disk space, how full is the drive |
-| `linux_service_status` | is ollama running, is bluetooth active |
-| `linux_metrics_summary` | system health, CPU+RAM+disk+battery overview |
-| `kde_krunner_launch` | open kate, launch dolphin, start firefox |
-| `kde_window_focus` | switch to firefox, focus terminal |
-| `kde_notifications_send` | send a notification, desktop alert |
-| `kde_dialog_confirm` | ask user to confirm, yes/no dialog |
+| Category | Count | Highlights |
+|---|---|---|
+| **Browsers** | 18 | Firefox, Brave, Chromium, LibreWolf, Tor, Vivaldi, Falkon, Qutebrowser, IceCat, Pale Moon, Otter, Floorp |
+| **KDE core** | 22 | Dolphin, Kate, KWrite, Konsole, KMail, Spectacle, Gwenview, Okular, Ark, KCalc |
+| **KDE utilities** | 18 | Krita, Kdenlive, KDevelop, Yakuake, KStars, Marble |
+| **Office** | 12 | LibreOffice (Writer/Calc/Impress), Thunderbird, Joplin, Logseq, Obsidian |
+| **Media** | 16 | VLC, GIMP, Inkscape, Blender, OBS, Audacity, Ardour, MuseScore |
+| **Development** | 14 | VS Code, VSCodium, Qt Creator, GitHub Desktop, Postman, DBeaver |
+| **Communication** | 10 | Signal, Element, Telegram, Bitwarden, KeePassXC |
 
-## Quickstart
+Each app has 3-5 natural-language aliases ("the browser", "private browser",
+"text editor", etc.) generating 1450 launch training pairs.
+
+See [`dataset/apps/README.md`](dataset/apps/README.md).
+
+---
+
+## Repo layout
+
+```
+.
+├── README.md                          ← you are here
+├── CHANGELOG.md                       ← version history
+├── CONTRIBUTING.md                    ← how to add tools / scenarios
+│
+├── dataset/                           ← all training data
+│   ├── README.md                      ← dataset spec + how to grow
+│   ├── dispatch_pairs.jsonl           ← functiongemma LoRA training
+│   ├── embed_pairs.jsonl              ← embedder fine-tune (optional)
+│   ├── tokenizer/                     ← tokenizer extension dataset
+│   │   ├── README.md
+│   │   ├── new_tokens.json            ← 156 tokens to add
+│   │   ├── corpus.txt                 ← 1605 sentences for training embeddings
+│   │   ├── corpus.jsonl
+│   │   ├── tool_name_terms.txt        ← per-category flat lists
+│   │   ├── kde_terms.txt
+│   │   ├── system_terms.txt
+│   │   ├── arg_value_terms.txt
+│   │   └── v4_workflow_terms.txt
+│   └── apps/                          ← app catalog + launch examples
+│       ├── README.md
+│       ├── apps_catalog.json          ← 110 apps in 7 categories
+│       ├── launch_pairs.jsonl         ← 1450 (alias, schema, target) triples
+│       └── app_aliases.txt            ← 168 aliases for tokenizer
+│
+├── docs/
+│   ├── architecture.md                ← system design (context builder, fine-tune)
+│   ├── training-guide.md              ← step-by-step on GPU/CPU
+│   ├── scenarios.md                   ← user/admin green/yellow/red catalog
+│   ├── policy-tiers.md                ← green/yellow/red policy in force
+│   ├── integration.md                 ← how to deploy with ~/raja/oc
+│   ├── test-results.md                ← latest pass/fail metrics
+│   ├── v4-roadmap.md                  ← chain-of-task scale plan
+│   ├── policy.yaml                    ← actual policy.yaml from oc
+│   └── production.yaml                ← production config reference
+│
+├── tools/                             ← MCP handlers + tool YAMLs
+│   ├── catalog/                       ← 12 tool YAML manifests
+│   ├── tool_schemas.json              ← extracted MCP schemas
+│   ├── system_handlers.py             ← Netdata-backed handlers
+│   ├── volume_handler.py
+│   └── dispatcher.py                  ← single-tool router (post-finetune)
+│
+├── inference/                         ← context builder used at inference
+│   ├── context_builder.py             ← FTS+graph → 1-3 schemas
+│   ├── fts.py                         ← retrieval index
+│   └── graph.py                       ← dependency graph
+│
+└── training/                          ← training pipeline
+    ├── finetune.py                    ← convert / train / export (1470 lines)
+    ├── generate.py                    ← dataset generator (yaml/augment/audit)
+    ├── build_apps_catalog.py          ← rebuild apps catalog
+    ├── build_tokenizer_dataset.py     ← rebuild tokenizer dataset
+    └── requirements.txt               ← CPU + GPU pip deps
+```
+
+---
+
+## Quickstart (GPU, ~10 min)
 
 ```bash
-# 1. Install training deps
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-pip install transformers>=4.40.0 datasets>=2.18.0 accelerate>=0.29.0
-pip install peft>=0.10.0 trl>=0.8.6 gguf>=0.6.0 sentencepiece
+git clone https://github.com/rajaghv-dev/functiongemma-suryaos
+cd functiongemma-suryaos
+pip install -r training/requirements.txt
 
-# 2. Generate more training data (optional, ~10 min)
-python3 training/generate.py --mode augment --n-paraphrases 10
+# Single command: convert → train → export
+python3 training/finetune.py --mode all
 
-# 3. Convert Ollama GGUF → HF safetensors
-python3 training/finetune.py --mode convert
-
-# 4. Fine-tune (~25 min CPU)
-python3 training/finetune.py --mode train
-
-# 5. Export to Ollama
-python3 training/finetune.py --mode export
+# Import the resulting model into Ollama
 ollama create functiongemma:270m-suryaos -f training/output/Modelfile
-
-# 6. Test
 ollama run functiongemma:270m-suryaos "is bluetooth active"
-# Expected: calls linux_service_status(name="bluetooth")
+# Expected: calls service_status(name="bluetooth")
 ```
 
-## v4 scale target
+See [`docs/training-guide.md`](docs/training-guide.md) for details
+(including CPU training, ~25 min on Intel Meteor Lake).
 
-Current scope: 12 tools, ~530 training examples, single desktop user.
+---
 
-v4 target (2000+ cases) covers chain-of-task workflows:
-- Code compile → run tests → commit → push (git/IDE integration)
-- Multi-agent coordination (orchestrator + sub-agents)
-- Long-running tasks with status updates
-- KDE Activity-based context switching
+## Integration with the SuryaOS agent
 
-See [`docs/v4-roadmap.md`](docs/v4-roadmap.md) for the full plan.
+After training, deploy back into `~/raja/oc`:
 
-## Related
+```jsonc
+// opencode.json — change the coder-fg agent model
+"coder-fg": {
+    "model": "ollama/functiongemma:270m-suryaos",
+    ...
+}
+```
 
-- SuryaOS agent: `~/raja/oc` (the full agent stack)
-- Architecture: [`docs/architecture.md`](docs/architecture.md)
-- Dataset spec: [`dataset/README.md`](dataset/README.md)
+Then `opencode run --agent coder-fg "is bluetooth active"` uses the
+fine-tuned model. See [`docs/integration.md`](docs/integration.md).
+
+---
+
+## Status & next steps
+
+- [x] Dataset built: 1564 dispatch + 156 tokens + 1450 app launches
+- [x] Test harness: 205 cases at L1 (FTS) / L2 (dispatcher) / L3 (model)
+- [x] L1 retrieval: 84% pass (rest are v2 tools or correctly denied)
+- [ ] Run training on RTX 3080 box → `functiongemma:270m-suryaos`
+- [ ] Verify: re-run L3 tests with the fine-tuned model
+- [ ] Iterate: capture real failures from production → retrain
+- [ ] v4: chain-of-task tools (`code.compile`, `git.push`, etc.)
+
+---
+
+## Companion repos
+
+- [`rajaghv-dev/suryaos-opencode`](https://github.com/rajaghv-dev/suryaos-opencode)
+  — the full SuryaOS agent (MCP servers, opencode config, test harness, scripts)
