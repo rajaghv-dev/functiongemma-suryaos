@@ -15,9 +15,10 @@ examples:
   - What network am I on?
   - Show network status.
   - Am I online?
-
   - internet connection
   - is wfi connected
+  - show me wifi info
+  - is internet working
 aliases:
   - linux.wifi.status
   - network.check

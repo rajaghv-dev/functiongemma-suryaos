@@ -20,7 +20,6 @@ examples:
   - Check if bluetooth is active.
   - Is NetworkManager up?
   - What's the status of the sshd service?
-
   - is cups active
   - is docker running
   - is ufw firewall active

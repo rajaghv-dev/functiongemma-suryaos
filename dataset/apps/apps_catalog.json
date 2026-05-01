@@ -1,0 +1,1074 @@
+{
+  "total": 110,
+  "categories": {
+    "kde_core": 22,
+    "kde_util": 18,
+    "browser": 18,
+    "office": 12,
+    "media": 16,
+    "dev": 14,
+    "comm": 10
+  },
+  "apps": [
+    {
+      "binary": "dolphin",
+      "category": "kde_core",
+      "aliases": [
+        "dolphin",
+        "file manager",
+        "files",
+        "file browser",
+        "open files"
+      ],
+      "desc": "KDE file manager"
+    },
+    {
+      "binary": "kate",
+      "category": "kde_core",
+      "aliases": [
+        "kate",
+        "text editor",
+        "code editor",
+        "editor"
+      ],
+      "desc": "KDE advanced text editor"
+    },
+    {
+      "binary": "kwrite",
+      "category": "kde_core",
+      "aliases": [
+        "kwrite",
+        "simple text editor",
+        "notepad"
+      ],
+      "desc": "KDE simple text editor"
+    },
+    {
+      "binary": "konsole",
+      "category": "kde_core",
+      "aliases": [
+        "konsole",
+        "terminal",
+        "shell",
+        "command line",
+        "cli"
+      ],
+      "desc": "KDE terminal emulator"
+    },
+    {
+      "binary": "kmail",
+      "category": "kde_core",
+      "aliases": [
+        "kmail",
+        "email client",
+        "mail",
+        "email"
+      ],
+      "desc": "KDE email client"
+    },
+    {
+      "binary": "korganizer",
+      "category": "kde_core",
+      "aliases": [
+        "korganizer",
+        "calendar",
+        "scheduler"
+      ],
+      "desc": "KDE calendar and todo"
+    },
+    {
+      "binary": "kaddressbook",
+      "category": "kde_core",
+      "aliases": [
+        "kaddressbook",
+        "address book",
+        "contacts"
+      ],
+      "desc": "KDE contact manager"
+    },
+    {
+      "binary": "kcalc",
+      "category": "kde_core",
+      "aliases": [
+        "kcalc",
+        "calculator",
+        "calc"
+      ],
+      "desc": "KDE calculator"
+    },
+    {
+      "binary": "spectacle",
+      "category": "kde_core",
+      "aliases": [
+        "spectacle",
+        "screenshot",
+        "screen capture",
+        "snip"
+      ],
+      "desc": "KDE screenshot tool"
+    },
+    {
+      "binary": "gwenview",
+      "category": "kde_core",
+      "aliases": [
+        "gwenview",
+        "image viewer",
+        "photo viewer",
+        "picture viewer"
+      ],
+      "desc": "KDE image viewer"
+    },
+    {
+      "binary": "okular",
+      "category": "kde_core",
+      "aliases": [
+        "okular",
+        "pdf viewer",
+        "document viewer",
+        "ebook reader"
+      ],
+      "desc": "KDE document viewer"
+    },
+    {
+      "binary": "ark",
+      "category": "kde_core",
+      "aliases": [
+        "ark",
+        "archive manager",
+        "zip extractor",
+        "tar extractor"
+      ],
+      "desc": "KDE archive manager"
+    },
+    {
+      "binary": "filelight",
+      "category": "kde_core",
+      "aliases": [
+        "filelight",
+        "disk usage analyzer",
+        "disk space viewer"
+      ],
+      "desc": "KDE disk usage visualizer"
+    },
+    {
+      "binary": "krunner",
+      "category": "kde_core",
+      "aliases": [
+        "krunner",
+        "run dialog",
+        "command runner"
+      ],
+      "desc": "KDE quick launcher"
+    },
+    {
+      "binary": "systemsettings",
+      "category": "kde_core",
+      "aliases": [
+        "systemsettings",
+        "settings",
+        "system settings",
+        "preferences",
+        "control panel"
+      ],
+      "desc": "KDE system settings"
+    },
+    {
+      "binary": "kfind",
+      "category": "kde_core",
+      "aliases": [
+        "kfind",
+        "file search",
+        "find files"
+      ],
+      "desc": "KDE file finder"
+    },
+    {
+      "binary": "kcharselect",
+      "category": "kde_core",
+      "aliases": [
+        "kcharselect",
+        "character selector",
+        "special characters"
+      ],
+      "desc": "KDE character map"
+    },
+    {
+      "binary": "ksnapshot",
+      "category": "kde_core",
+      "aliases": [
+        "ksnapshot"
+      ],
+      "desc": "KDE legacy screenshot tool"
+    },
+    {
+      "binary": "ksysguard",
+      "category": "kde_core",
+      "aliases": [
+        "ksysguard",
+        "system monitor",
+        "task manager",
+        "process viewer"
+      ],
+      "desc": "KDE system monitor"
+    },
+    {
+      "binary": "khelpcenter",
+      "category": "kde_core",
+      "aliases": [
+        "khelpcenter",
+        "help",
+        "documentation"
+      ],
+      "desc": "KDE help center"
+    },
+    {
+      "binary": "kinfocenter",
+      "category": "kde_core",
+      "aliases": [
+        "kinfocenter",
+        "info center",
+        "system info",
+        "about my system"
+      ],
+      "desc": "KDE hardware info viewer"
+    },
+    {
+      "binary": "discover",
+      "category": "kde_core",
+      "aliases": [
+        "discover",
+        "software center",
+        "app store",
+        "package manager gui"
+      ],
+      "desc": "KDE software discovery"
+    },
+    {
+      "binary": "krita",
+      "category": "kde_util",
+      "aliases": [
+        "krita",
+        "digital paint",
+        "drawing app"
+      ],
+      "desc": "KDE digital painting"
+    },
+    {
+      "binary": "kdenlive",
+      "category": "kde_util",
+      "aliases": [
+        "kdenlive",
+        "video editor",
+        "video editing"
+      ],
+      "desc": "KDE non-linear video editor"
+    },
+    {
+      "binary": "kdevelop",
+      "category": "kde_util",
+      "aliases": [
+        "kdevelop",
+        "ide",
+        "kde ide"
+      ],
+      "desc": "KDE integrated development environment"
+    },
+    {
+      "binary": "kmag",
+      "category": "kde_util",
+      "aliases": [
+        "kmag",
+        "magnifier",
+        "screen magnifier"
+      ],
+      "desc": "KDE screen magnifier"
+    },
+    {
+      "binary": "kmenuedit",
+      "category": "kde_util",
+      "aliases": [
+        "kmenuedit",
+        "menu editor"
+      ],
+      "desc": "KDE application menu editor"
+    },
+    {
+      "binary": "kmix",
+      "category": "kde_util",
+      "aliases": [
+        "kmix",
+        "mixer",
+        "audio mixer",
+        "volume mixer"
+      ],
+      "desc": "KDE audio mixer"
+    },
+    {
+      "binary": "ksystemlog",
+      "category": "kde_util",
+      "aliases": [
+        "ksystemlog",
+        "system log",
+        "log viewer"
+      ],
+      "desc": "KDE log viewer"
+    },
+    {
+      "binary": "ktorrent",
+      "category": "kde_util",
+      "aliases": [
+        "ktorrent",
+        "torrent client",
+        "torrent"
+      ],
+      "desc": "KDE BitTorrent client"
+    },
+    {
+      "binary": "kget",
+      "category": "kde_util",
+      "aliases": [
+        "kget",
+        "download manager"
+      ],
+      "desc": "KDE download manager"
+    },
+    {
+      "binary": "konqueror",
+      "category": "kde_util",
+      "aliases": [
+        "konqueror"
+      ],
+      "desc": "KDE web browser / file manager"
+    },
+    {
+      "binary": "falkon",
+      "category": "kde_util",
+      "aliases": [
+        "falkon",
+        "kde browser"
+      ],
+      "desc": "KDE Qt-based web browser"
+    },
+    {
+      "binary": "yakuake",
+      "category": "kde_util",
+      "aliases": [
+        "yakuake",
+        "drop down terminal",
+        "quake terminal"
+      ],
+      "desc": "KDE drop-down terminal"
+    },
+    {
+      "binary": "kstars",
+      "category": "kde_util",
+      "aliases": [
+        "kstars",
+        "astronomy",
+        "planetarium"
+      ],
+      "desc": "KDE desktop planetarium"
+    },
+    {
+      "binary": "marble",
+      "category": "kde_util",
+      "aliases": [
+        "marble",
+        "globe",
+        "world map"
+      ],
+      "desc": "KDE virtual globe"
+    },
+    {
+      "binary": "skanlite",
+      "category": "kde_util",
+      "aliases": [
+        "skanlite",
+        "scanner",
+        "scan"
+      ],
+      "desc": "KDE scanner"
+    },
+    {
+      "binary": "ksshaskpass",
+      "category": "kde_util",
+      "aliases": [
+        "ksshaskpass",
+        "ssh key prompt"
+      ],
+      "desc": "KDE SSH passphrase dialog"
+    },
+    {
+      "binary": "kgpg",
+      "category": "kde_util",
+      "aliases": [
+        "kgpg",
+        "encryption",
+        "gpg gui"
+      ],
+      "desc": "KDE GnuPG frontend"
+    },
+    {
+      "binary": "partitionmanager",
+      "category": "kde_util",
+      "aliases": [
+        "partitionmanager",
+        "partition manager",
+        "disk partitioner"
+      ],
+      "desc": "KDE partition manager"
+    },
+    {
+      "binary": "firefox",
+      "category": "browser",
+      "aliases": [
+        "firefox",
+        "browser",
+        "web browser",
+        "the internet",
+        "ff"
+      ],
+      "desc": "Mozilla Firefox web browser"
+    },
+    {
+      "binary": "brave",
+      "category": "browser",
+      "aliases": [
+        "brave",
+        "brave browser",
+        "private browser"
+      ],
+      "desc": "Brave privacy-focused browser"
+    },
+    {
+      "binary": "chromium",
+      "category": "browser",
+      "aliases": [
+        "chromium",
+        "chromium browser"
+      ],
+      "desc": "Open-source Chromium browser"
+    },
+    {
+      "binary": "google-chrome",
+      "category": "browser",
+      "aliases": [
+        "chrome",
+        "google chrome"
+      ],
+      "desc": "Google Chrome (proprietary, listed for completeness)"
+    },
+    {
+      "binary": "ungoogled-chromium",
+      "category": "browser",
+      "aliases": [
+        "ungoogled chromium",
+        "ungoogled"
+      ],
+      "desc": "Chromium with Google services stripped"
+    },
+    {
+      "binary": "librewolf",
+      "category": "browser",
+      "aliases": [
+        "librewolf",
+        "libre wolf"
+      ],
+      "desc": "Privacy-focused Firefox fork"
+    },
+    {
+      "binary": "torbrowser",
+      "category": "browser",
+      "aliases": [
+        "tor",
+        "tor browser",
+        "anonymous browser"
+      ],
+      "desc": "Tor anonymity network browser"
+    },
+    {
+      "binary": "vivaldi",
+      "category": "browser",
+      "aliases": [
+        "vivaldi"
+      ],
+      "desc": "Vivaldi customizable browser"
+    },
+    {
+      "binary": "epiphany",
+      "category": "browser",
+      "aliases": [
+        "epiphany",
+        "gnome web",
+        "gnome browser"
+      ],
+      "desc": "GNOME web browser"
+    },
+    {
+      "binary": "min",
+      "category": "browser",
+      "aliases": [
+        "min",
+        "min browser",
+        "minimal browser"
+      ],
+      "desc": "Minimalist web browser"
+    },
+    {
+      "binary": "qutebrowser",
+      "category": "browser",
+      "aliases": [
+        "qutebrowser",
+        "qute",
+        "keyboard browser",
+        "vim browser"
+      ],
+      "desc": "Keyboard-driven Vim-like browser"
+    },
+    {
+      "binary": "palemoon",
+      "category": "browser",
+      "aliases": [
+        "pale moon",
+        "palemoon"
+      ],
+      "desc": "Pale Moon (Firefox fork)"
+    },
+    {
+      "binary": "waterfox",
+      "category": "browser",
+      "aliases": [
+        "waterfox"
+      ],
+      "desc": "Waterfox (Firefox fork)"
+    },
+    {
+      "binary": "floorp",
+      "category": "browser",
+      "aliases": [
+        "floorp"
+      ],
+      "desc": "Floorp (Firefox fork)"
+    },
+    {
+      "binary": "icecat",
+      "category": "browser",
+      "aliases": [
+        "icecat",
+        "gnu icecat"
+      ],
+      "desc": "GNU IceCat (Firefox fork)"
+    },
+    {
+      "binary": "otter-browser",
+      "category": "browser",
+      "aliases": [
+        "otter",
+        "otter browser"
+      ],
+      "desc": "Otter classic Opera-like browser"
+    },
+    {
+      "binary": "midori",
+      "category": "browser",
+      "aliases": [
+        "midori"
+      ],
+      "desc": "Midori lightweight browser"
+    },
+    {
+      "binary": "nyxt",
+      "category": "browser",
+      "aliases": [
+        "nyxt",
+        "lisp browser"
+      ],
+      "desc": "Nyxt power-user browser"
+    },
+    {
+      "binary": "libreoffice",
+      "category": "office",
+      "aliases": [
+        "libreoffice",
+        "office",
+        "office suite"
+      ],
+      "desc": "LibreOffice main launcher"
+    },
+    {
+      "binary": "libreoffice --writer",
+      "category": "office",
+      "aliases": [
+        "libreoffice writer",
+        "writer",
+        "word processor",
+        "document editor"
+      ],
+      "desc": "LibreOffice Writer"
+    },
+    {
+      "binary": "libreoffice --calc",
+      "category": "office",
+      "aliases": [
+        "libreoffice calc",
+        "calc",
+        "spreadsheet",
+        "excel"
+      ],
+      "desc": "LibreOffice Calc spreadsheet"
+    },
+    {
+      "binary": "libreoffice --impress",
+      "category": "office",
+      "aliases": [
+        "libreoffice impress",
+        "impress",
+        "presentation",
+        "slideshow"
+      ],
+      "desc": "LibreOffice Impress presentation"
+    },
+    {
+      "binary": "thunderbird",
+      "category": "office",
+      "aliases": [
+        "thunderbird",
+        "tbird"
+      ],
+      "desc": "Mozilla Thunderbird email"
+    },
+    {
+      "binary": "joplin",
+      "category": "office",
+      "aliases": [
+        "joplin",
+        "notes",
+        "note taking"
+      ],
+      "desc": "Joplin note-taking"
+    },
+    {
+      "binary": "logseq",
+      "category": "office",
+      "aliases": [
+        "logseq"
+      ],
+      "desc": "Logseq knowledge base"
+    },
+    {
+      "binary": "obsidian",
+      "category": "office",
+      "aliases": [
+        "obsidian"
+      ],
+      "desc": "Obsidian markdown notes"
+    },
+    {
+      "binary": "zotero",
+      "category": "office",
+      "aliases": [
+        "zotero",
+        "reference manager",
+        "citations"
+      ],
+      "desc": "Zotero research assistant"
+    },
+    {
+      "binary": "calligra",
+      "category": "office",
+      "aliases": [
+        "calligra",
+        "calligra suite"
+      ],
+      "desc": "KDE Calligra office suite"
+    },
+    {
+      "binary": "onlyoffice-desktopeditors",
+      "category": "office",
+      "aliases": [
+        "onlyoffice"
+      ],
+      "desc": "OnlyOffice editors"
+    },
+    {
+      "binary": "abiword",
+      "category": "office",
+      "aliases": [
+        "abiword"
+      ],
+      "desc": "AbiWord lightweight word processor"
+    },
+    {
+      "binary": "vlc",
+      "category": "media",
+      "aliases": [
+        "vlc",
+        "video player",
+        "media player"
+      ],
+      "desc": "VLC media player"
+    },
+    {
+      "binary": "mpv",
+      "category": "media",
+      "aliases": [
+        "mpv"
+      ],
+      "desc": "mpv media player"
+    },
+    {
+      "binary": "celluloid",
+      "category": "media",
+      "aliases": [
+        "celluloid"
+      ],
+      "desc": "Celluloid mpv frontend"
+    },
+    {
+      "binary": "haruna",
+      "category": "media",
+      "aliases": [
+        "haruna",
+        "kde video player"
+      ],
+      "desc": "Haruna KDE video player"
+    },
+    {
+      "binary": "audacity",
+      "category": "media",
+      "aliases": [
+        "audacity",
+        "audio editor",
+        "sound editor"
+      ],
+      "desc": "Audacity audio editor"
+    },
+    {
+      "binary": "ardour",
+      "category": "media",
+      "aliases": [
+        "ardour",
+        "daw",
+        "audio workstation"
+      ],
+      "desc": "Ardour digital audio workstation"
+    },
+    {
+      "binary": "musescore",
+      "category": "media",
+      "aliases": [
+        "musescore",
+        "music notation",
+        "sheet music"
+      ],
+      "desc": "MuseScore music notation"
+    },
+    {
+      "binary": "lmms",
+      "category": "media",
+      "aliases": [
+        "lmms"
+      ],
+      "desc": "LMMS music production"
+    },
+    {
+      "binary": "gimp",
+      "category": "media",
+      "aliases": [
+        "gimp",
+        "image editor",
+        "photo editor",
+        "photoshop alternative"
+      ],
+      "desc": "GIMP image editor"
+    },
+    {
+      "binary": "inkscape",
+      "category": "media",
+      "aliases": [
+        "inkscape",
+        "vector editor",
+        "svg editor",
+        "illustrator alternative"
+      ],
+      "desc": "Inkscape vector graphics"
+    },
+    {
+      "binary": "blender",
+      "category": "media",
+      "aliases": [
+        "blender",
+        "3d",
+        "3d modeling",
+        "3d editor"
+      ],
+      "desc": "Blender 3D creation suite"
+    },
+    {
+      "binary": "obs",
+      "category": "media",
+      "aliases": [
+        "obs",
+        "obs studio",
+        "screen recorder",
+        "stream recorder"
+      ],
+      "desc": "OBS Studio recording/streaming"
+    },
+    {
+      "binary": "openshot",
+      "category": "media",
+      "aliases": [
+        "openshot"
+      ],
+      "desc": "OpenShot video editor"
+    },
+    {
+      "binary": "shotcut",
+      "category": "media",
+      "aliases": [
+        "shotcut"
+      ],
+      "desc": "Shotcut video editor"
+    },
+    {
+      "binary": "darktable",
+      "category": "media",
+      "aliases": [
+        "darktable",
+        "raw editor",
+        "photo lab"
+      ],
+      "desc": "darktable photo workflow"
+    },
+    {
+      "binary": "rawtherapee",
+      "category": "media",
+      "aliases": [
+        "rawtherapee",
+        "raw photo editor"
+      ],
+      "desc": "RawTherapee RAW processor"
+    },
+    {
+      "binary": "code",
+      "category": "dev",
+      "aliases": [
+        "vscode",
+        "vs code",
+        "visual studio code",
+        "code"
+      ],
+      "desc": "Visual Studio Code editor"
+    },
+    {
+      "binary": "codium",
+      "category": "dev",
+      "aliases": [
+        "vscodium",
+        "codium"
+      ],
+      "desc": "VSCodium (open VS Code)"
+    },
+    {
+      "binary": "qtcreator",
+      "category": "dev",
+      "aliases": [
+        "qtcreator",
+        "qt creator",
+        "qt ide"
+      ],
+      "desc": "Qt Creator IDE"
+    },
+    {
+      "binary": "github-desktop",
+      "category": "dev",
+      "aliases": [
+        "github desktop"
+      ],
+      "desc": "GitHub Desktop"
+    },
+    {
+      "binary": "gitkraken",
+      "category": "dev",
+      "aliases": [
+        "gitkraken",
+        "git client"
+      ],
+      "desc": "GitKraken git GUI"
+    },
+    {
+      "binary": "gitg",
+      "category": "dev",
+      "aliases": [
+        "gitg",
+        "gnome git"
+      ],
+      "desc": "gitg GNOME git GUI"
+    },
+    {
+      "binary": "meld",
+      "category": "dev",
+      "aliases": [
+        "meld",
+        "diff tool",
+        "diff viewer"
+      ],
+      "desc": "Meld diff/merge tool"
+    },
+    {
+      "binary": "kdiff3",
+      "category": "dev",
+      "aliases": [
+        "kdiff3",
+        "kdiff"
+      ],
+      "desc": "KDiff3 three-way merge"
+    },
+    {
+      "binary": "postman",
+      "category": "dev",
+      "aliases": [
+        "postman",
+        "api tester"
+      ],
+      "desc": "Postman API tool"
+    },
+    {
+      "binary": "insomnia",
+      "category": "dev",
+      "aliases": [
+        "insomnia",
+        "rest client"
+      ],
+      "desc": "Insomnia API client"
+    },
+    {
+      "binary": "dbeaver",
+      "category": "dev",
+      "aliases": [
+        "dbeaver",
+        "database tool",
+        "sql client"
+      ],
+      "desc": "DBeaver SQL client"
+    },
+    {
+      "binary": "mysql-workbench",
+      "category": "dev",
+      "aliases": [
+        "mysql workbench",
+        "mysql gui"
+      ],
+      "desc": "MySQL Workbench"
+    },
+    {
+      "binary": "pgadmin4",
+      "category": "dev",
+      "aliases": [
+        "pgadmin",
+        "postgresql gui"
+      ],
+      "desc": "pgAdmin Postgres GUI"
+    },
+    {
+      "binary": "android-studio",
+      "category": "dev",
+      "aliases": [
+        "android studio"
+      ],
+      "desc": "Android Studio IDE"
+    },
+    {
+      "binary": "signal-desktop",
+      "category": "comm",
+      "aliases": [
+        "signal",
+        "signal messenger"
+      ],
+      "desc": "Signal secure messenger"
+    },
+    {
+      "binary": "element-desktop",
+      "category": "comm",
+      "aliases": [
+        "element",
+        "matrix",
+        "matrix client"
+      ],
+      "desc": "Element Matrix client"
+    },
+    {
+      "binary": "telegram-desktop",
+      "category": "comm",
+      "aliases": [
+        "telegram",
+        "telegram desktop"
+      ],
+      "desc": "Telegram messenger"
+    },
+    {
+      "binary": "discord",
+      "category": "comm",
+      "aliases": [
+        "discord"
+      ],
+      "desc": "Discord chat"
+    },
+    {
+      "binary": "slack",
+      "category": "comm",
+      "aliases": [
+        "slack"
+      ],
+      "desc": "Slack workspace messaging"
+    },
+    {
+      "binary": "fractal",
+      "category": "comm",
+      "aliases": [
+        "fractal",
+        "gtk matrix client"
+      ],
+      "desc": "Fractal Matrix client"
+    },
+    {
+      "binary": "dino",
+      "category": "comm",
+      "aliases": [
+        "dino",
+        "xmpp",
+        "jabber"
+      ],
+      "desc": "Dino XMPP client"
+    },
+    {
+      "binary": "trojita",
+      "category": "comm",
+      "aliases": [
+        "trojita",
+        "qt email"
+      ],
+      "desc": "Trojit\u00e1 Qt email client"
+    },
+    {
+      "binary": "bitwarden",
+      "category": "comm",
+      "aliases": [
+        "bitwarden",
+        "password manager"
+      ],
+      "desc": "Bitwarden password manager"
+    },
+    {
+      "binary": "keepassxc",
+      "category": "comm",
+      "aliases": [
+        "keepassxc",
+        "keepass",
+        "offline password manager"
+      ],
+      "desc": "KeePassXC password manager"
+    }
+  ]
+}

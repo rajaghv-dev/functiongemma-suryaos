@@ -26,11 +26,11 @@ examples:
   - Make the display brighter.
   - Lower screen brightness by 20 percent.
   - Turn up the brightness.
-
   - screen too bright
   - dim the screen by 30 percent
   - increase brightness by 25%
   - more brightness
+  - make it darker
 aliases:
   - linux.brightness.adjust
   - brightness.change

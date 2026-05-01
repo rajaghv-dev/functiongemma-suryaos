@@ -15,9 +15,10 @@ examples:
   - What's the memory usage?
   - Is the system running low on memory?
   - Show RAM stats.
-
   - is memory full
   - memry usage
+  - tell me about ram
+  - what's eating my memory
 aliases:
   - linux.ram.usage
   - memory.check

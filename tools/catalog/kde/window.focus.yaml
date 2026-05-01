@@ -20,7 +20,6 @@ examples:
   - Focus the terminal.
   - Bring Kate to the front.
   - Show the Dolphin window.
-
 aliases:
   - kde.window.raise
   - window.switch

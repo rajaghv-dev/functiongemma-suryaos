@@ -26,7 +26,6 @@ examples:
   - Lower the volume.
   - Make it quieter.
   - Increase audio level.
-
   - make it louder
   - lower volume by 20 percent
   - increase volume by 15 percent
@@ -34,6 +33,7 @@ examples:
   - decrease audio level by 5
   - less
   - TURN OFF VOLUME
+  - lower volume by 30 percent
 aliases:
   - linux.volume.change
   - volume.adjust

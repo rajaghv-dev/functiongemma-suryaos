@@ -18,9 +18,9 @@ examples:
   - How full is the hard drive?
   - Check disk usage for /home.
   - Is the disk almost full?
-
   - how full is /tmp
   - disk space on /var
+  - am I running low on space
 aliases:
   - linux.disk.check
   - disk.free

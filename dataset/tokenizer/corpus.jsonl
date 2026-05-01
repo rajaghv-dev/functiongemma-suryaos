@@ -1003,10 +1003,45 @@
 {"text": "open music player", "source": "tokenizer_corpus"}
 {"text": "lanch dolphin", "source": "tokenizer_corpus"}
 {"text": "opn firefox", "source": "tokenizer_corpus"}
+{"text": "open my notes app", "source": "tokenizer_corpus"}
+{"text": "show pdf viewer", "source": "tokenizer_corpus"}
+{"text": "let me edit a screenshot", "source": "tokenizer_corpus"}
+{"text": "start brave", "source": "tokenizer_corpus"}
+{"text": "open chromium", "source": "tokenizer_corpus"}
+{"text": "open librewolf", "source": "tokenizer_corpus"}
+{"text": "start tor", "source": "tokenizer_corpus"}
+{"text": "open vivaldi", "source": "tokenizer_corpus"}
+{"text": "private browser", "source": "tokenizer_corpus"}
+{"text": "anonymous browser", "source": "tokenizer_corpus"}
+{"text": "open vscode", "source": "tokenizer_corpus"}
+{"text": "launch visual studio code", "source": "tokenizer_corpus"}
+{"text": "open vscodium", "source": "tokenizer_corpus"}
+{"text": "start the ide", "source": "tokenizer_corpus"}
+{"text": "open thunderbird", "source": "tokenizer_corpus"}
+{"text": "open libreoffice writer", "source": "tokenizer_corpus"}
+{"text": "open spreadsheet", "source": "tokenizer_corpus"}
+{"text": "launch presentation", "source": "tokenizer_corpus"}
+{"text": "open obs", "source": "tokenizer_corpus"}
+{"text": "start screen recorder", "source": "tokenizer_corpus"}
+{"text": "open gimp", "source": "tokenizer_corpus"}
+{"text": "launch image editor", "source": "tokenizer_corpus"}
+{"text": "open inkscape", "source": "tokenizer_corpus"}
+{"text": "start vector editor", "source": "tokenizer_corpus"}
+{"text": "open blender", "source": "tokenizer_corpus"}
+{"text": "open vlc", "source": "tokenizer_corpus"}
+{"text": "open signal", "source": "tokenizer_corpus"}
+{"text": "open telegram", "source": "tokenizer_corpus"}
+{"text": "open password manager", "source": "tokenizer_corpus"}
+{"text": "open keepassxc", "source": "tokenizer_corpus"}
+{"text": "open spectacle", "source": "tokenizer_corpus"}
+{"text": "take screenshot", "source": "tokenizer_corpus"}
+{"text": "open ark", "source": "tokenizer_corpus"}
+{"text": "extract zip", "source": "tokenizer_corpus"}
 {"text": "Send a KDE Plasma desktop notification with a title and body.", "source": "tokenizer_corpus"}
 {"text": "Notify me that the build is complete.", "source": "tokenizer_corpus"}
 {"text": "Show a desktop alert saying backup finished.", "source": "tokenizer_corpus"}
 {"text": "Send a warning notification about low disk space.", "source": "tokenizer_corpus"}
+{"text": "remind me when build done", "source": "tokenizer_corpus"}
 {"text": "Bring a window to the foreground by matching its title.", "source": "tokenizer_corpus"}
 {"text": "Switch to Firefox.", "source": "tokenizer_corpus"}
 {"text": "Focus the terminal.", "source": "tokenizer_corpus"}
@@ -1018,6 +1053,9 @@
 {"text": "Is the laptop charging?", "source": "tokenizer_corpus"}
 {"text": "How long until the battery dies?", "source": "tokenizer_corpus"}
 {"text": "BATTRY", "source": "tokenizer_corpus"}
+{"text": "what's my battery percentage", "source": "tokenizer_corpus"}
+{"text": "is my laptop charging", "source": "tokenizer_corpus"}
+{"text": "how is my battery doing", "source": "tokenizer_corpus"}
 {"text": "Adjust the screen brightness up or down by a percentage.", "source": "tokenizer_corpus"}
 {"text": "Dim the screen.", "source": "tokenizer_corpus"}
 {"text": "Make the display brighter.", "source": "tokenizer_corpus"}
@@ -1027,6 +1065,7 @@
 {"text": "dim the screen by 30 percent", "source": "tokenizer_corpus"}
 {"text": "increase brightness by 25%", "source": "tokenizer_corpus"}
 {"text": "more brightness", "source": "tokenizer_corpus"}
+{"text": "make it darker", "source": "tokenizer_corpus"}
 {"text": "Report disk space usage for a given path (default /home).", "source": "tokenizer_corpus"}
 {"text": "How much disk space is left?", "source": "tokenizer_corpus"}
 {"text": "How full is the hard drive?", "source": "tokenizer_corpus"}
@@ -1034,6 +1073,7 @@
 {"text": "Is the disk almost full?", "source": "tokenizer_corpus"}
 {"text": "how full is /tmp", "source": "tokenizer_corpus"}
 {"text": "disk space on /var", "source": "tokenizer_corpus"}
+{"text": "am I running low on space", "source": "tokenizer_corpus"}
 {"text": "Report current RAM usage \u2014 total, used, free, and available.", "source": "tokenizer_corpus"}
 {"text": "How much RAM is being used?", "source": "tokenizer_corpus"}
 {"text": "What's the memory usage?", "source": "tokenizer_corpus"}
@@ -1041,6 +1081,8 @@
 {"text": "Show RAM stats.", "source": "tokenizer_corpus"}
 {"text": "is memory full", "source": "tokenizer_corpus"}
 {"text": "memry usage", "source": "tokenizer_corpus"}
+{"text": "tell me about ram", "source": "tokenizer_corpus"}
+{"text": "what's eating my memory", "source": "tokenizer_corpus"}
 {"text": "Return a compact system health snapshot \u2014 CPU, RAM, disk, battery, wifi, Ollama.", "source": "tokenizer_corpus"}
 {"text": "How is the system doing?", "source": "tokenizer_corpus"}
 {"text": "What is the system status?", "source": "tokenizer_corpus"}
@@ -1055,6 +1097,7 @@
 {"text": "is everything ok", "source": "tokenizer_corpus"}
 {"text": "show me what's running", "source": "tokenizer_corpus"}
 {"text": "status", "source": "tokenizer_corpus"}
+{"text": "is system healthy", "source": "tokenizer_corpus"}
 {"text": "Report the current network and wifi connection state.", "source": "tokenizer_corpus"}
 {"text": "Is wifi connected?", "source": "tokenizer_corpus"}
 {"text": "What network am I on?", "source": "tokenizer_corpus"}
@@ -1062,6 +1105,8 @@
 {"text": "Am I online?", "source": "tokenizer_corpus"}
 {"text": "internet connection", "source": "tokenizer_corpus"}
 {"text": "is wfi connected", "source": "tokenizer_corpus"}
+{"text": "show me wifi info", "source": "tokenizer_corpus"}
+{"text": "is internet working", "source": "tokenizer_corpus"}
 {"text": "Check whether a systemd service is active, inactive, or failed.", "source": "tokenizer_corpus"}
 {"text": "Is Ollama running?", "source": "tokenizer_corpus"}
 {"text": "Check if bluetooth is active.", "source": "tokenizer_corpus"}
@@ -1096,6 +1141,7 @@
 {"text": "decrease audio level by 5", "source": "tokenizer_corpus"}
 {"text": "less", "source": "tokenizer_corpus"}
 {"text": "TURN OFF VOLUME", "source": "tokenizer_corpus"}
+{"text": "lower volume by 30 percent", "source": "tokenizer_corpus"}
 {"text": "When the user says \"Ask the user before deleting these files.\", call kde_dialog_confirm.", "source": "tokenizer_corpus"}
 {"text": "When the user says \"Confirm with the user that they want to restart the application.\", call kde_dialog_confirm.", "source": "tokenizer_corpus"}
 {"text": "When the user says \"Get user permission to proceed with this irreversible action.\", call kde_dialog_confirm.", "source": "tokenizer_corpus"}

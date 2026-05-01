@@ -31,7 +31,8 @@ examples:
   - Notify me that the build is complete.
   - Show a desktop alert saying backup finished.
   - Send a warning notification about low disk space.
-
+  - remind me when build done
+  - show notification: meeting in 5 min
 aliases:
   - kde.notify
   - notify

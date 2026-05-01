@@ -15,8 +15,10 @@ examples:
   - What's the battery percentage?
   - Is the laptop charging?
   - How long until the battery dies?
-
   - BATTRY
+  - what's my battery percentage
+  - is my laptop charging
+  - how is my battery doing
 aliases:
   - linux.battery.check
   - battery.level

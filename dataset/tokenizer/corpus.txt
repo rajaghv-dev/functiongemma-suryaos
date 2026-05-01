@@ -1003,10 +1003,45 @@ show calculator
 open music player
 lanch dolphin
 opn firefox
+open my notes app
+show pdf viewer
+let me edit a screenshot
+start brave
+open chromium
+open librewolf
+start tor
+open vivaldi
+private browser
+anonymous browser
+open vscode
+launch visual studio code
+open vscodium
+start the ide
+open thunderbird
+open libreoffice writer
+open spreadsheet
+launch presentation
+open obs
+start screen recorder
+open gimp
+launch image editor
+open inkscape
+start vector editor
+open blender
+open vlc
+open signal
+open telegram
+open password manager
+open keepassxc
+open spectacle
+take screenshot
+open ark
+extract zip
 Send a KDE Plasma desktop notification with a title and body.
 Notify me that the build is complete.
 Show a desktop alert saying backup finished.
 Send a warning notification about low disk space.
+remind me when build done
 Bring a window to the foreground by matching its title.
 Switch to Firefox.
 Focus the terminal.
@@ -1018,6 +1053,9 @@ What's the battery percentage?
 Is the laptop charging?
 How long until the battery dies?
 BATTRY
+what's my battery percentage
+is my laptop charging
+how is my battery doing
 Adjust the screen brightness up or down by a percentage.
 Dim the screen.
 Make the display brighter.
@@ -1027,6 +1065,7 @@ screen too bright
 dim the screen by 30 percent
 increase brightness by 25%
 more brightness
+make it darker
 Report disk space usage for a given path (default /home).
 How much disk space is left?
 How full is the hard drive?
@@ -1034,6 +1073,7 @@ Check disk usage for /home.
 Is the disk almost full?
 how full is /tmp
 disk space on /var
+am I running low on space
 Report current RAM usage — total, used, free, and available.
 How much RAM is being used?
 What's the memory usage?
@@ -1041,6 +1081,8 @@ Is the system running low on memory?
 Show RAM stats.
 is memory full
 memry usage
+tell me about ram
+what's eating my memory
 Return a compact system health snapshot — CPU, RAM, disk, battery, wifi, Ollama.
 How is the system doing?
 What is the system status?
@@ -1055,6 +1097,7 @@ Show me CPU and RAM usage.
 is everything ok
 show me what's running
 status
+is system healthy
 Report the current network and wifi connection state.
 Is wifi connected?
 What network am I on?
@@ -1062,6 +1105,8 @@ Show network status.
 Am I online?
 internet connection
 is wfi connected
+show me wifi info
+is internet working
 Check whether a systemd service is active, inactive, or failed.
 Is Ollama running?
 Check if bluetooth is active.
@@ -1096,6 +1141,7 @@ raise the volume by 10%
 decrease audio level by 5
 less
 TURN OFF VOLUME
+lower volume by 30 percent
 When the user says "Ask the user before deleting these files.", call kde_dialog_confirm.
 When the user says "Confirm with the user that they want to restart the application.", call kde_dialog_confirm.
 When the user says "Get user permission to proceed with this irreversible action.", call kde_dialog_confirm.

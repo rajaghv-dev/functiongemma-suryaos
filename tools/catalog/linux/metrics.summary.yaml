@@ -21,10 +21,10 @@ examples:
   - System metrics summary.
   - What are the system stats?
   - Show me CPU and RAM usage.
-
   - is everything ok
   - show me what's running
   - status
+  - is system healthy
 aliases:
   - linux.system.status
   - system.health

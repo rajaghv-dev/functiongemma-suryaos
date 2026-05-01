@@ -21,7 +21,6 @@ examples:
   - Open a terminal.
   - Start Firefox.
   - Open the file manager.
-
   - open konsole
   - run spotify
   - open files
@@ -36,6 +35,40 @@ examples:
   - open music player
   - lanch dolphin
   - opn firefox
+  - open my notes app
+  - show pdf viewer
+  - let me edit a screenshot
+  - start brave
+  - open chromium
+  - open librewolf
+  - start tor
+  - open vivaldi
+  - private browser
+  - anonymous browser
+  - open vscode
+  - launch visual studio code
+  - open vscodium
+  - start the ide
+  - open thunderbird
+  - open libreoffice writer
+  - open spreadsheet
+  - launch presentation
+  - open obs
+  - start screen recorder
+  - open gimp
+  - launch image editor
+  - open inkscape
+  - start vector editor
+  - open blender
+  - open vlc
+  - open signal
+  - open telegram
+  - open password manager
+  - open keepassxc
+  - open spectacle
+  - take screenshot
+  - open ark
+  - extract zip
 aliases:
   - kde.app.launch
   - app.open

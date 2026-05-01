@@ -26,7 +26,6 @@ examples:
   - Ask the user before deleting these files.
   - Confirm with the user that they want to restart the application.
   - Get user permission to proceed with this irreversible action.
-
 aliases:
   - kde.confirm
   - ask_yesno
