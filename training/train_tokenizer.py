@@ -300,32 +300,44 @@ class Narrator:
             if older_avg > 0:
                 pct = (older_avg - recent_avg) / older_avg * 100  # positive = improving
 
+                # Concise messages that fit in ~80 columns; details on a
+                # second line so users on narrow terminals can still read them.
                 if pct > 30:
                     self._emit("PROGRESS",
-                        f"Step {step}: loss down {pct:.0f}% in last 10 steps "
-                        f"(was {older_avg:.3f}, now {recent_avg:.3f}) — rapid learning")
+                        f"Step {step}: loss -{pct:.0f}% in 10 steps  "
+                        f"({older_avg:.2f}→{recent_avg:.2f}) — rapid learning")
                     self.last_emit_step = step
                 elif pct > 10:
                     self._emit("PROGRESS",
-                        f"Step {step}: loss down {pct:.0f}% — steady convergence")
+                        f"Step {step}: loss -{pct:.0f}% — steady convergence")
                     self.last_emit_step = step
                 elif abs(pct) < 2:
                     self._emit("PLATEAU",
-                        f"Step {step}: loss stable at ~{recent_avg:.3f} "
-                        f"(<2% change) — model has converged for this lr")
+                        f"Step {step}: loss {recent_avg:.3f} (±2%) — converged")
                     self.last_emit_step = step
                 elif pct < -10:
                     self._emit("WARN",
-                        f"Step {step}: loss INCREASED {-pct:.0f}% "
-                        f"(was {older_avg:.3f}, now {recent_avg:.3f}) — "
-                        f"check grad_norm and consider lowering lr")
+                        f"Step {step}: loss +{-pct:.0f}% "
+                        f"({older_avg:.2f}→{recent_avg:.2f}) — lower lr?")
                     self.last_emit_step = step
 
         # ---- Gradient stability ----
-        if grad_norm is not None and grad_norm > 1.5:
-            self._emit("WARN",
-                f"Step {step}: grad_norm={grad_norm:.2f} exceeded clip threshold (1.0). "
-                f"Gradient was clipped — preventing instability but slowing learning.")
+        # Rate-limit the warnings: only emit every 20 steps once we're past
+        # the early-warmup phase (step > 30). Constant clipping above 1.0 is
+        # NORMAL during corpus warm-up — embeddings are at random init and
+        # the gradient is large until they settle. The user doesn't need
+        # 200 lines of "clipped at 1.0" warnings.
+        if grad_norm is not None:
+            if grad_norm > 5.0:
+                # Big spike — always emit, this matters
+                self._emit("WARN", f"Step {step}: grad_norm={grad_norm:.1f} (clipped)")
+            elif grad_norm > 1.5 and step <= 30:
+                # First 30 steps — warn once or twice during cold start
+                if step % 5 == 0:
+                    self._emit("WARN",
+                        f"Step {step}: grad_norm={grad_norm:.1f} "
+                        f"(early-step clipping is normal)")
+            # Beyond step 30 with grad < 5.0: stay silent — clipping is fine
 
     def epoch_end(self, epoch: int, total_epochs: int, loss: float,
                   prev_loss: Optional[float] = None,
@@ -763,7 +775,7 @@ def phase_smart_init(
     try:
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
-            torch_dtype=dtype,
+            dtype=dtype,
             device_map=device,
             low_cpu_mem_usage=True,
             trust_remote_code=False,
@@ -1148,8 +1160,12 @@ def phase_corpus_train(
             f"new_norm={new_norm_mean:.4f}+-{new_norm_std:.4f}  "
             f"drift_from_init={drift:.4f}  "
             f"time={_elapsed(t_epoch)}")
-        _print_cosine_table(sim_epoch, label=f"  cosine similarities after epoch {epoch}")
-        _interpret_cosine_table(sim_epoch, phase_label=f"epoch {epoch}/{epochs}")
+        _print_cosine_table(sim_epoch,
+                            label=f"  cosine similarities after epoch {epoch}",
+                            prev_sims=prev_sims)
+        _interpret_cosine_table(sim_epoch,
+                                phase_label=f"epoch {epoch}/{epochs}",
+                                prev_sims=prev_sims)
 
         # Per-epoch narrator commentary
         narrator.epoch_end(epoch, epochs, avg_loss,
@@ -1356,71 +1372,191 @@ def _cosine_probe(tokenizer, embed_weight: "torch.Tensor") -> dict:
     return results
 
 
-def _print_cosine_table(sims: dict, label: str = "") -> None:
-    """
-    Print cosine similarities as a bar chart for easy visual scanning.
+# Per-probe target ranges (low, high) sourced from goals.md.
+# This is the canonical truth for what each probe should converge to.
+PROBE_TARGETS: dict[str, tuple[float, float]] = {
+    "same-tool forms":              (0.50, 0.80),  # cluster but don't collapse
+    "tool vs CLI equiv":            (0.40, 0.70),  # related, not identical
+    "tool vs KDE component":        (0.40, 0.70),  # related, not identical
+    "sibling linux tools":          (0.30, 0.50),  # same domain, distinct
+    "metrics vs memory":            (0.40, 0.60),  # umbrella vs specific
+    "cross-domain (expected low)":  (0.00, 0.30),  # MUST separate
+    "new tool vs base concept":     (0.40, 0.70),  # tool ↔ base concept
+    "kde sibling tools":            (0.30, 0.50),  # KDE siblings
+    "cross-category kde vs linux":  (0.00, 0.30),  # MUST separate
+}
 
-    Bar chart mapping: similarity in [-1, 1] → bar width in [0, 20] blocks
-      Full bar (20 blocks) = +1.0 (identical direction)
-      Half bar (10 blocks) = 0.0 (orthogonal)
-      Empty bar (0 blocks) = -1.0 (opposite direction)
+
+def _status_for(desc: str, sim: float) -> tuple[str, str]:
+    """
+    Returns (status_tag, hint_text) for a probe value vs its goal range.
+    status_tag: ✓ HIT | ⚠ HIGH | ⚠ LOW  | ✗ HIGH | ✗ LOW
+    """
+    if desc not in PROBE_TARGETS:
+        return ("?", "")
+    lo, hi = PROBE_TARGETS[desc]
+    if lo <= sim <= hi:
+        return ("✓ HIT ", "in band")
+    if sim > hi:
+        gap = sim - hi
+        if gap < 0.10:
+            return ("⚠ HIGH", f"slightly above (need -{gap:.2f})")
+        return ("✗ HIGH", f"way above (need -{gap:.2f}; clusters too tight)")
+    # sim < lo
+    gap = lo - sim
+    if gap < 0.10:
+        return ("⚠ LOW ", f"slightly below (need +{gap:.2f})")
+    return ("✗ LOW ", f"way below (need +{gap:.2f}; not clustering)")
+
+
+def _print_cosine_table(sims: dict, label: str = "",
+                         prev_sims: Optional[dict] = None) -> None:
+    """
+    Print cosine probes with target band, current value, status, and Δ vs
+    previous epoch.
+
+    Layout (≤ 80 cols):
+      probe_name          current  target     status   Δ_vs_prev  bar
     """
     if label:
         print(f"\n  {label}:")
+    print(f"    {'probe':35s} {'curr':>5s}  {'target':<9s}  {'status':<8s} {'Δ':>6s}  bar")
     for desc, sim in sims.items():
         if sim is None:
-            bar = "(token not in vocabulary)"
-        else:
-            # Map [-1, 1] to [0, 20] for block count
-            filled = int((sim + 1) / 2 * 20)
-            bar    = "█" * filled + "░" * (20 - filled)
-            bar    = f"{sim:+.4f}  {bar}"
-        print(f"    {desc:40s} {bar}")
-
-
-def _interpret_cosine_table(sims: dict, phase_label: str = "") -> None:
-    """
-    Print plain-English interpretation of the cosine probe results.
-
-    The point: numbers alone don't tell you if training is healthy.
-    "0.42" means nothing without context — but "0.42 between two same-tool
-    forms" means the model is starting to recognize them as related.
-    """
-    same_tool   = []  # values for "same-tool" pairs
-    cross       = []  # values for cross-domain pairs
-    for desc, sim in sims.items():
-        if sim is None:
+            print(f"    {desc:35s}  (token not in vocab)")
             continue
-        if "same-tool" in desc:
-            same_tool.append(sim)
-        elif "cross-domain" in desc:
-            cross.append(sim)
 
-    print(f"  [INSIGHT] How to read these numbers ({phase_label}):")
-
-    if same_tool:
-        avg = sum(same_tool) / len(same_tool)
-        if avg < 0.3:
-            print(f"    same-tool forms avg sim = {avg:+.2f} — WEAK clustering. "
-                  f"Different naming variants (e.g. 'memory_usage' vs 'linux_memory_usage')")
-            print(f"    are still seen as unrelated. More corpus training will help.")
-        elif avg < 0.6:
-            print(f"    same-tool forms avg sim = {avg:+.2f} — moderate clustering. "
-                  f"Model is starting to see naming variants as related concepts.")
+        # Bar with goal band overlaid (▓ for goal range, ● for current)
+        if desc in PROBE_TARGETS:
+            lo, hi = PROBE_TARGETS[desc]
+            target_str = f"{lo:.2f}-{hi:.2f}"
         else:
-            print(f"    same-tool forms avg sim = {avg:+.2f} — STRONG clustering. "
-                  f"Model treats naming variants as essentially the same concept.")
+            lo, hi = -1.0, 1.0
+            target_str = "any"
 
-    if cross:
-        avg = sum(cross) / len(cross)
-        if avg > 0.5:
-            print(f"    cross-domain avg sim = {avg:+.2f} — DANGER: unrelated tools "
-                  f"are too similar. Embeddings may be collapsing into one cluster.")
-        elif avg > 0.3:
-            print(f"    cross-domain avg sim = {avg:+.2f} — slight bleed; acceptable.")
+        # 20-char bar from -1..1; show goal band as ▓, others as ░, current as ●
+        bar = list("░" * 20)
+        lo_idx = max(0, int((lo + 1) / 2 * 20))
+        hi_idx = min(20, int((hi + 1) / 2 * 20))
+        for i in range(lo_idx, hi_idx):
+            bar[i] = "▓"
+        cur_idx = max(0, min(19, int((sim + 1) / 2 * 20)))
+        bar[cur_idx] = "●"
+
+        # Status + delta vs previous epoch
+        status, _ = _status_for(desc, sim)
+        if prev_sims is not None and prev_sims.get(desc) is not None:
+            delta = sim - prev_sims[desc]
+            delta_str = f"{delta:+.3f}"
         else:
-            print(f"    cross-domain avg sim = {avg:+.2f} — clean separation. "
-                  f"Different tool categories are well-separated in embedding space.")
+            delta_str = "  —  "
+
+        print(f"    {desc:35s} {sim:+.2f}  {target_str:<9s}  {status:<8s} {delta_str:>6s}  {''.join(bar)}")
+
+
+def _interpret_cosine_table(sims: dict, phase_label: str = "",
+                              prev_sims: Optional[dict] = None) -> None:
+    """
+    Per-probe insights with direction-of-travel commentary.
+
+    For each probe, we say:
+      - is it in target?
+      - is it heading toward or away from target?
+      - what does the user need to know about why?
+    """
+    print(f"\n  [INSIGHT] What the numbers tell us ({phase_label}):")
+
+    aggregates = {"hit": 0, "high": 0, "low": 0, "?": 0}
+    headed_toward = 0
+    headed_away   = 0
+
+    for desc, sim in sims.items():
+        if sim is None or desc not in PROBE_TARGETS:
+            continue
+
+        status, hint = _status_for(desc, sim)
+        if "HIT" in status:
+            aggregates["hit"] += 1
+            continue
+        elif "HIGH" in status:
+            aggregates["high"] += 1
+        elif "LOW" in status:
+            aggregates["low"] += 1
+
+        # Direction of travel (only if we have a previous reading)
+        direction = ""
+        if prev_sims is not None and prev_sims.get(desc) is not None:
+            delta = sim - prev_sims[desc]
+            lo, hi = PROBE_TARGETS[desc]
+            target_mid = (lo + hi) / 2
+            # Positive movement = toward target if we're below; away if we're above
+            if sim < lo and delta > 0.005:
+                direction = " ↑ heading toward target"; headed_toward += 1
+            elif sim > hi and delta < -0.005:
+                direction = " ↓ heading toward target"; headed_toward += 1
+            elif sim < lo and delta < -0.005:
+                direction = " ↓ moving AWAY (worse)";   headed_away   += 1
+            elif sim > hi and delta > 0.005:
+                direction = " ↑ moving AWAY (worse)";   headed_away   += 1
+            else:
+                direction = " — stable"
+
+        # Interpretation hint
+        if "cross-domain" in desc or "cross-category" in desc:
+            if "HIGH" in status:
+                msg = "DANGER: unrelated tools collapsing together — corpus needs more contrastive examples"
+            else:
+                msg = "OK: tools well-separated in embedding space"
+        elif "sibling" in desc:
+            if "HIGH" in status:
+                msg = "siblings indistinguishable — model can't route between them; add A3 contrastive lines"
+            elif "LOW" in status:
+                msg = "siblings too dispersed — share more contextual co-occurrence"
+            else:
+                msg = "siblings related-but-distinct — healthy"
+        elif "same-tool" in desc:
+            if "HIGH" in status:
+                msg = "naming variants are clones — consider differentiating arg shapes per variant"
+            elif "LOW" in status:
+                msg = "naming variants seen as unrelated — add 'X and Y are the same tool' lines"
+            else:
+                msg = "variants cluster correctly"
+        else:
+            msg = hint
+
+        print(f"    {desc:35s} {status} {direction}")
+        print(f"      └─ {msg}")
+
+    # Summary line
+    total_targeted = sum(aggregates.values())
+    print(f"\n  [SUMMARY] {aggregates['hit']}/{total_targeted} probes IN BAND  "
+          f"|  {aggregates['high']} too high  |  {aggregates['low']} too low")
+    if prev_sims is not None and (headed_toward + headed_away) > 0:
+        print(f"            Direction: {headed_toward} heading toward target, "
+              f"{headed_away} moving away")
+        if headed_away > headed_toward:
+            print(f"            ⚠ More probes moving AWAY than toward — training may be regressing.")
+            print(f"              Consider stopping early if this persists.")
+        elif headed_toward > 0:
+            print(f"            ✓ Net progress toward goals — keep training.")
+
+    # Top 1-2 actions
+    top_offenders = sorted(
+        [(d, s) for d, s in sims.items()
+         if s is not None and d in PROBE_TARGETS
+         and "HIT" not in _status_for(d, s)[0]],
+        key=lambda x: abs(x[1] - sum(PROBE_TARGETS[x[0]]) / 2),
+        reverse=True,
+    )[:2]
+    if top_offenders:
+        print(f"\n  [ACTION] Biggest gaps to close:")
+        for d, s in top_offenders:
+            lo, hi = PROBE_TARGETS[d]
+            mid = (lo + hi) / 2
+            gap = s - mid
+            print(f"    - {d:35s} current={s:+.2f}  needs {-gap:+.2f} to mid-target")
+        print(f"    Recommended strategies: dataset-strategies.md A3 (contrastive),")
+        print(f"    A2 (co-occurrence), A1 (more natural-language corpus).")
     print()
 
 

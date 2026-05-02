@@ -142,7 +142,7 @@ def load_artifacts():
     hf_token = _get_hf_token()
     model = AutoModelForCausalLM.from_pretrained(
         HF_MODEL_ID,
-        torch_dtype=torch.float32,
+        dtype=torch.float32,
         device_map="cpu",
         low_cpu_mem_usage=True,
         token=hf_token,

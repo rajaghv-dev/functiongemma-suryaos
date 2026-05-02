@@ -1481,7 +1481,7 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
     try:
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
-            torch_dtype=torch_dtype,
+            dtype=torch_dtype,
             device_map=device_map,
             trust_remote_code=False,
             low_cpu_mem_usage=True,
@@ -2039,7 +2039,7 @@ def mode_export() -> None:
     try:
         base_model = AutoModelForCausalLM.from_pretrained(
             base_path,
-            torch_dtype=torch.float32,
+            dtype=torch.float32,
             device_map="cpu",
             low_cpu_mem_usage=True,
         )

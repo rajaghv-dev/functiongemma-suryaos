@@ -546,6 +546,89 @@ broken runs fail fast and loud.
 
 ---
 
+## BUG-007 — torch_dtype deprecation + grad warning flood (May 2026) ✓ FIXED
+
+### Symptom
+
+Two minor but annoying issues that surfaced after the GPU/bf16 fix:
+
+```
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+```
+
+And every grad-clip event flooding the terminal:
+```
+[WARN    ] Step 273: grad_norm=35.75 exceeded clip threshold (1.0). Gradient was clipped — preventing instability but slowing learning.
+[WARN    ] Step 283: grad_norm=36.25 exceeded clip threshold (1.0). Gradient was clipped — preventing instability but slowing learning.
+[WARN    ] Step 293: grad_norm=54.00 exceeded clip threshold (1.0). Gradient was clipped — preventing instability but slowing learning.
+... (200+ lines)
+```
+
+### Root cause
+
+1. **transformers 4.46+** renamed `torch_dtype=` to `dtype=` on
+   `from_pretrained`. We had four callsites with the old name.
+2. The Narrator emitted a `[WARN]` for *every* batch where `grad_norm > 1.5`.
+   During corpus warm-up, embeddings are at random init, so every early
+   batch has grad > 1.5 → 200+ identical-looking warnings drowning out
+   the useful narration.
+3. The warning text was 117 characters wide — wrapped on most terminals
+   and wasted vertical space.
+
+### Fix
+
+**For (1):** `sed -i 's/torch_dtype=/dtype=/g'` across all training scripts.
+Four sites: `train_tokenizer.py:766`, `finetune.py:1484`, `finetune.py:2042`,
+`analyze_embeddings.py:145`.
+
+**For (2)** — rate-limit grad warnings:
+
+```python
+# OLD: every grad > 1.5 warned
+if grad_norm is not None and grad_norm > 1.5:
+    self._emit("WARN", f"Step {step}: grad_norm={grad_norm:.2f} exceeded clip threshold (1.0). Gradient was clipped — preventing instability but slowing learning.")
+
+# NEW: tiered + rate-limited + concise
+if grad_norm > 5.0:
+    # Big spike — always emit (this matters)
+    self._emit("WARN", f"Step {step}: grad_norm={grad_norm:.1f} (clipped)")
+elif grad_norm > 1.5 and step <= 30:
+    # Cold-start clipping — warn every 5 steps for first 30 only
+    if step % 5 == 0:
+        self._emit("WARN", f"Step {step}: grad_norm={grad_norm:.1f} (early-step clipping is normal)")
+# Beyond step 30 with grad < 5.0: stay silent — clipping is fine
+```
+
+**For (3)** — narrowed all narrator messages to ≤ 80 columns. Examples:
+
+| Before (117 cols) | After (~60 cols) |
+|---|---|
+| `Step 273: loss stable at ~6.155 (<2% change) — model has converged for this lr` | `Step 273: loss 6.155 (±2%) — converged` |
+| `Step 273: grad_norm=35.75 exceeded clip threshold (1.0). Gradient was clipped — preventing instability but slowing learning.` | `Step 273: grad_norm=35.7 (clipped)` |
+| `Step 273: loss down 35% in last 10 steps (was 8.50, now 5.55) — rapid learning` | `Step 273: loss -35% in 10 steps (8.50→5.55) — rapid learning` |
+
+### Validation
+
+Re-running training on RTX 3080 Ti now produces:
+- No deprecation warning at model load
+- Clean log without grad-norm flood
+- Lines fit on standard 80-column terminals
+
+### Lesson
+
+**Verbose telemetry erodes its own usefulness.** A warning that fires
+for every batch becomes noise — users learn to ignore the prefix and
+miss the *actual* anomalies when they appear. The right pattern:
+- ALWAYS emit for genuinely abnormal events (grad > 5.0)
+- Rate-limit for known-but-tolerable events (grad 1.5-5.0 during warmup)
+- Stay silent for normal operation
+
+And: keep terminal lines ≤ 80 columns. Most users have wider screens
+but log files, ssh sessions, paste-into-issues, and small-screen
+review all benefit from narrow lines. There's no upside to width.
+
+---
+
 ## Open bugs / known issues
 
 These are caught but not yet fixed. Tracked here so we don't forget.
