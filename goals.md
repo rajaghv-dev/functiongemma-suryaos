@@ -2,10 +2,17 @@
 
 > The canonical reference for what we're trying to achieve, where we are
 > now, and how we get from one to the other. Captured 2026-05-02 after
-> tokenizer training run #3.
+> tokenizer training run #3, updated after iteration #3 dataset overhaul.
 
 If a doc disagrees with this one, this one wins. Update this when goals
 change.
+
+**Status as of iteration #3 (commit 89e0f4d):**
+- Tokens pruned 319 → 108 (filter via fragmentation)
+- Corpus rewritten 3849 templated → 3579 curated
+- BUG-005 fixed (live probes)
+- Run #4 pending (run after the iter #3 changes)
+- Run #3 numbers below remain the **baseline to beat**.
 
 ---
 
@@ -412,10 +419,10 @@ Strategy IDs reference [docs/dataset-strategies.md](docs/dataset-strategies.md).
 | BUG-002 HF gated auth | ✓ FIXED |
 | BUG-003 CPU torch on GPU box | ✓ FIXED |
 | BUG-004 bootstrap re-run slow | ✓ FIXED |
-| BUG-005 frozen probe pairs | ✗ open (E2 in strategies) |
+| BUG-005 frozen probe pairs | ✓ FIXED (iter #3 — replaced with live probes) |
 | KNOWN-001 norm imbalance | ✓ resolved (norm now 0.82) |
-| KNOWN-002 templated corpus | ✗ open (A1 in strategies) |
-| KNOWN-003 starved arg_value tokens | ✗ open (C2 in strategies) |
+| KNOWN-002 templated corpus | ✓ resolved (iter #3 — curated content, no templates) |
+| KNOWN-003 starved arg_value tokens | ✓ resolved (iter #3 — entire arg_value category dropped) |
 
 ### Summary
 
@@ -478,32 +485,40 @@ clouds.
 
 ---
 
-## What ships in iteration #3
+## Iteration #3 — SHIPPED (commit 89e0f4d)
 
-**In scope:**
-- A4 — mine `dispatch_pairs.jsonl` failures into corpus (trivial)
-- C1 — drop tokens already single in base vocab (-71 tokens)
-- E2 — fix BUG-005 probe pairs
-- A3 — add ~50 hard contrastive templates
-- A2 — add ~30 co-occurrence templates per category
+**Shipped:**
+- ✓ A4 — mined `dispatch_pairs.jsonl` failures into corpus (3000 capped)
+- ✓ C1 — dropped tokens already single in base vocab (319 → 108, -211)
+- ✓ E2 — replaced 3 frozen-token probe pairs (BUG-005 fix)
+- ✓ A3 — added 32 hard contrastive sentences
+- ✓ A2 — added 26 co-occurrence sentences
+- ✓ BONUS: 285 per-tool curated sentences (no templates)
+- ✓ BONUS: 236 auxiliary-token coverage sentences
+- ✓ BONUS: `analyze_embeddings.py` — 6-module post-training analysis tool
 
 **Deferred to iteration #4+:**
-- A1 — full natural-language corpus replacement (LLM-generated)
+- A1 — LLM-generated natural-language corpus (vs current curated)
 - D1 — paraphrase augmentation
 - D2 — production trace bootstrap (depends on agent running)
 - B1-B4 — diversity passes
 - E1, E3, E4 — validation tooling (UMAP, holdout, per-token loss)
 
-**Re-run procedure after iteration #3:**
+**Run-after-iter-#3 procedure:**
 ```bash
 rm -rf training/tokenizer_extended/
-.fngemma-suryaos/bin/python training/build_tokenizer_dataset.py
+bash training/bootstrap.sh                     # idempotent
+export HF_TOKEN=hf_...
 .fngemma-suryaos/bin/python training/train_tokenizer.py
-# Compare to Run #3:
+.fngemma-suryaos/bin/python training/analyze_embeddings.py
+
+# Compare to Run #3 baseline:
 # - Cross-domain cosine target: 0.62 → < 0.40 (intermediate target)
 # - Loss plateau target:        6.55 → < 5.5 (intermediate target)
-# - All BUG-005 probes should now move
+# - BUG-005 probes:             must show non-zero movement
 ```
+
+See [`RUN.md`](RUN.md) for the full minimal-step run guide.
 
 ---
 

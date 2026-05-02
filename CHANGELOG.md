@@ -6,6 +6,70 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased] — iteration #3 (dataset overhaul + analysis tooling)
+
+### Changed — token list pruned 319 → 108 (66% reduction)
+- `build_tokenizer_dataset.py` rewritten to filter via tokenizer fragmentation
+- Dropped 8 candidates that already tokenize as 1 piece in base Gemma
+  (HEAD, origin, upstream, transformers, trl, etc.) — re-adding them as
+  new tokens would replace pre-trained embeddings with random init
+- Dropped 70+ redundant file-format extensions (.png/.jpg/.gif/...) that
+  never drove different routing — kept only ~10 high-value ones
+- Dropped all 15 generic English `arg_value` tokens (active/inactive/up/
+  down) that corrupt their pre-trained meaning when re-added
+- Dropped all 16 v4_workflow tokens (already single-token in base)
+
+### Changed — corpus rewritten (templates → curated content)
+- REMOVED 7 rotated templates × 251 tokens = monotonous gradient signal
+- ADDED 285 per-tool curated sentences (varied phrasings, descriptions,
+  CLI co-occurrence, naming variants, contrastive)
+- ADDED 32 cross-domain contrastive sentences ("X is RAM, Y is disk")
+- ADDED 26 co-occurrence sentences ("tool wraps CLI")
+- ADDED 236 auxiliary-token coverage sentences (KWin, Klipper, qdbus6,
+  GGUF — each got zero corpus mentions before)
+- ADDED 3000 mined dispatch_pairs lines (capped from 9360 to avoid
+  drowning auxiliary tokens)
+- Total: 3579 unique sentences (was 3849 templated). 15% multi-tool
+  co-occurrence (was 0%).
+- `CORE_TOOLS` dict introduced as single source of truth for all 12
+  core tools with category, description, cli_equiv, user_synonyms,
+  contrasts_with, key_concept, naming_variants
+
+### Added — `training/analyze_embeddings.py`
+Post-training analysis tool with six modules:
+- **Nearest neighbours** — top-K base + new neighbours per token, auto-detects
+  meaningful (substring match)
+- **Category cluster quality** — intra vs inter cosine with PASS/FAIL on Goal 2
+- **Embedding norm distribution** — outlier detection (norms > 2σ)
+- **Drift from smart-init** — flags starved tokens (drift < 30% of mean)
+- **Probe sentence completion** — Goal 4 generalization test (top-10 hit rate)
+- **ASCII cluster map** — 2D PCA projection rendered as text
+
+Each module ends with `[LEARN]` / `[INSIGHT]` commentary referencing goals.md.
+
+### Fixed — BUG-005 (probe pairs measured frozen tokens)
+- `PROBE_PAIRS` in `train_tokenizer.py` updated. Three frozen-token pairs
+  replaced:
+  - `(torch, transformers)` → `(linux_memory_usage, memory)`
+  - `(merge, commit)` → `(kde_window_focus, kde_krunner_launch)`
+  - `(GGUF, ollama)` → `(kde_dialog_confirm, linux_battery_status)`
+- All probes now have ≥ 1 trainable token, so cosine moves during training.
+
+### Added — `RUN.md`
+Top-level minimal-step run guide. Covers: bootstrap, auth, training,
+analysis, watching live in Grafana, troubleshooting, and "what success
+looks like" reference.
+
+### Documentation refresh
+- `goals.md` cross-referenced from README quickstart and Documentation index
+- `docs/bug-fixes.md` BUG-005 marked FIXED with resolution note
+- `docs/learnings.md` L15 added — iteration #3 dataset overhaul postmortem
+- `docs/dataset-strategies.md` strategies marked SHIPPED (A4, A3, A2, C1, E2)
+- README.md repo layout, dataset table, quickstart, and documentation
+  index all updated to reflect iteration #3 file structure
+
+---
+
 ## [Unreleased] — first training iteration + observability + bug fixes
 
 ### Fixed

@@ -1,292 +1,276 @@
 # Training guide
 
-Complete step-by-step for training `functiongemma:270m-suryaos` on a GPU
-(recommended) or CPU (slow but functional).
+How to train `functiongemma:270m-suryaos` from a clean clone.
+
+For the **minimal** version (4 commands, no explanation), see [`../RUN.md`](../RUN.md).
+
+This guide explains *why* each step exists and how to debug when something
+goes wrong.
 
 ---
 
-## Hardware requirements
+## Pipeline overview
 
-| Setup | Time per epoch | Total for 3 epochs | Notes |
-|---|---|---|---|
-| RTX 3080 (10/12 GB) | ~1–2 min | **~5–10 min** | Recommended |
-| RTX 4090 / A100 | ~30–60 sec | ~3–5 min | Overkill but fine |
-| Intel Meteor Lake CPU | ~8–15 min | ~25–45 min | Slow but works |
-| M1/M2 Mac | ~2–4 min | ~10–15 min | Use `device=mps` |
+Three Python scripts, run in order:
 
-RAM: **16 GB** minimum (8 GB for model + activations + LoRA adapter +
-optimizer state). 30 GB available is comfortable.
+```
+                                    ┌──────────────────────┐
+[1] build_tokenizer_dataset.py  →   │ dataset/tokenizer/   │
+    (generate 108 tokens +          │   new_tokens.json    │
+     3579-line curated corpus)      │   corpus.txt         │
+                                    └──────────┬───────────┘
+                                               ▼
+                                    ┌──────────────────────┐
+[2] train_tokenizer.py          →   │ training/            │
+    (extend Gemma's tokenizer +     │   tokenizer_extended/│
+     warm up new embeddings)        │   embed_init.pt      │
+                                    └──────────┬───────────┘
+                                               ▼
+                                    ┌──────────────────────┐
+[3] finetune.py --mode all      →   │ training/            │
+    (LoRA fine-tune dispatch +      │   model_lora/        │
+     export to GGUF)                │   functiongemma-...  │
+                                    │   .gguf              │
+                                    └──────────────────────┘
 
-Disk: ~5 GB for model formats + adapter + logs.
+Plus:
+    analyze_embeddings.py           (post-training analysis of [2])
+```
 
 ---
 
-## Step 1 — Install dependencies
+## Stage 0 — Setup (one-time)
 
 ```bash
-git clone https://github.com/rajaghv-dev/functiongemma-suryaos
-cd functiongemma-suryaos
+bash training/bootstrap.sh
 ```
 
-### GPU (RTX 3080)
+What it does (idempotent — re-runs are no-ops if everything is in place):
+1. Detects GPU/CUDA, picks the right PyTorch wheel (cu121 / cu118 / cpu)
+2. Creates `.fngemma-suryaos/` venv if missing
+3. Installs torch with the right wheel (uninstalls wrong-variant first)
+4. Installs requirements.txt (transformers, peft, trl, datasets, etc.)
+5. Installs bitsandbytes for QLoRA on GPU systems
+6. Brings up Grafana / Loki / Prometheus stack via docker compose
+7. Verifies every critical import and prints the dashboard URLs
+
+Alternatives:
+- `bash training/bootstrap.sh --no-dashboard` — skip the docker stack
+- `bash training/bootstrap.sh --reinstall` — force reinstall
+
+After bootstrap, set the HuggingFace token (Gemma 3 is gated):
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-pip install transformers>=4.40.0 datasets>=2.18.0 accelerate>=0.29.0
-pip install peft>=0.10.0 trl>=0.8.6 gguf>=0.6.0 sentencepiece bitsandbytes
+export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxx
 ```
-
-### CPU (no CUDA)
-```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-pip install transformers>=4.40.0 datasets>=2.18.0 accelerate>=0.29.0
-pip install peft>=0.10.0 trl>=0.8.6 gguf>=0.6.0 sentencepiece
-```
-
-Verify:
-```bash
-python3 training/finetune.py --mode check
-```
-
-Expected: all green checks for dependencies, training data, model blob.
+Get yours at https://huggingface.co/settings/tokens.
 
 ---
 
-## Step 2 — Convert Ollama GGUF → HuggingFace
-
-The base model lives in Ollama's blob storage. We need it in HuggingFace
-safetensors format to apply LoRA.
+## Stage 1 — Build the tokenizer dataset
 
 ```bash
-# First pull the base model into Ollama (if not already)
-ollama pull functiongemma:270m
-
-# Then convert
-python3 training/finetune.py --mode convert
+.fngemma-suryaos/bin/python training/build_tokenizer_dataset.py
 ```
 
-This:
-1. Locates the GGUF blob (`/usr/share/ollama/.ollama/models/blobs/sha256-...`)
-2. Reads it via the `gguf` Python package
-3. Dequantises Q8_0 blocks (2-byte float16 scale + 32 int8 values per block)
-4. Maps llama.cpp tensor names → HF tensor names
-5. Writes `training/model_hf/` (~1 GB safetensors + tokenizer + config)
+What it produces:
+- `dataset/tokenizer/new_tokens.json` — 108 domain tokens grouped by category
+- `dataset/tokenizer/corpus.txt` — 3579 curated sentences (no templates)
+- `dataset/tokenizer/corpus.jsonl` — same content as JSONL with metadata
+- `dataset/tokenizer/<category>_terms.txt` — flat per-category lists
 
-Time: ~1–3 min depending on disk speed.
+Sources of corpus content:
 
-If conversion fails, the script falls back to downloading from HF Hub
-(`google/gemma-3-270m-it`). This requires HF authentication (`huggingface-cli login`).
+| Source | ~Lines | Purpose |
+|---|---:|---|
+| Per-tool curated | 285 | Varied phrasings, descriptions, CLI co-occurrence |
+| Cross-domain contrast | 32 | Direct "X (memory) and Y (brightness) are unrelated" |
+| Co-occurrence | 26 | "tool wraps CLI" patterns |
+| Auxiliary-token coverage | 236 | KWin, Klipper, qdbus6, GGUF, etc. — 4-5 each |
+| Mined dispatch_pairs | 3000 | Real user phrasings × 5-6 expansions each (capped) |
+
+Skip if you haven't changed any tool YAMLs or token lists — the existing
+`dataset/tokenizer/` is already up to date.
+
+When to re-run:
+- Added/removed a tool from `tools/catalog/`
+- Edited `CORE_TOOLS` in `build_tokenizer_dataset.py`
+- Added new dispatch pairs to `dataset/dispatch_pairs.jsonl` and want them
+  in the corpus
 
 ---
 
-## Step 3 — Train tokenizer + LoRA (single command)
+## Stage 2 — Train the tokenizer extension
 
 ```bash
-python3 training/finetune.py --mode train
+.fngemma-suryaos/bin/python training/train_tokenizer.py
 ```
 
-This does five things in order:
+Time: ~5 min on RTX 3080 Ti, ~40 min on CPU.
 
-### 3a. Load the tokenizer + add domain tokens
+What happens:
+1. **Phase 1 (Add tokens)** — 108 new tokens added to base Gemma's
+   tokenizer. Fragmentation drops from avg 2.7 to 1.0 subwords/token.
+2. **Phase 2 (Smart init)** — each new embedding initialized as the
+   *average of its subword pieces* (e.g. `linux_memory_usage` starts
+   near `mean('linux','memory','usage')`). Far better than random init.
+3. **Phase 3 (Corpus warm-up)** — train ONLY the new embedding rows
+   on `corpus.txt`. Base 262K vocab embeddings are frozen via gradient
+   hook (cannot drift).
+4. **Phase 4 (Save)** — write extended tokenizer + `embed_init.pt`.
 
-```python
-new_tokens = json.load(open("dataset/tokenizer/new_tokens.json"))
-flat = [t["token"] for cat in new_tokens.values() for t in cat]
-n_added = tokenizer.add_tokens(flat)
-# n_added = 156 new tokens
-```
+Outputs in `training/tokenizer_extended/`:
+- Standard HuggingFace tokenizer files (tokenizer_config.json,
+  special_tokens_map.json, etc.)
+- `embed_init.pt` — pre-trained embeddings for new tokens only
+  (~648 KB; not the full model)
+- `train_log.jsonl` — structured telemetry log
 
-### 3b. Resize the model's embedding matrix
+Watch progress live in Grafana at http://localhost:3000 (Functiongemma
+Training Overview dashboard) or in the terminal — both `[LEARN]` /
+`[PROGRESS]` / `[PLATEAU]` narration prints inline.
 
-```python
-model.resize_token_embeddings(len(tokenizer))
-# New embedding rows are initialized randomly from N(0, 0.02)
-# These will be trained during the SFT step.
-```
-
-### 3c. Apply LoRA configuration
-
-```python
-peft_config = LoraConfig(
-    r=8,                                  # adapter rank — small
-    lora_alpha=16,                        # scaling factor
-    target_modules=["q_proj", "v_proj"],  # attention only
-    lora_dropout=0.05,
-    bias="none",
-    task_type="CAUSAL_LM",
-)
-model = get_peft_model(model, peft_config)
-# trainable params: ~4M  (out of 268M total)
-```
-
-### 3d. Format training data
-
-Each line in `dataset/dispatch_pairs.jsonl` becomes one supervised example:
-
-```
-INPUT:
-    <system>Call the right tool.</system>
-    Available tools: [{"name":"linux_memory_usage", ...}]
-    User request: how much ram is used
-
-EXPECTED OUTPUT:
-    {"name":"linux_memory_usage","arguments":{}}
-```
-
-Loss is computed only on the OUTPUT tokens (model turn), not the input.
-
-### 3e. SFT training loop (TRL's `SFTTrainer`)
-
-```python
-training_args = TrainingArguments(
-    output_dir="training/model_lora/",
-    num_train_epochs=3,
-    per_device_train_batch_size=1,
-    gradient_accumulation_steps=4,        # effective batch size = 4
-    learning_rate=2e-4,
-    warmup_ratio=0.03,
-    save_strategy="epoch",
-    logging_steps=10,
-    bf16=True if cuda else fp32,
-    fp16=False,
-)
-trainer = SFTTrainer(model=model, train_dataset=ds, args=training_args, ...)
-trainer.train()
-```
-
-Monitor:
-- **Loss** should drop from ~3.5 → ~0.3 over 3 epochs
-- **Token accuracy** on validation should reach 95%+ for the target JSON
-
-Output: `training/model_lora/` containing the LoRA adapter (~16 MB).
+CLI flags:
+- `--epochs N` (default 5; bump to 7-10 for higher quality)
+- `--lr X` (default 5e-4; reduce to 1e-4 if loss oscillates)
+- `--batch-size B` (default 16; reduce on smaller GPU/CPU)
+- `--skip-corpus` (only smart init, no warm-up — 1 minute)
+- `--neighbors K` (default 5; show top-K neighbours per new token)
 
 ---
 
-## Step 4 — Export merged model + Ollama Modelfile
+## Stage 3 — Analyze the trained tokenizer
 
 ```bash
-python3 training/finetune.py --mode export
+.fngemma-suryaos/bin/python training/analyze_embeddings.py
 ```
 
-This:
-1. Loads base model + LoRA adapter
-2. Calls `merge_and_unload()` to bake LoRA into base weights
-3. Saves merged model to `training/model_merged/` (1 GB safetensors)
-4. Tries `llama.cpp/convert_hf_to_gguf.py` first
-   - If unavailable, falls back to the `gguf` Python package (F16)
-5. Writes `training/output/Modelfile` for Ollama
-6. Prints the final command:
+Six modules, each ending with `[LEARN]` / `[INSIGHT]` commentary:
 
-```bash
-ollama create functiongemma:270m-suryaos -f training/output/Modelfile
-```
+1. **Nearest neighbours** — top-K base-vocab + new-token neighbours per
+   trained token. Auto-detects whether neighbours are MEANINGFUL.
+2. **Category cluster quality** — intra-category vs inter-category
+   cosine. Goal: separation > 0.2.
+3. **Embedding norm distribution** — base vs new norms with outlier
+   detection.
+4. **Drift from smart-init** — flags tokens that didn't move during
+   training.
+5. **Probe sentence completion** — feeds 8 probe sentences and reports
+   top-10 hit rate for the expected tool token. Goal 4 generalization
+   test.
+6. **ASCII cluster map** — 2D PCA of new tokens rendered as text.
+   Visual collapse-detection.
 
-Time: ~3–5 min.
+This is the *evaluation* step that tells you whether iteration N
+improved over iteration N-1. Compare to [`../goals.md`](../goals.md)
+targets.
+
+CLI flags:
+- `--top-k K` (default 5)
+- `--max-tokens N` (default 30 — to keep neighbour output readable)
+- `--no-model` — skip the probe sentence module (avoids loading 270M model)
+- `--only MODULE` — run just one of: neighbours / clusters / norms /
+  drift / probe / map
 
 ---
 
-## Step 5 — Verify the trained model
+## Stage 4 — LoRA fine-tune + GGUF export
 
 ```bash
-# Quick sanity test
+.fngemma-suryaos/bin/python training/finetune.py --mode all
+```
+
+Time: ~3-25 min (GPU vs CPU).
+
+`--mode all` runs four sub-stages:
+1. **check** — verify environment and required files
+2. **convert** — Ollama GGUF blob → HF safetensors (only if `model_hf/`
+   missing)
+3. **train** — LoRA fine-tuning on `dataset/dispatch_pairs.jsonl`
+4. **export** — merge LoRA into base, convert to GGUF, write `Modelfile`
+
+Or run sub-stages individually:
+- `--mode setup` — print env setup commands
+- `--mode check` — verify dependencies and data files
+- `--mode convert` — only the GGUF→HF conversion
+- `--mode train` — only the LoRA training
+- `--mode export` — only the merge + GGUF export
+
+Outputs:
+- `training/model_lora/` — LoRA adapter weights (~10 MB)
+- `training/model_merged/` — merged HF model (~540 MB)
+- `training/functiongemma-suryaos-270m.gguf` — final GGUF blob
+- `training/Modelfile` — for `ollama create`
+
+Telemetry written to `training/model_lora/training_log.jsonl` and
+streamed to Grafana via Loki + Prometheus.
+
+---
+
+## Stage 5 — Register with Ollama
+
+```bash
+ollama create functiongemma:270m-suryaos -f training/Modelfile
 ollama run functiongemma:270m-suryaos "is bluetooth active"
-# Expected output:
-#   {"name":"linux_service_status","arguments":{"name":"bluetooth"}}
-#   (instead of "I cannot assist with Bluetooth")
+# Expected: calls linux_service_status({"name": "bluetooth"})
 ```
-
-Run the full test suite from the SuryaOS agent repo:
-
-```bash
-cd ~/raja/oc
-# Edit opencode.json: set coder-fg model to ollama/functiongemma:270m-suryaos
-bash scripts/test_and_collect.sh --with-model
-```
-
-Expected change in pass rates:
-- L3 (full opencode flow) was ~30% with base functiongemma
-- After fine-tune: should be **80%+** at L3
-
-Failures from this run feed back into `dataset/dispatch_pairs.jsonl` for
-the next training cycle.
 
 ---
 
-## Step 6 — (Optional) Embedding fine-tune
+## Watching progress live
 
-For better retrieval (`linux.metrics.summary` ranks higher for "how is the
-system?"), fine-tune the embedder too:
+`http://localhost:3000` — Grafana, "functiongemma — training overview"
+dashboard (under the *functiongemma* folder).
 
-```bash
-pip install sentence-transformers
-python3 training/finetune_embed.py
-# Reads dataset/embed_pairs.jsonl, fine-tunes all-minilm:22m
-# Output: training/embed_model/
-```
+Key panels:
+- Live loss curve, learning rate schedule, gradient norm, memory usage
+- Per-tool loss heatmap (during LoRA phase) with mastered/learning/
+  struggling status
+- Cosine similarity probes per pair over epochs
+- Embedding norm ratio + drift gauges
+- Live event log tail (Loki)
+- Run-id selector for multi-run comparison
 
-Time: ~30 min CPU, ~5 min GPU.
-
-Drop into the SuryaOS agent at `~/raja/oc/runtime/embed_model/` and the
-context builder picks it up automatically.
+Or watch the terminal — both training scripts print intuitive narration
+inline.
 
 ---
 
 ## Troubleshooting
 
-### "model_hf/ is missing"
-Run `--mode convert` first. The training step needs the safetensors form.
-
-### "loss is NaN after step 1"
-Likely cause: bf16 on hardware without bf16 support. Set `bf16=False`,
-`fp16=True` in the training args.
-
-### "OOM during training"
-Reduce `per_device_train_batch_size` to 1 (already 1 by default).
-Increase `gradient_accumulation_steps` to 8 or 16 to maintain effective batch size.
-Or quantise base model to 4-bit (`load_in_4bit=True` in `from_pretrained`).
-
-### "Tool calls still get refused after training"
-Three checks:
-1. Did the fine-tune actually load? Check `ollama show functiongemma:270m-suryaos`.
-2. Is the failing query in the training set? `grep "your query" dataset/dispatch_pairs.jsonl`
-3. Does the dispatcher route correctly? Test with `python3 mcp/dispatcher.py` directly.
-
-If the query is genuinely new, add it as a training pair and re-train.
-This is the steady-state operating mode.
-
-### "Tokenizer doesn't recognize new tokens after merge"
-Ensure `tokenizer.save_pretrained(output_dir)` is called AFTER `add_tokens()`
-and BEFORE the GGUF export. Otherwise Ollama uses the original tokenizer.
+| Symptom | Fix |
+|---|---|
+| `Tokenizer load failed: gated repo` (401) | `export HF_TOKEN=hf_...`; accept Gemma license |
+| `torch.cuda.is_available() == False` on a GPU box | `bash training/bootstrap.sh --reinstall` |
+| Grafana shows "no data" | Verify training started writing to `training/*/train_log.jsonl` |
+| `prometheus_client not installed` warning | `.fngemma-suryaos/bin/pip install prometheus_client` (optional) |
+| OOM during corpus training | `--batch-size 8` on smaller GPU |
+| Loss plateaus very high (> 6.5) | Iteration #3 corpus is not running; rebuild with `build_tokenizer_dataset.py` |
 
 ---
 
-## Iteration cycle (steady state)
+## Re-running cleanly
 
-```
-                       ┌────────────────────┐
-                       │ Fine-tune model    │
-                       │ on GPU (~10 min)   │
-                       └─────────┬──────────┘
-                                 │
-                                 ▼
-                       ┌────────────────────┐
-                       │ Deploy to oc       │
-                       │ (Ollama + opencode)│
-                       └─────────┬──────────┘
-                                 │
-                                 ▼
-                       ┌────────────────────┐
-   real user queries ─►│ runtime/audit.db   │
-                       │ + L3 test failures │
-                       └─────────┬──────────┘
-                                 │
-                                 ▼
-                       ┌────────────────────┐
-                       │ Append to          │
-                       │ dispatch_pairs.jsonl│
-                       └─────────┬──────────┘
-                                 │
-                                 └─────► loop
+After making any corpus or token change:
+```bash
+rm -rf training/tokenizer_extended/
+.fngemma-suryaos/bin/python training/build_tokenizer_dataset.py
+.fngemma-suryaos/bin/python training/train_tokenizer.py
+.fngemma-suryaos/bin/python training/analyze_embeddings.py
 ```
 
-After 1 month of active use, the dataset typically grows from 1564 to 3000+
-examples, and the model handles ~99% of real queries on first try.
+After making a LoRA / dispatch_pairs change:
+```bash
+rm -rf training/model_lora/ training/model_merged/
+.fngemma-suryaos/bin/python training/finetune.py --mode all
+```
+
+---
+
+## See also
+
+- [`../RUN.md`](../RUN.md) — minimal-step run guide
+- [`../goals.md`](../goals.md) — what success looks like
+- [`tokenizer-explained.md`](tokenizer-explained.md) — intuitive walkthrough
+- [`bug-fixes.md`](bug-fixes.md) — every bug we've caught
+- [`learnings.md`](learnings.md) — decision log L1..L15
+- [`../training/observability/README.md`](../training/observability/README.md) — Grafana stack docs

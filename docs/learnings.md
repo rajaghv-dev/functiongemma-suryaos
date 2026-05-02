@@ -580,3 +580,105 @@ rm -rf training/tokenizer_extended/
 .fngemma-suryaos/bin/python training/train_tokenizer.py
 # Target: cross-domain 0.66 → < 0.4, loss plateau 6.55 → < 5.0
 ```
+
+---
+
+## L15 — Iteration #3 dataset overhaul (commit 89e0f4d)
+
+### What shipped
+
+Three deliverables based on L13/L14 diagnoses:
+
+**1. Token list pruned 319 → 108 (66% reduction)**
+
+`build_tokenizer_dataset.py` rewritten with a fragmentation filter that
+drops tokens already single-token in base Gemma. Also dropped 70+ generic
+file-format extensions and 15 generic English words.
+
+| Category | Before | After | Reason |
+|---|---:|---:|---|
+| tool_name | 68 | 44 | Kept all naming variants |
+| kde | 24 | 11 | Dropped already-single tokens |
+| system | 33 | 19 | Dropped CLI words Gemma already knows |
+| file_format | 81 | 9 | Dropped redundant extensions; kept high-value |
+| git | 41 | 11 | Dropped already-single git nouns |
+| ml | 41 | 14 | Dropped framework words Gemma knows |
+| arg_value | 15 | 0 | All dropped (corruption of generic English) |
+| v4_workflow | 16 | 0 | All dropped (already-single in base vocab) |
+| **Total** | **319** | **108** | |
+
+**2. Templates removed; corpus is now curated content**
+
+The old generator rotated 7 templates × 251 tokens = 3849 monotonous
+sentences. Replaced with:
+
+- **285 per-tool curated sentences** — varied phrasings, descriptions,
+  CLI co-occurrence, naming-variant pairing, contrastive examples
+- **32 cross-domain contrast** — direct "X (memory) and Y (brightness)
+  are unrelated"
+- **26 co-occurrence** — "tool wraps CLI" patterns
+- **236 auxiliary token coverage** — KWin, Klipper, qdbus6, GGUF etc
+  each get 4-5 sentences (was zero before)
+- **3000 mined dispatch_pairs** (capped from 9360 to avoid drowning
+  auxiliary tokens) — real user phrasings × 5-6 expansions each
+
+Total: 3579 unique sentences (vs 3849 templated). Smaller corpus, vastly
+richer signal. 15% multi-tool co-occurrence (was 0%).
+
+**3. New analysis tool: `training/analyze_embeddings.py`**
+
+Six modules to evaluate trained embeddings post-training:
+1. Nearest neighbours (with auto meaningful-detection)
+2. Category cluster quality (intra vs inter cosine)
+3. Embedding norm distribution + outlier detection
+4. Drift from smart-init (detect starved tokens)
+5. Probe sentence completion (Goal 4 generalization)
+6. ASCII PCA cluster map
+
+Each module ends with `[LEARN]` / `[INSIGHT]` commentary referencing
+goals.md targets.
+
+**4. BUG-005 fixed**
+
+Three frozen-token probe pairs in `PROBE_PAIRS` replaced with pairs that
+include at least one trainable new token. All probes now give live
+signal. See [bug-fixes.md BUG-005](bug-fixes.md).
+
+### Why this matters
+
+L13 fixed the smart-init bug → embeddings stopped collapsing.
+L14 identified the corpus as the new bottleneck → cross-domain stuck at 0.62.
+L15 ships the corpus overhaul that should drop cross-domain to < 0.40.
+
+The tokenizer phase is now in its third generation:
+- Run #1: completely broken (BUG-001)
+- Run #2/#3: working but limited by templated corpus
+- Run #4 (next): should hit the iter #3 intermediate targets
+
+### Decision log: what's deferred
+
+In scope of iter #3 (shipped):
+- A4 mine dispatch_pairs (capped), C1 drop already-single tokens,
+  E2 fix BUG-005 probes, A3 hard contrastive examples, A2 co-occurrence
+
+Deferred to iter #4+:
+- A1 LLM-generated natural-language corpus (vs current curated)
+- D1 LLM paraphrase augmentation
+- D2 production trace bootstrap
+- B1-B4 diversity passes (length, structure, multi-sentence, signal vocab)
+- E1, E3, E4 validation tooling (UMAP plots, holdout split, per-token loss)
+
+### Re-run procedure
+
+```bash
+rm -rf training/tokenizer_extended/
+bash training/bootstrap.sh                # idempotent setup
+export HF_TOKEN=hf_...                    # auth for gated Gemma
+.fngemma-suryaos/bin/python training/train_tokenizer.py
+.fngemma-suryaos/bin/python training/analyze_embeddings.py
+```
+
+Targets vs Run #3:
+- cross-domain cosine: 0.62 → < 0.40
+- loss plateau:        6.55 → < 5.5
+- BUG-005 probes:      live (move during training)

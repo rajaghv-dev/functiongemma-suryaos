@@ -53,8 +53,8 @@ random.
 
 | File | Lines | Trains | Status |
 |---|---|---|---|
-| [`dataset/tokenizer/new_tokens.json`](dataset/tokenizer/) | 319 tokens | SentencePiece vocabulary | Ready |
-| [`dataset/tokenizer/corpus.txt`](dataset/tokenizer/) | 3849 sentences | Token embeddings | Ready (≥5 occurrences each) |
+| [`dataset/tokenizer/new_tokens.json`](dataset/tokenizer/) | **108 tokens** | SentencePiece vocabulary | Ready (iter #3 — pruned from 319 after dropping already-single-token entries) |
+| [`dataset/tokenizer/corpus.txt`](dataset/tokenizer/) | **3579 sentences** | Token embeddings | Ready — curated content (no templates) |
 | [`dataset/dispatch_pairs.jsonl`](dataset/dispatch_pairs.jsonl) | 1564 pairs | Tool dispatch (LoRA) | Ready |
 | [`dataset/apps/launch_pairs.jsonl`](dataset/apps/) | 1450 pairs | App-launch subset | Included in dispatch |
 | [`dataset/embed_pairs.jsonl`](dataset/embed_pairs.jsonl) | 151 pairs | all-minilm:22m embedder | Optional second stage |
@@ -89,32 +89,40 @@ See [`dataset/apps/README.md`](dataset/apps/README.md).
 ```
 .
 ├── README.md                          ← you are here
+├── RUN.md                             ← minimal run steps
+├── goals.md                           ← canonical goals + current state
 ├── CHANGELOG.md                       ← version history
 ├── CONTRIBUTING.md                    ← how to add tools / scenarios
 │
 ├── dataset/                           ← all training data
 │   ├── README.md                      ← dataset spec + how to grow
-│   ├── dispatch_pairs.jsonl           ← functiongemma LoRA training
+│   ├── dispatch_pairs.jsonl           ← functiongemma LoRA training (1564 pairs)
 │   ├── embed_pairs.jsonl              ← embedder fine-tune (optional)
 │   ├── tokenizer/                     ← tokenizer extension dataset
 │   │   ├── README.md
-│   │   ├── new_tokens.json            ← 156 tokens to add
-│   │   ├── corpus.txt                 ← 1605 sentences for training embeddings
+│   │   ├── new_tokens.json            ← 108 tokens (iter #3 — pruned)
+│   │   ├── corpus.txt                 ← 3579 curated sentences (no templates)
 │   │   ├── corpus.jsonl
 │   │   ├── tool_name_terms.txt        ← per-category flat lists
 │   │   ├── kde_terms.txt
 │   │   ├── system_terms.txt
-│   │   ├── arg_value_terms.txt
-│   │   └── v4_workflow_terms.txt
+│   │   ├── git_terms.txt
+│   │   ├── ml_terms.txt
+│   │   └── file_format_terms.txt
 │   └── apps/                          ← app catalog + launch examples
 │       ├── README.md
 │       ├── apps_catalog.json          ← 110 apps in 7 categories
 │       ├── launch_pairs.jsonl         ← 1450 (alias, schema, target) triples
 │       └── app_aliases.txt            ← 168 aliases for tokenizer
 │
-├── docs/
+├── docs/                              ← deep dives + decision logs
 │   ├── architecture.md                ← system design (context builder, fine-tune)
 │   ├── training-guide.md              ← step-by-step on GPU/CPU
+│   ├── tokenizer-explained.md         ← intuitive tokenizer extension walkthrough
+│   ├── tokenizer-improvements.md     ← 5-tier strategy register
+│   ├── dataset-strategies.md         ← 24 detailed corpus improvement strategies
+│   ├── bug-fixes.md                  ← every bug caught + mental models + lessons
+│   ├── learnings.md                  ← decision log L1..L15 (run postmortems)
 │   ├── scenarios.md                   ← user/admin green/yellow/red catalog
 │   ├── policy-tiers.md                ← green/yellow/red policy in force
 │   ├── integration.md                 ← how to deploy with ~/raja/oc
@@ -136,33 +144,55 @@ See [`dataset/apps/README.md`](dataset/apps/README.md).
 │   └── graph.py                       ← dependency graph
 │
 └── training/                          ← training pipeline
-    ├── finetune.py                    ← convert / train / export (1470 lines)
-    ├── generate.py                    ← dataset generator (yaml/augment/audit)
-    ├── build_apps_catalog.py          ← rebuild apps catalog
-    ├── build_tokenizer_dataset.py     ← rebuild tokenizer dataset
-    └── requirements.txt               ← CPU + GPU pip deps
+    ├── bootstrap.sh                   ← one-shot env + Grafana setup
+    ├── build_tokenizer_dataset.py     ← curated corpus generator (no templates)
+    ├── train_tokenizer.py             ← extend tokenizer + warm embeddings
+    ├── analyze_embeddings.py          ← post-training NN/cluster/probe analysis
+    ├── finetune.py                    ← convert / train / export (LoRA)
+    ├── metrics.py                     ← Pushgateway client (Prometheus)
+    ├── requirements.txt               ← Python deps (PyTorch installed by bootstrap)
+    └── observability/                 ← Grafana + Loki + Prometheus stack
+        ├── README.md
+        ├── docker-compose.yml         ← 5-container stack
+        ├── grafana/dashboards/        ← pre-provisioned training dashboard
+        ├── loki/                      ← log aggregation config
+        ├── prometheus/                ← metrics scraping config
+        └── promtail/                  ← JSONL tailer config
 ```
 
 ---
 
-## Quickstart (GPU, ~10 min)
+## Quickstart — minimal human steps
 
 ```bash
-git clone https://github.com/rajaghv-dev/functiongemma-suryaos
-cd functiongemma-suryaos
-pip install -r training/requirements.txt
+# 1. One-shot setup (creates venv, installs deps, starts Grafana stack)
+#    Idempotent — re-runs are no-ops if everything is in place.
+bash training/bootstrap.sh
 
-# Single command: convert → train → export
-python3 training/finetune.py --mode all
+# 2. Auth (Gemma 3 is gated)
+export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxx
 
-# Import the resulting model into Ollama
-ollama create functiongemma:270m-suryaos -f training/output/Modelfile
+# 3. (Optional) Open Grafana to watch training live
+xdg-open http://localhost:3000          # admin / admin
+
+# 4. Train tokenizer (~5 min GPU / ~40 min CPU)
+.fngemma-suryaos/bin/python training/train_tokenizer.py
+
+# 5. Inspect what the model learned
+.fngemma-suryaos/bin/python training/analyze_embeddings.py
+
+# 6. Full LoRA fine-tune + GGUF export
+.fngemma-suryaos/bin/python training/finetune.py --mode all
+
+# 7. Register with Ollama
+ollama create functiongemma:270m-suryaos -f training/Modelfile
 ollama run functiongemma:270m-suryaos "is bluetooth active"
-# Expected: calls service_status(name="bluetooth")
+# Expected: calls linux_service_status(name="bluetooth")
 ```
 
-See [`docs/training-guide.md`](docs/training-guide.md) for details
-(including CPU training, ~25 min on Intel Meteor Lake).
+See [`RUN.md`](RUN.md) for the detailed run guide and
+[`docs/training-guide.md`](docs/training-guide.md) for stage-by-stage
+explanations.
 
 ---
 
@@ -185,17 +215,37 @@ fine-tuned model. See [`docs/integration.md`](docs/integration.md).
 
 ## Documentation
 
+**Start here:**
+
+| Doc | Purpose |
+|---|---|
+| [`RUN.md`](RUN.md) | **Minimal-step run guide.** Setup → train → analyze. |
+| [`goals.md`](goals.md) | **Canonical goals + current state.** What success looks like, where we are. |
+
+**Deep dives:**
+
 | Doc | Purpose |
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | System design (context builder + fine-tune) |
 | [`docs/training-guide.md`](docs/training-guide.md) | Step-by-step GPU/CPU training |
+| [`docs/tokenizer-explained.md`](docs/tokenizer-explained.md) | Intuitive walkthrough of tokenizer extension |
+| [`docs/tokenizer-improvements.md`](docs/tokenizer-improvements.md) | 5-tier improvement strategy register |
+| [`docs/dataset-strategies.md`](docs/dataset-strategies.md) | 24 detailed corpus-improvement strategies |
 | [`docs/multi-model-training.md`](docs/multi-model-training.md) | Same dataset → both Gemma + Qwen |
 | [`docs/scenarios.md`](docs/scenarios.md) | 205 test cases catalog |
 | [`docs/policy-tiers.md`](docs/policy-tiers.md) | Green/yellow/red enforcement |
 | [`docs/integration.md`](docs/integration.md) | Deploy back to ~/raja/oc |
 | [`docs/test-results.md`](docs/test-results.md) | Current baseline + auto-fix history |
-| [`docs/learnings.md`](docs/learnings.md) | Decision log — why we made each choice |
 | [`docs/v4-roadmap.md`](docs/v4-roadmap.md) | Chain-of-task scale plan |
+| [`training/observability/README.md`](training/observability/README.md) | Grafana / Loki / Prometheus stack |
+
+**Decision logs (chronological):**
+
+| Doc | Purpose |
+|---|---|
+| [`docs/learnings.md`](docs/learnings.md) | Why we made each choice (L1..L15) |
+| [`docs/bug-fixes.md`](docs/bug-fixes.md) | Every bug caught + mental model + lesson |
+| [`CHANGELOG.md`](CHANGELOG.md) | What shipped per iteration |
 
 ## Status & next steps
 

@@ -325,7 +325,7 @@ of state checks pays back many times over.
 
 ---
 
-## BUG-005 — Probe pairs measure frozen tokens (May 2026)
+## BUG-005 — Probe pairs measure frozen tokens (May 2026) ✓ FIXED in iter #3
 
 ### Symptom
 
@@ -418,6 +418,21 @@ tokens are/aren't trainable in our setup. The general lesson: when you
 have a "trainable subset" inside a larger frozen system, every piece
 of code that *measures* the trainable subset must verify it's actually
 looking at the right subset.
+
+### Resolution (iteration #3, commit 89e0f4d)
+
+`PROBE_PAIRS` in `train_tokenizer.py` updated. Three frozen-token pairs
+removed and replaced with pairs that include at least one trainable new
+token. Specifically:
+
+| Removed (frozen) | Added (live) | Why the new pair works |
+|---|---|---|
+| `(torch, transformers)` | `(linux_memory_usage, memory)` | new tool ↔ base concept |
+| `(merge, commit)` | `(kde_window_focus, kde_krunner_launch)` | KDE sibling tools |
+| `(GGUF, ollama)` | `(kde_dialog_confirm, linux_battery_status)` | cross-category KDE vs Linux |
+
+After fix: every probe has at least one new (trainable) token, so cosine
+moves during training and gives live signal.
 
 ---
 

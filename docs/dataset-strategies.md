@@ -610,23 +610,43 @@ The rest are incremental on top of these five.
 
 ---
 
-## Decision log for next iteration
+## Decision log
 
-What ships in iteration #3:
-- A4 — mine `dispatch_pairs.jsonl` failures into corpus
-- C1 — drop already-single tokens
-- E2 — replace probe pairs (also fix BUG-005)
-- A3 — add ~50 hard contrastive templates
-- A2 — add ~30 co-occurrence templates per category
+### Iteration #3 — SHIPPED (commit 89e0f4d)
+- ✓ **A4** — mined `dispatch_pairs.jsonl` failures into corpus (3000 capped)
+- ✓ **C1** — dropped already-single tokens (319 → 108)
+- ✓ **C2** — dropped generic English tokens (active/inactive/up/down)
+- ✓ **E2** — replaced BUG-005 probe pairs with live ones
+- ✓ **A3** — added 32 hard contrastive sentences
+- ✓ **A2** — added 26 co-occurrence sentences
+- ✓ Bonus: 285 per-tool curated sentences (no templates)
+- ✓ Bonus: 236 auxiliary-token coverage (KWin, Klipper, GGUF, etc.)
 
-Deferred:
-- Everything else, ranked by the priority matrix above
+### Iteration #4 — candidates (deferred)
+- A1 — LLM-generated natural-language corpus (vs current curated)
+- D1 — LLM paraphrase augmentation (3579 → 20k+)
+- D2 — production agent trace bootstrap (depends on agent in production)
+- D3 — adversarial / hard-case mining
+- B1-B4 — diversity passes (length, structure, multi-sentence, signal vocab)
+- A5-A8 — Q&A pairs, synonym expansion, compositional patterns, bidirectional
+- C3 — hierarchical prefix/suffix tokens
+- C4 — high-frequency option flag tokens
+- E1 — train/val/test split with held-out tokens
+- E3 — UMAP visualization
+- E4 — per-token loss tracking
 
-Re-run procedure after iteration #3:
+### Run procedure after iteration #3
+
+See [`RUN.md`](../RUN.md). Minimal steps:
 ```bash
 rm -rf training/tokenizer_extended/
-.fngemma-suryaos/bin/python training/build_tokenizer_dataset.py
+bash training/bootstrap.sh                  # idempotent
+export HF_TOKEN=hf_...
 .fngemma-suryaos/bin/python training/train_tokenizer.py
-# compare cross-domain cosine vs run #2 (target: 0.66 → < 0.4)
-# compare loss plateau vs run #2 (target: 6.55 → < 5.0)
+.fngemma-suryaos/bin/python training/analyze_embeddings.py
 ```
+
+Targets (from goals.md):
+- cross-domain cosine: 0.62 → < 0.40 (intermediate)
+- loss plateau:        6.55 → < 5.5 (intermediate)
+- All BUG-005 probes:  alive (move during training)

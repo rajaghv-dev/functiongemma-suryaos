@@ -9,17 +9,17 @@ require dataset work or experimentation, not just code changes.
 
 ---
 
-## Tier 1 — Bugs blocking progress (must fix first)
+## Tier 1 — Bugs blocking progress (must fix first) ✓ ALL FIXED
 
-These are non-negotiable. Until they ship, dataset improvements have nothing
+These are non-negotiable. Until they shipped, dataset improvements had nothing
 to land on.
 
-| # | Issue | Strategy |
-|---|---|---|
-| 1.1 | Smart init returns 0 valid subwords for every token | Tokenize via a separate base-tokenizer instance (loaded fresh, no `add_tokens()`) so the encode path doesn't short-circuit through the added-tokens trie. |
-| 1.2 | Default `--epochs 2` too few; loss still trending at end | Bump default to 5. With proper init, more epochs become meaningfully different. |
-| 1.3 | Stale embed_init.pt left from broken runs | Document a clean-run procedure: `rm -rf training/tokenizer_extended/` before each new run during iteration. |
-| 1.4 | Initial gradient spike (norm 8-12) on cold init | After 1.1 lands, embeddings start near base norm magnitude → much smaller gradients. If still spiking, switch to cosine LR schedule with longer warmup. |
+| # | Issue | Strategy | Status |
+|---|---|---|---|
+| 1.1 | Smart init returns 0 valid subwords for every token | Tokenize via a separate base-tokenizer instance (loaded fresh, no `add_tokens()`) so the encode path doesn't short-circuit through the added-tokens trie. | ✓ FIXED (BUG-001) |
+| 1.2 | Default `--epochs 2` too few; loss still trending at end | Bump default to 5. With proper init, more epochs become meaningfully different. | ✓ FIXED (run #2) |
+| 1.3 | Stale embed_init.pt left from broken runs | Document a clean-run procedure: `rm -rf training/tokenizer_extended/` before each new run during iteration. | ✓ DOCUMENTED (RUN.md) |
+| 1.4 | Initial gradient spike (norm 8-12) on cold init | After 1.1 lands, embeddings start near base norm magnitude → much smaller gradients. If still spiking, switch to cosine LR schedule with longer warmup. | ✓ MITIGATED (run #2: max ~30) |
 
 ## Tier 2 — Corpus improvements (highest leverage)
 
@@ -235,22 +235,36 @@ Everything else is incremental on top of these three.
 
 ---
 
-## Decision log for this iteration
+## Decision log
 
-What we're doing **now** (committed):
-- Tier 1.1: smart-init bug fix
-- Tier 1.2: bump default `--epochs 2 → 5`
-- Tier 1.3: document clean-run procedure
+### Iter #2 — SHIPPED (commit 0242db9)
+- ✓ Tier 1.1: smart-init bug fix
+- ✓ Tier 1.2: bumped default `--epochs 2 → 5`
+- ✓ Tier 1.3: documented clean-run procedure
 
-What we're **deferring** to later iterations:
-- All Tier 2 work (needs corpus generator overhaul)
-- Tier 3.1-3.4 (needs build_tokenizer_dataset.py rework)
-- Tier 4.2-4.4 (after re-running with bug fix to see new baseline)
-- Tier 5 (after we have a stable training pipeline to compare against)
+### Iter #3 — SHIPPED (commit 89e0f4d)
+- ✓ Tier 2.1: replaced templates with curated content (build_tokenizer_dataset.py rewrite)
+- ✓ Tier 2.2: hard contrastive examples (32 sentences)
+- ✓ Tier 2.3: co-occurrence sentences (26 sentences)
+- ✓ Tier 3.1: dropped tokens already single in base vocab (-211 tokens)
+- ✓ Tier 3.2: dropped generic English tokens
+- ✓ Bonus: dispatch_pairs mining (3000 sentences)
+- ✓ Bonus: auxiliary-token coverage (236 sentences)
+- ✓ Bonus: `analyze_embeddings.py` covering Tier 5.1-5.3 partially
 
-Re-run procedure after each iteration:
+### Iter #4 — candidates (deferred)
+- Tier 2.4: 20-30× per-token coverage (corpus 3579 → 10-15k)
+- Tier 4: full LoRA on embeddings, joint training, smarter init
+- Tier 5.1: held-out token split for generalization measurement
+- Tier 5.3: UMAP visualization
+
+### Run procedure
+
+See [`RUN.md`](../RUN.md). Minimal steps:
 ```bash
 rm -rf training/tokenizer_extended/
+bash training/bootstrap.sh                  # idempotent setup
+export HF_TOKEN=hf_...
 .fngemma-suryaos/bin/python training/train_tokenizer.py
-# compare cosine probes + nearest neighbours vs prior run
+.fngemma-suryaos/bin/python training/analyze_embeddings.py
 ```
