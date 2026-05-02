@@ -155,21 +155,36 @@ def _print_hf_auth_help() -> None:
 # If same-tool similarity isn't rising, the corpus templates need more variety.
 # ---------------------------------------------------------------------------
 PROBE_PAIRS = [
-    # Two naming forms of the same tool — highest expected similarity
+    # ── Same-tool forms — naming variants of one tool (HIGH expected) ──
     ("linux_memory_usage",    "memory_usage",          "same-tool forms"),
     ("linux_disk_usage",      "disk_usage",            "same-tool forms"),
-    # Tool name vs the CLI command it calls — should be nearby
-    ("service_status",        "systemctl",             "tool vs CLI equiv"),
-    ("krunner_launch",        "KRunner",               "tool vs KDE component"),
-    # Sibling tools in the same category — should cluster together
+
+    # ── Tool ↔ CLI/KDE equivalent (MODERATE expected) ──
+    # NOTE: ⚠ BUG-005 fix applied here. The OLD probe used
+    #   `service_status` / `krunner_launch` (without prefix) — those are now
+    #   filtered OUT by build_tokenizer_dataset.py because they were generic
+    #   single-tokens in base Gemma. We use the prefixed forms which ARE
+    #   trainable new tokens. The CLI side (systemctl, KRunner) is base-vocab
+    #   and frozen, but the tool side moves during training — so the probe
+    #   is now ALIVE (cosine can change as the tool token learns).
+    ("linux_service_status",  "systemctl",             "tool vs CLI equiv"),
+    ("kde_krunner_launch",    "KRunner",               "tool vs KDE component"),
+
+    # ── Sibling tools — same category, different routing (MODERATE) ──
     ("linux_memory_usage",    "linux_disk_usage",      "sibling linux tools"),
     ("linux_metrics_summary", "linux_memory_usage",    "metrics vs memory"),
-    # Cross-domain pair — should stay dissimilar (low score expected)
-    ("linux_memory_usage",    "brightness_set",        "cross-domain (expected low)"),
-    # Co-occurring terms in training context — should pick up shared context
-    ("torch",                 "transformers",          "co-occurring ML libs"),
-    ("merge",                 "commit",                "co-occurring git ops"),
-    ("GGUF",                  "ollama",                "co-occurring serving terms"),
+
+    # ── Cross-domain — different categories (LOW expected) ──
+    ("linux_memory_usage",    "linux_brightness_set",  "cross-domain (expected low)"),
+
+    # ── BUG-005 REPLACEMENTS for the dead frozen-token probes ──
+    # Old: ("torch","transformers"), ("merge","commit"), ("GGUF","ollama")
+    # All three pairs had BOTH tokens in base vocab — frozen by gradient hook,
+    # cosine couldn't move during training. Replaced with new-token pairs
+    # that genuinely test what training is doing.
+    ("linux_memory_usage",    "memory",                "new tool vs base concept"),
+    ("kde_window_focus",      "kde_krunner_launch",    "kde sibling tools"),
+    ("kde_dialog_confirm",    "linux_battery_status",  "cross-category kde vs linux"),
 ]
 
 
