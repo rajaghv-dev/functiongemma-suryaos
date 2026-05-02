@@ -230,14 +230,19 @@ def _detect_hardware() -> dict:
     vram_gb  = props.total_memory / 1e9              # bytes -> GB
     compute  = (props.major, props.minor)            # e.g. (8, 6) for RTX 3080 Ti
 
-    # Keywords that identify datacenter / server-class GPUs.
-    # These prefer bf16; consumer GPUs (RTX, Quadro) work better with fp16.
-    _dc_keywords  = ("A100", "H100", "H200", "A40", "A10G", "A10 ", "V100")
-    is_datacenter = any(kw in gpu_name for kw in _dc_keywords)
-    is_ampere_plus = compute[0] >= 8  # Ampere = compute 8.x; Hopper = 9.x
+    # bf16 vs fp16 selection (BUG-006 fix):
+    #   - bf16 = 8-bit exponent (same range as fp32), 7-bit mantissa
+    #   - fp16 = 5-bit exponent (max ~65504), 10-bit mantissa
+    #
+    # bf16 is FAR more stable for training because gradients in causal LM
+    # routinely exceed fp16's exponent range → NaN on first batch.
+    # Earlier the rule was "bf16 only on datacenter Ampere" but that was
+    # outdated. RTX 30xx/40xx have full bf16 tensor cores; bf16 is the right
+    # default for ANY Ampere+ GPU. See docs/bug-fixes.md BUG-006.
+    is_ampere_plus = compute[0] >= 8  # Ampere = 8.x; Ada = 8.9; Hopper = 9.x
 
-    use_bf16 = is_datacenter and is_ampere_plus   # bf16: stable + fast on datacenter
-    use_fp16 = (not use_bf16) and compute[0] >= 7 # fp16: Volta (7.x) and newer consumer
+    use_bf16 = is_ampere_plus                          # bf16: any Ampere+ GPU
+    use_fp16 = (not use_bf16) and compute[0] >= 7      # fp16: Turing/Volta (7.x) only
 
     dtype = "bfloat16" if use_bf16 else ("float16" if use_fp16 else "float32")
 
@@ -1354,7 +1359,34 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
         _ok(f"GPU: {hw['gpu_name']}  ({hw['vram_gb']:.1f} GB VRAM)")
         _ok(f"     dtype={hw['dtype']}  fp16={hw['fp16']}  bf16={hw['bf16']}")
     else:
-        _ok("No GPU detected — training on CPU (slow; run bootstrap.sh on a GPU machine)")
+        # Detect GPU-but-torch-can't-see-it case so user gets the fix command,
+        # not a silent multi-hour CPU run.
+        gpu_name_smi = None
+        try:
+            import subprocess
+            r = subprocess.run(
+                ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+                capture_output=True, text=True, timeout=2,
+            )
+            if r.returncode == 0 and r.stdout.strip():
+                gpu_name_smi = r.stdout.strip().splitlines()[0]
+        except Exception:
+            pass
+
+        if gpu_name_smi:
+            _warn("=" * 60)
+            _warn("GPU/torch MISMATCH DETECTED")
+            _warn("=" * 60)
+            _warn(f"  nvidia-smi sees:  {gpu_name_smi}")
+            _warn(f"  torch sees:       CPU only (torch={torch.__version__})")
+            _warn("  This means a CPU PyTorch wheel is installed.")
+            _warn("  Training WILL run on CPU — 8x slower than GPU.")
+            _warn("")
+            _warn("  Fix:  bash training/bootstrap.sh --reinstall")
+            _warn("        (will swap CPU torch for cu121 GPU wheel)")
+            _warn("=" * 60)
+        else:
+            _ok("No GPU detected — training on CPU (slow; run bootstrap.sh on a GPU machine)")
 
     # Resolve batch / grad_accum: 0 means "auto-detect from hardware"
     effective_batch      = batch_size  if batch_size  > 0 else hw["batch_size"]

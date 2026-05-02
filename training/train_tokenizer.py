@@ -700,6 +700,33 @@ def phase_smart_init(
         model_path, trust_remote_code=False, token=hf_token,
     )
 
+    # ── Detect GPU/torch mismatch (silent CPU fallback) ──────────────────
+    # If nvidia-smi shows a GPU but torch.cuda.is_available() is False, the
+    # CPU torch wheel was installed by mistake. Warn loudly with the fix
+    # command — silent CPU fallback wastes hours of training time.
+    if not torch.cuda.is_available():
+        try:
+            import subprocess
+            r = subprocess.run(
+                ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+                capture_output=True, text=True, timeout=2,
+            )
+            if r.returncode == 0 and r.stdout.strip():
+                gpu_name_smi = r.stdout.strip().splitlines()[0]
+                _warn("=" * 60)
+                _warn("GPU/torch MISMATCH DETECTED")
+                _warn("=" * 60)
+                _warn(f"  nvidia-smi sees:  {gpu_name_smi}")
+                _warn(f"  torch sees:       CPU only (torch={torch.__version__})")
+                _warn("  This means a CPU PyTorch wheel is installed.")
+                _warn("  Training WILL run on CPU — 8x slower than GPU.")
+                _warn("")
+                _warn("  Fix:  bash training/bootstrap.sh --reinstall")
+                _warn("        (will swap CPU torch for cu121 GPU wheel)")
+                _warn("=" * 60)
+        except Exception:
+            pass  # nvidia-smi not present → real CPU machine, no warning needed
+
     # Detect GPU and choose the right dtype.
     # Using fp16/bf16 on GPU cuts memory by 2x vs float32 and speeds up init.
     # We use bfloat16 on datacenter Ampere cards (A100, H100) because their
@@ -711,9 +738,17 @@ def phase_smart_init(
         gpu_name = torch.cuda.get_device_name(0)
         vram_gb  = torch.cuda.get_device_properties(0).total_memory / 1e9
         compute  = torch.cuda.get_device_capability(0)
-        # Datacenter Ampere (compute >= 8.0) gets bf16; consumer RTX gets fp16
-        _dc   = any(k in gpu_name for k in ("A100", "H100", "H200", "A40", "A10G"))
-        dtype = torch.bfloat16 if (_dc and compute[0] >= 8) else torch.float16
+        # BUG-006 FIX: use bf16 for ANY Ampere+ GPU, not just datacenter cards.
+        # fp16's 5-bit exponent (max ~65504) overflows during attention softmax,
+        # producing NaN on the first batch. bf16 has the same 8-bit exponent
+        # as fp32, so gradients never overflow. RTX 30xx/40xx have hardware
+        # bf16 tensor cores. See docs/bug-fixes.md BUG-006.
+        if compute[0] >= 8:
+            dtype = torch.bfloat16  # Ampere or newer → bf16 (stable)
+        elif compute[0] >= 7:
+            dtype = torch.float16   # Turing/Volta only → fp16 (no bf16 hw)
+        else:
+            dtype = torch.float32   # very old GPU → fp32 fallback
         _ok(f"GPU: {gpu_name} ({vram_gb:.1f} GB VRAM, compute {compute[0]}.{compute[1]}) "
             f"— dtype={dtype}")
     else:
@@ -981,6 +1016,7 @@ def phase_corpus_train(
     prev_sims       = None  # for cosine change interpretation
 
     global_step = 0
+    consecutive_nans = 0  # early-abort counter (BUG-006 protection)
 
     for epoch in range(1, epochs + 1):
         t_epoch    = time.time()
@@ -1014,10 +1050,35 @@ def phase_corpus_train(
             loss    = outputs.loss  # mean cross-entropy over non-ignored positions
 
             # Skip NaN/Inf losses (can happen with fp16 on overflow) — don't let
-            # one bad batch corrupt the optimizer state.
+            # one bad batch corrupt the optimizer state. After 10 consecutive
+            # NaN batches, abort early — the run is broken and continuing
+            # wastes time. (Common cause: fp16 dtype on a model that needs bf16
+            # — see BUG-006.)
             if torch.isnan(loss) or torch.isinf(loss):
                 _warn(f"  Epoch {epoch} batch {b}: loss={loss.item()} — skipping bad batch")
+                consecutive_nans = consecutive_nans + 1
+                if consecutive_nans >= 10:
+                    _err("=" * 60)
+                    _err("ABORTING — 10 consecutive NaN batches.")
+                    _err("=" * 60)
+                    _err("This means the loss is exploding on every batch.")
+                    _err("Most likely cause: fp16 numerical instability.")
+                    _err(f"  Current dtype: {dtype}")
+                    _err(f"  GPU compute capability: {compute if device == 'cuda' else 'N/A'}")
+                    _err("")
+                    _err("Fix:")
+                    _err("  1. Make sure you have the latest code (BUG-006 fix):")
+                    _err("       git pull")
+                    _err("  2. Re-run after pulling — the dtype selection now")
+                    _err("     defaults to bf16 on Ampere+ GPUs (RTX 30xx/40xx),")
+                    _err("     which has 8-bit exponent like fp32 (no overflow).")
+                    _err("  3. If the issue persists, try CPU mode:")
+                    _err("     bash training/bootstrap.sh --with-cpu-fallback")
+                    _err("     .fngemma-suryaos-cpu/bin/python training/train_tokenizer.py")
+                    sys.exit(1)
                 continue
+            else:
+                consecutive_nans = 0  # reset counter on a good batch
 
             optimizer.zero_grad()
             loss.backward()

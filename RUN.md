@@ -43,6 +43,15 @@ What it does:
 - `bash training/bootstrap.sh --no-dashboard` → skip docker compose step
 - `bash training/bootstrap.sh --dashboard-only` → skip Python deps; just start stack
 - `bash training/bootstrap.sh --reinstall` → force reinstall of everything
+- `bash training/bootstrap.sh --with-cpu-fallback` → also create a CPU-only
+  secondary venv at `.fngemma-suryaos-cpu/` so you can run on CPU explicitly
+  if the GPU torch ever has issues. Use with `.fngemma-suryaos-cpu/bin/python ...`
+
+**The bootstrap now VERIFIES that torch.cuda actually works** after install.
+If GPU is detected but torch reports CPU-only (the silent-CPU-fallback bug),
+the script does a full purge + force-reinstall to recover. If recovery fails,
+it prints the diagnostic info and continues — but training will warn you
+loudly at startup if torch can't see the GPU.
 
 ---
 

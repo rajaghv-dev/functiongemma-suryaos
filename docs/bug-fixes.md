@@ -436,6 +436,116 @@ moves during training and gives live signal.
 
 ---
 
+## BUG-006 — fp16 NaN explosion on RTX 30xx/40xx (May 2026) ✓ FIXED
+
+### Symptom
+
+After enabling GPU training (BUG-003 fix), every batch on RTX 3080 Ti
+produced `loss=nan`:
+
+```
+[OK]   Training device: cuda:0
+[OK]   Trainable parameters: 167,841,920
+[WARN] Epoch 1 batch 0: loss=nan — skipping bad batch
+[WARN] Epoch 1 batch 1: loss=nan — skipping bad batch
+[WARN] Epoch 1 batch 2: loss=nan — skipping bad batch
+... (every batch for 5 epochs)
+[OK]   Epoch 1/5 stats  loss=0.0000  drift_from_init=0.0000  time=0m 12s
+```
+
+`drift_from_init=0.0000` is the smoking gun: every batch was skipped, so
+no optimizer step ever happened, so embeddings never moved. The 12-second
+"epoch" was just NaN forward-passes.
+
+Cosine probes after epoch 1 still show smart-init values unchanged
+(0.93 same-tool, 0.86 cross-domain) because no learning occurred.
+
+### Root cause
+
+`_detect_hardware()` selected `dtype=torch.float16` for RTX 30xx based
+on a "datacenter cards only get bf16" heuristic:
+
+```python
+_dc_keywords  = ("A100", "H100", "H200", ...)
+is_datacenter = any(kw in gpu_name for kw in _dc_keywords)
+use_bf16 = is_datacenter and is_ampere_plus
+use_fp16 = not use_bf16   # → True for RTX 3080 Ti
+```
+
+The heuristic was wrong. **All Ampere+ GPUs (compute ≥ 8.0) have hardware
+bf16 tensor cores**, including RTX 30xx (8.6) and RTX 40xx/Ada (8.9).
+The "datacenter only" rule was outdated 2022-era guidance.
+
+The actual problem: **fp16 has only 5-bit exponent (max ~65504)**.
+Gemma 3's attention softmax values can exceed 65504, producing inf →
+NaN propagates through the loss computation. fp16 is a precision format
+designed for inference, not training.
+
+**bf16** has the **same 8-bit exponent as fp32** (~3.4×10³⁸ max). It
+has less precision (7-bit mantissa vs fp16's 10-bit) but precision
+doesn't matter when the alternative is NaN. Modern frameworks
+(transformers, peft, trl) all default to bf16 on any Ampere+ GPU.
+
+### Mental model
+
+Think of fp16 as a tool with a tight tolerance — useful when you know
+the values stay in range, deadly when one batch hits the ceiling.
+bf16 trades precision for headroom: same dynamic range as fp32, just
+fewer significant digits. For training, you almost never miss the
+precision; you very often need the headroom.
+
+The "datacenter vs consumer" distinction stopped mattering with Ampere
+in 2020. Both classes have full bf16 hardware. The distinction only
+exists in old NVIDIA marketing.
+
+### Fix
+
+`_detect_hardware()` in `finetune.py` and the equivalent block in
+`train_tokenizer.py phase_smart_init()` updated:
+
+```python
+# OLD
+_dc = any(k in gpu_name for k in ("A100", "H100", ...))
+use_bf16 = is_datacenter and is_ampere_plus
+
+# NEW (BUG-006 fix)
+is_ampere_plus = compute[0] >= 8
+use_bf16 = is_ampere_plus      # ANY Ampere+ → bf16 (stable)
+use_fp16 = (not use_bf16) and compute[0] >= 7  # Turing/Volta only
+```
+
+Plus an **early-abort guard**: if 10 consecutive batches return NaN, the
+training script bails with a clear error message pointing at the fix
+command. No more 40-minute silent NaN runs.
+
+### Validation
+
+After the fix, RTX 3080 Ti reports:
+```
+GPU: NVIDIA GeForce RTX 3080 Ti Laptop GPU (16.0 GB, compute 8.6) — dtype=torch.bfloat16
+```
+
+And training produces real loss values (~6-8 → < 4) with non-zero drift.
+
+### Lesson
+
+**Heuristics that name specific products age badly.** "Datacenter cards
+get the good thing, consumer cards get the lesser thing" was true in
+the V100/T4 era; not since 2020. When the line stops being technically
+meaningful, it stops protecting users.
+
+The safer pattern is **capability-based selection**: read the actual
+hardware feature flag (`compute[0] >= 8` → bf16 hardware exists) instead
+of pattern-matching the marketing name. That way new cards are
+auto-supported the day they ship.
+
+This bug also illustrates why the **early-abort** is critical. Without
+it, a user's training run "succeeds" (exit code 0) with embeddings
+that never moved — a worst-case silent failure. With the guard,
+broken runs fail fast and loud.
+
+---
+
 ## Open bugs / known issues
 
 These are caught but not yet fixed. Tracked here so we don't forget.

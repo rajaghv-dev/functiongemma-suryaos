@@ -9,12 +9,17 @@
 #   1. Detect GPU (nvidia-smi) and CUDA toolkit version (nvcc)
 #   2. Choose the correct PyTorch wheel (cu121, cu118, or cpu-only)
 #   3. Create the Python virtual environment (.fngemma-suryaos/) if missing
-#   4. Install PyTorch IF not already installed with right CUDA support
+#   4. Install PyTorch IF not already installed with right CUDA support;
+#      then VERIFY post-install that torch.cuda actually works (force-reinstall
+#      if the wrong wheel was served from pip cache)
 #   5. Install requirements.txt IF any required package is missing
 #   6. Install bitsandbytes for QLoRA (GPU only) IF not already installed
 #   7. Verify every critical import and print versions
 #   8. Bring up the observability stack (Grafana + Loki + Prometheus)
 #      IF Docker is available and stack is not already running
+#   9. (optional) Create a SECONDARY .fngemma-suryaos-cpu/ venv with CPU torch
+#      so the user can fall back if the primary GPU venv ever has issues.
+#      Only runs with --with-cpu-fallback flag.
 #
 # Supported hardware:
 #   RTX 30xx / 40xx (Ampere / Ada)    CUDA 12.x → cu121 wheel, fp16 training
@@ -23,10 +28,11 @@
 #   CPU-only (no GPU)                 cpu wheel, float32 training (slow)
 #
 # Usage (run from repo root):
-#   bash training/bootstrap.sh                  # default: install + start dashboard
-#   bash training/bootstrap.sh --no-dashboard   # skip docker compose step
-#   bash training/bootstrap.sh --reinstall      # force reinstall all packages
-#   bash training/bootstrap.sh --dashboard-only # skip Python deps; just start stack
+#   bash training/bootstrap.sh                       # default: GPU (or CPU) + dashboard
+#   bash training/bootstrap.sh --no-dashboard        # skip docker compose step
+#   bash training/bootstrap.sh --reinstall           # force reinstall all packages
+#   bash training/bootstrap.sh --dashboard-only      # skip Python deps; just start stack
+#   bash training/bootstrap.sh --with-cpu-fallback   # also create CPU-only secondary venv
 #
 # After bootstrap completes, run in order:
 #   .fngemma-suryaos/bin/python training/train_tokenizer.py
@@ -37,15 +43,17 @@
 set -euo pipefail  # -e: exit on error  -u: error on undefined vars  -o pipefail: pipe errors propagate
 
 # ── Parse flags ─────────────────────────────────────────────────────────────
-WITH_DASHBOARD=true   # default: also bring up the Grafana stack
-FORCE_REINSTALL=false # default: skip install if package already present
-SKIP_PY_DEPS=false    # default: install Python deps
+WITH_DASHBOARD=true       # default: also bring up the Grafana stack
+FORCE_REINSTALL=false     # default: skip install if package already present
+SKIP_PY_DEPS=false        # default: install Python deps
+WITH_CPU_FALLBACK=false   # default: only primary venv (GPU if available)
 
 for arg in "$@"; do
     case "$arg" in
-        --no-dashboard)    WITH_DASHBOARD=false ;;
-        --dashboard-only)  SKIP_PY_DEPS=true ;;
-        --reinstall)       FORCE_REINSTALL=true ;;
+        --no-dashboard)        WITH_DASHBOARD=false ;;
+        --dashboard-only)      SKIP_PY_DEPS=true ;;
+        --reinstall)           FORCE_REINSTALL=true ;;
+        --with-cpu-fallback)   WITH_CPU_FALLBACK=true ;;
         -h|--help)
             sed -n '2,/^# ===/p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'
             exit 0
@@ -93,6 +101,93 @@ echo "[bootstrap] ============================================================"
 echo "[bootstrap] functiongemma-suryaos environment setup"
 echo "[bootstrap] ============================================================"
 echo ""
+
+# =============================================================================
+# STEP 0 — Pre-flight checks
+# =============================================================================
+#
+# Catch problems EARLY before downloading 600 MB of wheels:
+#   - Python version (need >= 3.10 for typing/peft compat)
+#   - Disk space (need ~3 GB free for venvs + model + observability)
+#   - Network reachability (briefly probe pypi/pytorch.org)
+#   - Recommend HF_TOKEN if not set (warn, don't fail — deferred to train time)
+#
+# Each check is non-fatal except disk space and Python version. If something
+# is suboptimal, we print a [WARN] with the exact fix command and continue.
+# =============================================================================
+
+echo "[bootstrap] STEP 0: Pre-flight checks ..."
+
+_PREFLIGHT_FAIL=0
+_PREFLIGHT_WARN=0
+
+# 0.1 — Python version
+PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+PY_MAJOR=$(echo "$PY_VER" | cut -d. -f1)
+PY_MINOR=$(echo "$PY_VER" | cut -d. -f2)
+if [ "$PY_MAJOR" -ge 3 ] && [ "$PY_MINOR" -ge 10 ]; then
+    echo "[bootstrap]   [OK]   Python $PY_VER (>= 3.10 required)"
+else
+    echo "[bootstrap]   [FAIL] Python $PY_VER is too old; need 3.10+"
+    echo "[bootstrap]          Fix:  sudo apt install python3.12 python3.12-venv"
+    echo "[bootstrap]                (or use pyenv to install a newer Python)"
+    _PREFLIGHT_FAIL=1
+fi
+
+# 0.2 — Disk space (need ~3 GB free under repo root)
+DISK_FREE_KB=$(df -k "$REPO_ROOT" | awk 'NR==2 {print $4}')
+DISK_FREE_GB=$((DISK_FREE_KB / 1024 / 1024))
+if [ "$DISK_FREE_GB" -ge 3 ]; then
+    echo "[bootstrap]   [OK]   Disk space ${DISK_FREE_GB} GB available (need ~3 GB)"
+else
+    echo "[bootstrap]   [FAIL] Only ${DISK_FREE_GB} GB free; need 3+ GB for venv + wheels"
+    echo "[bootstrap]          Fix:  free up space under $REPO_ROOT"
+    _PREFLIGHT_FAIL=1
+fi
+
+# 0.3 — Network reachability (probe pypi briefly; non-fatal)
+if command -v curl &>/dev/null; then
+    if curl -sf --max-time 3 https://pypi.org/simple/ -o /dev/null; then
+        echo "[bootstrap]   [OK]   Network: pypi.org reachable"
+    else
+        echo "[bootstrap]   [WARN] Network: pypi.org NOT reachable (will fail at install)"
+        echo "[bootstrap]          Fix:  check connectivity, proxy, or VPN"
+        _PREFLIGHT_WARN=1
+    fi
+fi
+
+# 0.4 — HF_TOKEN advisory (non-fatal — only needed at training time)
+if [ -z "${HF_TOKEN:-}" ] && [ -z "${HUGGINGFACE_HUB_TOKEN:-}" ] && \
+   [ ! -f "$HOME/.cache/huggingface/token" ]; then
+    echo "[bootstrap]   [WARN] HF_TOKEN not set — will be needed BEFORE training"
+    echo "[bootstrap]          Fix later (after this script):"
+    echo "[bootstrap]            1. Accept https://huggingface.co/google/gemma-3-270m-it"
+    echo "[bootstrap]            2. export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx"
+    _PREFLIGHT_WARN=1
+else
+    echo "[bootstrap]   [OK]   HF token present (env var or ~/.cache/huggingface/token)"
+fi
+
+# 0.5 — Docker for dashboard (non-fatal — script runs without it)
+if [ "$WITH_DASHBOARD" = true ]; then
+    if command -v docker &>/dev/null && docker info &>/dev/null; then
+        echo "[bootstrap]   [OK]   Docker daemon running (dashboard will start)"
+    else
+        echo "[bootstrap]   [WARN] Docker not available — dashboard will be skipped"
+        echo "[bootstrap]          Run with --no-dashboard to silence this warning"
+    fi
+fi
+
+if [ "$_PREFLIGHT_FAIL" -ne 0 ]; then
+    echo ""
+    echo "[bootstrap] FATAL: pre-flight checks failed. Fix the above and re-run."
+    exit 1
+fi
+if [ "$_PREFLIGHT_WARN" -ne 0 ]; then
+    echo "[bootstrap]   (warnings above are non-fatal — script continues)"
+fi
+echo ""
+
 echo "[bootstrap] STEP 1: Detecting hardware ..."
 
 # Default: assume CPU-only until we find a GPU
@@ -278,11 +373,48 @@ if [ "$SKIP_PY_DEPS" = false ]; then
         "$PIP" install torch torchvision torchaudio --index-url "$TORCH_INDEX"
         echo ""
         echo "[bootstrap]   PyTorch installed: $("$PYTHON" -c "import torch; print(torch.__version__)")"
-        if "$PYTHON" -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
-            echo "[bootstrap]   CUDA available: $("$PYTHON" -c "import torch; print(torch.version.cuda)")"
-        elif [ "$HAS_GPU" = true ]; then
-            echo "[bootstrap]   WARN: GPU detected but torch.cuda.is_available()=False"
-            echo "[bootstrap]         Possible CUDA driver / wheel mismatch."
+    fi
+
+    # ── VERIFY GPU torch actually works (or fail loudly) ─────────────────
+    # On a GPU machine, torch.cuda.is_available() MUST return True after install.
+    # If it doesn't, pip likely picked up a cached CPU wheel or there's a CUDA
+    # driver mismatch. We escalate with a force-reinstall to recover.
+    if [ "$HAS_GPU" = true ]; then
+        echo "[bootstrap]   Verifying GPU torch is functional ..."
+        if "$PYTHON" -c "import torch; assert torch.cuda.is_available(); _ = torch.zeros(2).cuda() + 1" 2>/dev/null; then
+            INSTALLED_VER=$("$PYTHON" -c "import torch; print(torch.__version__)")
+            CUDA_RT=$("$PYTHON" -c "import torch; print(torch.version.cuda)")
+            echo "[bootstrap]   [OK]  torch $INSTALLED_VER with CUDA $CUDA_RT — GPU operations work"
+        else
+            echo "[bootstrap]   [WARN] GPU detected but torch.cuda failed verification"
+            echo "[bootstrap]          Diagnostic info:"
+            "$PYTHON" -c "
+import torch
+print('             torch.__version__     :', torch.__version__)
+print('             torch.version.cuda    :', torch.version.cuda)
+print('             cuda.is_available     :', torch.cuda.is_available())
+print('             cudnn.is_available    :', torch.backends.cudnn.is_available())
+" 2>/dev/null || echo "             (could not import torch at all)"
+            echo ""
+            echo "[bootstrap]   Likely cause: pip cache served an old CPU wheel."
+            echo "[bootstrap]   Recovery: full purge + force-reinstall ..."
+            "$PIP" uninstall -y torch torchvision torchaudio 2>/dev/null || true
+            "$PIP" cache purge 2>/dev/null || true
+            "$PIP" install --force-reinstall --no-cache-dir \
+                torch torchvision torchaudio --index-url "$TORCH_INDEX"
+
+            # Re-verify after recovery attempt
+            if "$PYTHON" -c "import torch; assert torch.cuda.is_available(); _ = torch.zeros(2).cuda() + 1" 2>/dev/null; then
+                echo "[bootstrap]   [OK]  Recovery succeeded — torch.cuda now works"
+            else
+                echo "[bootstrap]   [ERR] Recovery FAILED. GPU training will not work."
+                echo "[bootstrap]         Possible causes:"
+                echo "[bootstrap]         1. nvidia-driver too old for cu121 (need >= 525)"
+                echo "[bootstrap]            Check: nvidia-smi | head -3"
+                echo "[bootstrap]         2. CUDA libraries not in LD_LIBRARY_PATH"
+                echo "[bootstrap]         3. WSL2: ensure 'wsl --update' is recent"
+                echo "[bootstrap]         The script will continue but training falls back to CPU."
+            fi
         fi
     fi
     echo ""
@@ -429,6 +561,70 @@ fi
 fi  # end of "if SKIP_PY_DEPS = false" block (Step 7)
 
 # =============================================================================
+# STEP 7b — (optional) Create CPU-fallback venv alongside primary
+# =============================================================================
+#
+# Why this exists:
+#   The primary venv (.fngemma-suryaos/) installs whatever PyTorch wheel
+#   matches your hardware. On a GPU machine that's the cu121 wheel, which
+#   needs nvidia-smi/CUDA libs to actually run. If anything breaks downstream
+#   (driver upgrade, container remount, broken cuDNN), training fails.
+#
+#   With --with-cpu-fallback, we ALSO create .fngemma-suryaos-cpu/ with the
+#   pure-CPU torch wheel. You can then invoke either venv:
+#
+#     .fngemma-suryaos/bin/python      training/train_tokenizer.py   # GPU
+#     .fngemma-suryaos-cpu/bin/python  training/train_tokenizer.py   # CPU
+#
+#   Idempotent: skipped if the CPU venv already has working torch.
+# =============================================================================
+
+if [ "$SKIP_PY_DEPS" = false ] && [ "$WITH_CPU_FALLBACK" = true ]; then
+
+    CPU_VENV="$REPO_ROOT/.fngemma-suryaos-cpu"
+    CPU_PIP="$CPU_VENV/bin/pip"
+    CPU_PYTHON="$CPU_VENV/bin/python3"
+
+    echo "[bootstrap] STEP 7b: Setting up CPU fallback venv at $CPU_VENV ..."
+
+    # Skip if CPU venv already has a working CPU torch
+    if [ "$FORCE_REINSTALL" = false ] && [ -f "$CPU_PYTHON" ] && \
+       "$CPU_PYTHON" -c "import torch" 2>/dev/null; then
+        CPU_TORCH_VER=$("$CPU_PYTHON" -c "import torch; print(torch.__version__)")
+        echo "[bootstrap]   [SKIP]  CPU venv has torch $CPU_TORCH_VER already installed"
+    else
+        # Create venv if missing
+        if [ ! -f "$CPU_PYTHON" ]; then
+            echo "[bootstrap]   Creating CPU-only venv ..."
+            python3 -m venv "$CPU_VENV"
+        fi
+        "$CPU_PIP" install --upgrade pip --quiet
+
+        # Always install CPU wheel here — never the GPU one
+        echo "[bootstrap]   Installing CPU PyTorch into $CPU_VENV/ ..."
+        "$CPU_PIP" install torch torchvision torchaudio \
+            --index-url https://download.pytorch.org/whl/cpu
+
+        echo "[bootstrap]   Installing requirements into CPU venv ..."
+        "$CPU_PIP" install -r "$REQ" --quiet
+
+        # Verify
+        if "$CPU_PYTHON" -c "import torch; assert not torch.cuda.is_available()" 2>/dev/null; then
+            CPU_TORCH_VER=$("$CPU_PYTHON" -c "import torch; print(torch.__version__)")
+            echo "[bootstrap]   [OK]  CPU fallback ready: $CPU_PYTHON (torch $CPU_TORCH_VER)"
+        else
+            echo "[bootstrap]   [WARN] CPU fallback verification failed"
+        fi
+    fi
+
+    echo ""
+    echo "[bootstrap]   To use the CPU fallback:"
+    echo "[bootstrap]     $CPU_PYTHON training/train_tokenizer.py"
+    echo "[bootstrap]     $CPU_PYTHON training/finetune.py --mode all"
+    echo ""
+fi
+
+# =============================================================================
 # STEP 8 — Bring up the Grafana / Loki / Prometheus observability stack
 # =============================================================================
 #
@@ -522,34 +718,135 @@ else
 fi
 
 # =============================================================================
-# Done — print the next steps
+# Done — print a self-sustaining summary: what worked, what's next, what to do
+#        if something fails later.
 # =============================================================================
 
 echo ""
 echo "[bootstrap] ============================================================"
-echo "[bootstrap]  Bootstrap complete!"
-if [ "$HAS_GPU" = true ]; then
-echo ""
-echo "[bootstrap]  GPU training enabled:"
-echo "[bootstrap]    $GPU_NAME  |  ${GPU_VRAM} MiB VRAM  |  $TORCH_LABEL"
+echo "[bootstrap]  Bootstrap summary"
+echo "[bootstrap] ============================================================"
+
+# ── Final state check (one source of truth for "did everything work?") ──
+FINAL_TORCH_OK=false
+FINAL_TORCH_HAS_CUDA=false
+if "$PYTHON" -c "import torch" 2>/dev/null; then
+    FINAL_TORCH_OK=true
+    if "$PYTHON" -c "import torch; assert torch.cuda.is_available()" 2>/dev/null; then
+        FINAL_TORCH_HAS_CUDA=true
+    fi
 fi
+
+FINAL_HF_DEPS_OK=true
+for _pkg in transformers peft trl datasets sentencepiece; do
+    if ! "$PYTHON" -c "import $_pkg" 2>/dev/null; then
+        FINAL_HF_DEPS_OK=false
+        break
+    fi
+done
+
+FINAL_DASHBOARD_OK=false
+if [ "$WITH_DASHBOARD" = true ]; then
+    if curl -sf --max-time 2 http://localhost:3000/api/health &>/dev/null; then
+        FINAL_DASHBOARD_OK=true
+    fi
+fi
+
+# ── Status table — what passed, what didn't ──────────────────────────────
 echo ""
-echo "[bootstrap]  Run in this order:"
+echo "  Component status:"
+if [ "$FINAL_TORCH_OK" = true ]; then
+    if [ "$HAS_GPU" = true ] && [ "$FINAL_TORCH_HAS_CUDA" = true ]; then
+        echo "    [OK]   PyTorch        — GPU mode (cu121, $GPU_NAME)"
+    elif [ "$HAS_GPU" = true ] && [ "$FINAL_TORCH_HAS_CUDA" = false ]; then
+        echo "    [WARN] PyTorch        — installed but CUDA unavailable"
+        echo "                              GPU detected; will run on CPU (8x slower)"
+        echo "                              Recovery:  bash training/bootstrap.sh --reinstall"
+    else
+        echo "    [OK]   PyTorch        — CPU mode (no GPU detected)"
+    fi
+else
+    echo "    [FAIL] PyTorch        — not importable"
+    echo "                              Recovery:  bash training/bootstrap.sh --reinstall"
+fi
+
+if [ "$FINAL_HF_DEPS_OK" = true ]; then
+    echo "    [OK]   HF stack       — transformers, peft, trl, datasets, sentencepiece"
+else
+    echo "    [FAIL] HF stack       — one or more critical packages missing"
+    echo "                              Recovery:  bash training/bootstrap.sh --reinstall"
+fi
+
+if [ "$WITH_DASHBOARD" = true ]; then
+    if [ "$FINAL_DASHBOARD_OK" = true ]; then
+        echo "    [OK]   Dashboard      — Grafana ready at http://localhost:3000"
+    else
+        echo "    [WARN] Dashboard      — not reachable on :3000"
+        echo "                              Recovery:  cd training/observability && docker compose up -d"
+    fi
+else
+    echo "    [SKIP] Dashboard      — disabled with --no-dashboard"
+fi
+
+# ── HF token status — needed at training time ────────────────────────────
+if [ -n "${HF_TOKEN:-}" ] || [ -n "${HUGGINGFACE_HUB_TOKEN:-}" ] || \
+   [ -f "$HOME/.cache/huggingface/token" ]; then
+    echo "    [OK]   HF token       — present"
+else
+    echo "    [TODO] HF token       — NOT set (required before training)"
+    echo "                              export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx"
+    echo "                              Get one at https://huggingface.co/settings/tokens"
+    echo "                              Accept license at https://huggingface.co/google/gemma-3-270m-it"
+fi
+
+# ── Hardware summary for this run ────────────────────────────────────────
 echo ""
-echo "    # Step 1: extend tokenizer + warm up embeddings (~20-40 min GPU)"
+if [ "$HAS_GPU" = true ] && [ "$FINAL_TORCH_HAS_CUDA" = true ]; then
+    echo "  Hardware:"
+    echo "    GPU:    $GPU_NAME"
+    echo "    VRAM:   ${GPU_VRAM} MiB"
+    echo "    CUDA:   $CUDA_VER (toolkit) | cu121 (PyTorch wheel)"
+    echo "    Mode:   GPU training enabled"
+fi
+
+# ── Next steps — copy/paste ready ────────────────────────────────────────
+echo ""
+echo "  Next steps:"
+echo ""
+if [ -z "${HF_TOKEN:-}" ] && [ -z "${HUGGINGFACE_HUB_TOKEN:-}" ] && \
+   [ ! -f "$HOME/.cache/huggingface/token" ]; then
+    echo "    # 1. Set HF token (Gemma 3 is gated)"
+    echo "    export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxx"
+    echo ""
+    NEXT_STEP_NUM=2
+else
+    NEXT_STEP_NUM=1
+fi
+
+echo "    # ${NEXT_STEP_NUM}. Train tokenizer (~5 min GPU / ~40 min CPU)"
 echo "    $PYTHON training/train_tokenizer.py"
 echo ""
-echo "    # Step 2: verify the full environment is ready"
-echo "    $PYTHON training/finetune.py --mode check"
+NEXT_STEP_NUM=$((NEXT_STEP_NUM + 1))
+echo "    # ${NEXT_STEP_NUM}. Inspect what was learned"
+echo "    $PYTHON training/analyze_embeddings.py"
 echo ""
-echo "    # Step 3: full training pipeline (convert → train → export)"
+NEXT_STEP_NUM=$((NEXT_STEP_NUM + 1))
+echo "    # ${NEXT_STEP_NUM}. (Optional) full LoRA fine-tune + GGUF export"
 echo "    $PYTHON training/finetune.py --mode all"
+
+# ── Troubleshooting reference ────────────────────────────────────────────
 echo ""
-echo "[bootstrap]  Or activate the venv first (then just use 'python'):"
-echo "    source $VENV/bin/activate"
-echo "    python training/finetune.py --mode all"
+echo "  If something fails later:"
+echo "    Tokenizer fails to load (gated 401)  →  set HF_TOKEN (above)"
+echo "    Training prints \"GPU/torch MISMATCH\" →  bash training/bootstrap.sh --reinstall"
+echo "    Grafana shows no data                →  verify training is writing"
+echo "                                            training/*/train_log.jsonl"
+echo "    Container won't start                →  docker info  (daemon up?)"
+echo "    Want CPU-only fallback venv          →  bash training/bootstrap.sh --with-cpu-fallback"
 echo ""
-echo "[bootstrap]  Training telemetry will be written to:"
-echo "    training/tokenizer_extended/train_log.jsonl   (tokenizer phase)"
-echo "    training/model_lora/training_log.jsonl        (LoRA training phase)"
+echo "  Telemetry written to:"
+echo "    training/tokenizer_extended/train_log.jsonl     (tokenizer phase)"
+echo "    training/model_lora/training_log.jsonl          (LoRA phase)"
+echo ""
+echo "  See:  RUN.md, goals.md, docs/training-guide.md, docs/bug-fixes.md"
 echo "[bootstrap] ============================================================"
