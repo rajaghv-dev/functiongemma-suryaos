@@ -682,3 +682,133 @@ Targets vs Run #3:
 - cross-domain cosine: 0.62 → < 0.40
 - loss plateau:        6.55 → < 5.5
 - BUG-005 probes:      live (move during training)
+
+---
+
+## L16 — Run #4 postmortem: iter #3 corpus REGRESSED on cross-domain
+
+### What happened
+
+After iter #3 dataset overhaul + GPU/bf16 fixes, ran train_tokenizer.py
+on RTX 3080 Ti. Time: 2m 29s (16× faster than CPU). All BUG-005 probes
+now alive. Loss reached 5.82 (better than Run #3's 6.55).
+
+But the headline metric REGRESSED:
+
+| Probe | Run #3 | Run #4 | Goal | Verdict |
+|---|---:|---:|---:|---|
+| **cross-domain** | **0.62** | **0.70** | **< 0.30** | **WORSE** |
+| sibling linux | 0.77 | 0.78 | 0.30-0.50 | unchanged-bad |
+| same-tool | 0.79 | 0.77 | 0.50-0.80 | both fine |
+
+Cross-domain went UP by 0.08 — the opposite direction. The dataset
+overhaul whose explicit goal was to fix cross-domain made it worse.
+
+### The contradiction in the output
+
+The narrator's old `_interpret_cosine_table` printed:
+- "same-tool +0.77 — STRONG clustering (good)"
+- "cross-domain +0.70 — DANGER (bad)"
+
+These are 0.07 apart. If both are at ~0.7, the model is treating
+unrelated tools as nearly the same as same-tool variants. There's no
+"strong clustering" — there's just a single uniform blob. The narrator's
+"good" and "bad" verdicts hinge on a numerically meaningless gap.
+
+The summary block also claimed "tool-name tokens have meaningful starting
+embeddings" and "LoRA can focus on routing logic from step 1." With
+cross-domain at 0.70, both claims are false in the routing sense — the
+embeddings are *meaningful* (smart-init worked) but not *differentiated*
+(corpus failed to separate categories).
+
+### Root cause
+
+Looked at iter #3 corpus composition:
+
+```
+3000 mined dispatch_pairs  (84%)  ← same grammatical slot, all tools
+ 285 per-tool curated       (8%)
+ 236 auxiliary tokens       (7%)
+  32 cross-domain contrast  (1%)  ← the only thing pushing tools apart
+  26 co-occurrence          (1%)
+```
+
+Every mined sentence is shaped:
+> `"<user query>" should dispatch to <TOOL>.`
+
+Every tool name appears in the same grammatical position. The model
+learns: *"all tool tokens occupy this slot."* That's an explicit signal
+to **cluster them together** — the opposite of differentiation.
+
+The 32 contrastive sentences (the only thing pushing tools APART) are
+outnumbered **94 to 1** by mining sentences pulling them together. No
+surprise contrast lost.
+
+### Mental model
+
+A useful corpus has three kinds of signal in roughly equal proportion:
+
+1. **Coverage** — every token appears N times (we're good)
+2. **Co-occurrence** — related tokens appear together (we have 26 — too few)
+3. **Contrast** — unrelated tokens get explicitly separated (we have 32 — drowned)
+
+Iter #3 over-invested in (1) via dispatch mining. Mining was supposed
+to add real-user-phrasing diversity, but in expanding each pair to 6
+sentences with the same syntactic shape, it actively *erased*
+differentiation between tools.
+
+### The deeper insight
+
+> **Quantity isn't quality. The mining cap of 3000 was supposed to
+> avoid drowning auxiliary tokens — it did. But it didn't avoid
+> drowning *contrastive* signals, which is what we actually needed.**
+
+I optimized for the wrong constraint when I capped mining at 3000.
+
+### What iter #4 should do
+
+Three concrete dial-flips, in order:
+
+1. **Cut mining cap 3000 → 500.** Marginal value of mined sentence #501
+   is near zero. The first 500 already cover the shape; more is just
+   noise that strengthens the wrong signal.
+
+2. **Auto-generate ~300 contrastive sentences.** For every cross-category
+   pair (50+ such pairs across 12 tools × 2 categories), produce 6
+   sentence templates: "X reports A; Y reports B — different concerns",
+   "X is a memory tool, Y is a brightness tool", etc.
+   Single biggest fix.
+
+3. **Add ~100 varied-position sentences.** Tool names should appear
+   not only as *dispatch targets* but as subjects, objects, modifiers:
+   - "The output of linux_memory_usage is JSON-formatted" (subject)
+   - "We added linux_memory_usage in v3.0" (object)
+   - "linux_memory_usage and linux_disk_usage have similar response shapes
+     but different domains" (contrastive subject + object)
+
+Diversifying grammatical role forces the model to encode tool semantics,
+not just "tokens that fill the dispatch slot."
+
+### What I'm changing in the project's understanding
+
+The dispatch_pair mining was too aggressive (BUG-008 — see bug-fixes.md
+when added). The "more data is better" intuition was wrong here because
+data with low syntactic variety reinforces the wrong invariant.
+
+Going forward: corpus quality should be measured by **role variety per
+token**, not just sentence count.
+
+### Re-run after iter #4
+
+```bash
+rm -rf training/tokenizer_extended/
+.fngemma-suryaos/bin/python training/build_tokenizer_dataset.py
+.fngemma-suryaos/bin/python training/train_tokenizer.py
+.fngemma-suryaos/bin/python training/analyze_embeddings.py
+```
+
+Targets vs Run #4:
+- cross-domain cosine: 0.70 → < 0.40 (target — would put us *better*
+  than Run #3's 0.62)
+- sibling linux tools: 0.78 → < 0.55
+- 5+ probes IN BAND (was 3)

@@ -7,12 +7,18 @@
 If a doc disagrees with this one, this one wins. Update this when goals
 change.
 
-**Status as of iteration #3 (commit 89e0f4d):**
+**Status as of Run #4 (commit 275bef2):**
 - Tokens pruned 319 → 108 (filter via fragmentation)
 - Corpus rewritten 3849 templated → 3579 curated
-- BUG-005 fixed (live probes)
-- Run #4 pending (run after the iter #3 changes)
-- Run #3 numbers below remain the **baseline to beat**.
+- BUG-001..007 all fixed (smart-init, HF auth, GPU/torch, idempotent
+  bootstrap, frozen probes, fp16 NaN, deprecation+log flood)
+- GPU training now works on RTX 3080 Ti via bf16 (~2.5 min vs 41 min CPU)
+- **Run #4 result: REGRESSION on cross-domain** (0.62 → 0.70).
+  Mining flood (3000 sentences in same grammatical slot) outweighed the
+  32 contrastive lines and pulled tools together more, not apart.
+  See L16 postmortem in docs/learnings.md.
+- Iter #4 plan: cut mining 3000→500, expand contrastive 32→300,
+  add varied-position sentences.
 
 ---
 
@@ -359,17 +365,22 @@ Strategy IDs reference [docs/dataset-strategies.md](docs/dataset-strategies.md).
 
 ### Cosine similarity probes
 
-| Probe | Current (Run #3) | Expected | Δ needed | Status |
-|---|---:|---:|---:|---|
-| same-tool forms | 0.79 | 0.50 – 0.80 | – | ✓ HIT |
-| tool ↔ CLI equiv | 0.38 | 0.40 – 0.70 | +0.02 | ⚠ borderline |
-| tool ↔ KDE component | 0.54 | 0.40 – 0.70 | – | ✓ HIT |
-| sibling linux tools | 0.77 | 0.30 – 0.50 | −0.27 | ✗ too high (clones) |
-| metrics ↔ memory | 0.75 | 0.40 – 0.60 | −0.15 | ✗ too high |
-| cross-domain | 0.62 | < 0.30 | −0.32 | ✗ too high (collapsed) |
-| co-occurring ML libs | 0.29 (frozen) | — | replace probe | 💀 BUG-005 |
-| co-occurring git ops | 0.36 (frozen) | — | replace probe | 💀 BUG-005 |
-| co-occurring serving terms | 0.34 (frozen) | — | replace probe | 💀 BUG-005 |
+Three columns: Run #3 (templated baseline), Run #4 (iter #3 corpus), expected.
+
+| Probe | Run #3 | Run #4 | Expected | Δ vs goal | Status |
+|---|---:|---:|---:|---:|---|
+| same-tool forms | 0.79 | 0.77 | 0.50 – 0.80 | in band | ✓ HIT |
+| tool ↔ CLI equiv | 0.38 | 0.41 | 0.40 – 0.70 | in band | ✓ HIT |
+| tool ↔ KDE component | 0.54 | 0.51 | 0.40 – 0.70 | in band | ✓ HIT |
+| sibling linux tools | 0.77 | 0.78 | 0.30 – 0.50 | −0.28 | ✗ too high |
+| metrics ↔ memory | 0.75 | 0.71 | 0.40 – 0.60 | −0.11 | ✗ too high |
+| **cross-domain** | **0.62** | **0.70** | **< 0.30** | **−0.40** | **✗ REGRESSED** |
+| new tool vs base concept (NEW probe) | — | 0.48 | 0.40 – 0.70 | in band | ✓ HIT |
+| kde sibling tools (NEW probe) | — | 0.64 | 0.30 – 0.50 | −0.14 | ✗ too high |
+| cross-category kde vs linux (NEW probe) | — | 0.68 | < 0.30 | −0.38 | ✗ too high |
+
+Headline finding: **3 of 9 probes in band**. `cross-domain` got *worse*
+under iter #3 corpus — the headline metric we were trying to fix.
 
 ### Embedding health metrics
 

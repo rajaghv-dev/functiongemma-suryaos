@@ -6,6 +6,73 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased] — Run #4 + bug fixes for GPU training
+
+### Fixed — BUG-006 (fp16 NaN explosion on RTX 30xx/40xx)
+- `_detect_hardware()` was selecting `torch.float16` for consumer Ampere GPUs
+  based on a "datacenter only gets bf16" heuristic. Result: every batch
+  produced `loss=nan` because Gemma 3's attention softmax overflows fp16's
+  5-bit exponent (max ~65504).
+- Fix: use `torch.bfloat16` for ANY Ampere+ GPU (compute ≥ 8). bf16 has
+  the same 8-bit exponent as fp32, so gradients never overflow.
+- Added: early-abort if 10 consecutive NaN batches detected — bails with
+  fix command instead of running through the entire corpus.
+
+### Fixed — BUG-007 (deprecation + log flood)
+- `torch_dtype=` deprecated in transformers 4.46+ → renamed to `dtype=`
+  in 4 call sites (train_tokenizer.py, finetune.py × 2, analyze_embeddings.py)
+- Grad-norm warnings flooded the terminal during cold start (200+ identical
+  lines per epoch). Now tiered: always emit on grad > 5.0, every 5 steps
+  for 1.5-5.0 in first 30 steps, silent otherwise.
+- Narrator messages compressed to ≤ 80 columns for narrow terminals.
+
+### Added — target-aware cosine probe table
+- New `PROBE_TARGETS` dict at module level — single source of truth for
+  goal ranges per probe (sourced from goals.md).
+- `_print_cosine_table` now shows: current value, target band, status
+  (✓ HIT / ⚠ HIGH/LOW / ✗ HIGH/LOW), Δ vs previous epoch, bar with
+  goal band as ▓ and current as ●.
+- `_interpret_cosine_table` now produces:
+  - Per-probe insight with direction-of-travel arrows (↑ heading toward,
+    ↓ moving away)
+  - [SUMMARY] line: "X/9 probes IN BAND | Y too high | Z too low"
+  - [ACTION] block listing 2 biggest gaps with strategy IDs
+
+### Added — bootstrap.sh self-sustaining mode
+- STEP 0 pre-flight checks: Python version (≥ 3.10), disk space (≥ 3 GB),
+  network reachability, HF_TOKEN presence, Docker daemon. Each non-fatal
+  warning carries the exact fix command.
+- STEP 4 post-install verify: actually runs `torch.zeros(2).cuda() + 1`
+  to confirm GPU operations work. If GPU detected but verification fails,
+  does force-reinstall recovery.
+- New flag: `--with-cpu-fallback` creates secondary `.fngemma-suryaos-cpu/`
+  venv with pure CPU torch — both venvs coexist for fallback usage.
+- Final summary table: PASS/WARN/FAIL per component (PyTorch / HF stack /
+  Dashboard / HF token), copy-paste-ready next steps, troubleshooting
+  reference.
+
+### Run #4 result (commit 275bef2)
+- GPU training works: 2m 29s on RTX 3080 Ti (was 41 min on CPU)
+- Loss: 8.3 → 5.82 (better than Run #3's 6.55)
+- Cosine probes:
+  - 3/9 in band (same-tool, tool↔CLI, tool↔KDE, new-vs-base)
+  - 6/9 too high (sibling, metrics-vs-memory, cross-domain ×2,
+    kde sibling, cross-category)
+  - **Cross-domain REGRESSED** 0.62 → 0.70 (worse than Run #3)
+- Diagnosis: dispatch_pair mining (3000 sentences) put every tool name
+  in identical grammatical slot → reinforced clustering, drowning the
+  32 contrastive sentences 94:1.
+- See learnings.md L16 for full postmortem.
+
+### Iter #4 plan (deferred)
+- Cut mining cap 3000 → 500
+- Auto-generate ~300 cross-category contrastive sentences
+- Add ~100 varied-position sentences (tool names as subjects/objects,
+  not only as dispatch targets)
+- Goal: cross-domain 0.70 → < 0.40 (better than Run #3 baseline)
+
+---
+
 ## [Unreleased] — iteration #3 (dataset overhaul + analysis tooling)
 
 ### Changed — token list pruned 319 → 108 (66% reduction)
