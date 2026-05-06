@@ -20,6 +20,28 @@ change.
 - Iter #4 plan: cut mining 3000→500, expand contrastive 32→300,
   add varied-position sentences.
 
+**Iter #4 (2026-05-06): function-calling dataset pivot.**
+While sourcing the planned contrastive sentences, we discovered the
+**empty-arguments iceberg**: 1564/1564 pairs in
+`dataset/dispatch_pairs.jsonl` had empty or wrong `target.arguments`
+("dim the screen" labeled `direction:"up"`), and 93.7% of pairs routed
+to `kde_krunner_launch` because the apps catalog was concatenated in.
+The iter #4 mandate flipped from tokenizer-corpus rebalancing to
+**function-calling dataset reconstruction from real machine sources**,
+multi-agent extraction, minimize synthetic. New file:
+`dataset/dispatch_pairs_v4.jsonl` — 776 pairs across 12 tools and 31
+sources (was 2 sources). 9 of 12 tools still below the floor of 80
+because **real-source mining has a hard ceiling on a single machine**
+(1 backlight, 2 mountpoints, 4 power supplies). See L17/L18/L19 in
+`docs/learnings.md` and Session 6 in `SESSIONS.md`.
+
+The function-calling-vs-tokenizer distinction now matters explicitly:
+the **tokenizer phase** (cosine geometry, embedding placement) and the
+**function-calling phase** (argument extraction, schema-faithful tool
+calls) are independent failure modes. Cross-domain cosine 0.20 with
+`arguments={}` is still a broken model. New KPI added below:
+**argument extraction accuracy**.
+
 ---
 
 ## TL;DR
@@ -202,8 +224,16 @@ Eight numbers that capture all five goals:
 | `holdout_token_similarity_to_trained` | > 0.85 | Goal 4 |
 | `loss_per_token_std_dev` | < mean × 0.5 | Goal 4 |
 | `general_benchmark_loss_delta` | < 5% | Goal 5 |
+| `argument_extraction_accuracy` | > 95% on held-out arg-test split | Goal NEW (iter #4) — function-calling phase |
 
 If those eight all hit target, the tokenizer phase has done its job.
+
+The ninth (`argument_extraction_accuracy`, **status: untested** as of
+2026-05-06) belongs to the **function-calling phase**, not the
+tokenizer phase. Added in iter #4 after the empty-arguments iceberg
+(L17): even perfect tokenizer geometry produces a useless model if
+training pairs supervise empty `target.arguments`. Held-out arg-test
+split not yet built — first task for iter #5.
 
 ---
 

@@ -812,3 +812,198 @@ Targets vs Run #4:
   than Run #3's 0.62)
 - sibling linux tools: 0.78 → < 0.55
 - 5+ probes IN BAND (was 3)
+
+---
+
+## L17 — The empty-arguments iceberg (iter #4 pivot, 2026-05-06)
+
+### What happened
+
+Iter #4 was supposed to be a tokenizer-corpus rebalancing — cut mining
+3000→500, expand contrast 32→300, add varied-position sentences (per
+L16's plan). Instead, while inspecting the dispatch dataset to source
+the new contrastive sentences, the user surfaced a deeper failure:
+
+```
+$ jq '.target.arguments' dataset/dispatch_pairs.jsonl | sort -u
+{}
+```
+
+**1564 / 1564 pairs had empty or wrong `target.arguments`.** "Dim the
+screen" was labeled `{direction: "up"}`. 1466/1564 (93.7%) routed to
+`kde_krunner_launch` because `dataset/apps/launch_pairs.jsonl` had been
+concatenated in unmodified.
+
+### What we believed
+
+After L16 we believed cross-domain cosine was the headline number and
+the corpus's grammatical-shape monotony was the root cause. The plan
+was: rebalance the tokenizer corpus, retrain, watch cross-domain drop.
+
+### What we learned
+
+The corpus imbalance was a symptom. The disease was **supervision
+failure on argument extraction**. Even a perfect tokenizer + perfect
+routing cannot produce `linux_volume_set({direction:"down", step:20})`
+if every training example said `arguments={}`. The model can't infer
+"down" from the user query if no example ever showed it being
+extracted.
+
+This means the project was tracking the wrong KPI. Cross-domain cosine
+measures whether tools are separable in embedding space — necessary
+but not sufficient. **Argument extraction accuracy** is a peer metric:
+the model can pick the right tool *and* still produce a useless call
+because the args are wrong or empty.
+
+### What we changed
+
+- Added `argument extraction accuracy` to the goals.md KPI dashboard
+  (target: > 95% on a held-out arg-test split).
+- Built `training/populate_arguments.py` — per-tool extractors that
+  resolve 1538/1564 of the existing pairs from query text alone
+  (UP_CUES/DOWN_CUES regex, KNOWN_SERVICES dict, app/title extraction).
+- Built `training/build_real_dataset.py` — orchestrator that drops
+  incomplete-arg rows, dedupes, caps per tool, writes
+  `dataset/dispatch_pairs_v4.jsonl`.
+- Built two test files (`tests/test_corpus_balance.py`,
+  `tests/test_dispatch_pairs.py`) that exit non-zero if either dataset
+  drifts back into the failure mode.
+
+### Decision rule
+
+Before claiming "the model picked the right tool", grep
+`target.arguments` distribution. If > 5% of training pairs have empty
+args for tools with required parameters, **the supervision is broken**
+no matter how good the routing geometry looks.
+
+---
+
+## L18 — Real-source mining has a hard ceiling on one machine (2026-05-06)
+
+### What happened
+
+Iter #4's mandate was "minimize synthetic, mine real signal". 6 miner
+agents ran in parallel against this live KDE 6.6.4 box: `.desktop`
+files, systemctl, qdbus6, /proc/meminfo, /sys/class/backlight, nmcli,
+pactl, journalctl, man pages, kglobalshortcutsrc, --help output,
+/etc/systemd/system. Total real pairs after dedup: 776 across 12
+tools.
+
+9 of 12 tools came in below the floor of 80:
+
+| Tool | Pairs | Hard limit |
+|---|---:|---|
+| linux_brightness_set | 12 | 1 backlight on this box |
+| linux_disk_usage | 13 | 2 mountpoints |
+| kde_dialog_confirm | 13 | kdialog --help has only so many flags |
+| linux_memory_usage | 18 | one /proc/meminfo |
+| linux_metrics_summary | 20 | a handful of summary tools |
+| kde_notifications_send | 22 | up from 4 — already mined out |
+| linux_battery_status | 23 | 4 power supplies |
+| linux_network_status | 24 | one nmcli connection list |
+| linux_volume_set | 31 | pactl sinks + amixer flags |
+
+### What we believed
+
+We believed mining the live machine would saturate the floor of 80 per
+tool because "there's so much real signal — desktop files, configs,
+help output, audit logs, /proc, /sys".
+
+### What we learned
+
+The host system has finite real artefacts. **One machine = one
+backlight, two mountpoints, four power supplies, one set of nmcli
+connections.** Mining produces 13-31 real pairs for the starved tools
+and that is the ceiling. There's no clever extraction technique that
+turns 1 backlight into 80 distinct training examples without
+synthesizing — at which point you've reverted to templates.
+
+### What this means going forward
+
+To reach floor=80 per tool from real signal alone, iter #5 needs one
+of:
+
+1. **Production audit logs over time.** As the agent runs and users
+   issue real commands, every dispatch becomes a training pair. This
+   is the only real-signal source class with unbounded growth.
+2. **GitHub issues for KDE projects.** Bug reports against
+   plasma-workspace, knotifications, kwin contain natural-language
+   descriptions paired with the affected component (a lossy but real
+   tool-name signal).
+3. **Wayland-friendly window enumeration.** `kdotool` works under
+   Wayland where `loadDeclarativeScript` is blocked — would unlock
+   window-list mining that currently produces 0 pairs.
+4. **Controlled paraphrasing of real seed sentences** (NOT templated
+   synthesis). Take the 18 real linux_memory_usage pairs, paraphrase
+   each 5×, dedupe — yields 90 pairs that retain the real
+   distribution's cadence without inventing new facts.
+
+The "minimize synthetic" mandate hit the physical ceiling. Iter #5
+must accept either (a) longer time horizon with audit logs, or
+(b) controlled paraphrasing as a real-signal multiplier, not a
+templated-synthesis substitute.
+
+### Decision rule
+
+Before targeting floor=N per tool, count the real artefacts on the
+host: `ls /sys/class/<thing>`, `nmcli con show | wc -l`,
+`mount | wc -l`. If the count is < N, you've already lost — pick a
+different data source class.
+
+---
+
+## L19 — Multi-agent extraction is robust to partial sandbox failures (2026-05-06)
+
+### What happened
+
+Iter #4 spawned 6 sub-agents in parallel: Agent 1 (results analysis),
+Agents 2-6 (one miner script each). Agent 1 produced the
+"build-miners-in-this-order" recommendation. Agents 2, 3, 6 wrote and
+executed their miners successfully. **Agents 4 and 5 hit a sandbox
+restriction that blocked `python3` execution** — they could write
+files but not run them.
+
+### What we believed
+
+When an agent can't execute its own script, the typical failure mode
+is the agent retries until it hits the sandbox wall, then either gives
+up or produces a degraded fallback (heuristic shell pipelines instead
+of structured Python).
+
+### What we learned
+
+The right pattern for parallelized real-data mining is:
+
+> **Agents WRITE the script. Host EXECUTES it.**
+
+Agents 4 and 5 produced syntactically valid scripts (`mine_man_pages.py`
+and `mine_krunner_kde_config.py`). The orchestrator agent ran them
+post-handoff. Result: 35 + 102 = 137 real pairs from the two "blocked"
+agents — about 18% of the final dataset.
+
+This works because:
+
+1. Script syntax can be validated without execution
+   (`python3 -m py_compile`).
+2. The agent's value-add is the extraction logic (which `--help` flags
+   to parse, which config files to read, how to map outputs to tool
+   schemas), not the runtime.
+3. Sandbox restrictions are about who runs what, not whether the work
+   product is correct.
+
+### What we changed
+
+Future agent prompts for parallel extraction tasks should include:
+
+> If `python3` execution is blocked in your sandbox, **validate the
+> script syntactically** (`python3 -m py_compile mine_X.py`) and hand
+> off. Do not retry execution. Do not fall back to shell pipelines —
+> the orchestrator will run your Python script.
+
+### Decision rule
+
+When parallelizing real-source mining across N agents, expect ~30% of
+agents to hit some environmental blocker (sandbox, network, missing
+tools). Treat agent output as code-to-run, not as completed work. The
+orchestrator's contract: agents produce validated scripts; the host
+runs them.
