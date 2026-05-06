@@ -7,6 +7,77 @@ postmortems live in `docs/learnings.md`; bug-by-bug analysis lives in
 
 ---
 
+## Session 6 — Iter #4 function-calling dataset rebuild (2026-05-06)
+
+### Goal
+Pivot from tokenizer-corpus rebalancing to function-calling dataset
+reconstruction. Diagnose why Run #4 regressed; fix the deeper
+supervision failure; mine real signal from the live machine instead of
+synthesizing more text.
+
+### What shipped
+
+| File | Purpose |
+|---|---|
+| `tests/test_corpus_balance.py` | Validates `dataset/tokenizer/corpus.txt` — per-tool count, position diversity, contrastive count, co-occurrence, token coverage. Exits non-zero on threshold failure. |
+| `tests/test_dispatch_pairs.py` | Validates `dataset/dispatch_pairs*.jsonl` — per-tool count, query-phrasing diversity, arg-value coverage, source mix, schema consistency. |
+| `training/populate_arguments.py` | Per-tool extractors that fix wrong/empty `target.arguments` from the user query. Direction cues (UP_CUES/DOWN_CUES regex), KNOWN_SERVICES dict, app/title extraction, dialog prompt synthesis. 1538/1564 existing pairs resolved. |
+| `training/build_real_dataset.py` | Orchestrator. Loads `dispatch_pairs.jsonl` + `dataset/real_sources/*.jsonl`, applies `populate_arguments(force=True)`, drops incomplete-arg rows, dedupes by (tool, lower(query)), per-tool caps, writes `dataset/dispatch_pairs_v4.jsonl`. |
+| `training/mine_kde_machine.py` (Agent 3) | 9 mines from this live KDE 6.6.4 box → 517 raw pairs (.desktop, systemctl, qdbus6, /proc, /sys, nmcli, pactl, journalctl). Honest [SKIP] for Wayland-blocked window-list and missing bash_history. |
+| `training/mine_kf5book.py` (Agent 2) | KF5 docs miner. Honest 0 pairs — kf5book covers KArchive/KAuth/etc., none mapping to our KRunner/KWin/KNotifications/KMessageBox tools. Script ready for follow-up with the right repos. |
+| `training/mine_man_pages.py` (Agent 4) | 35 pairs from man pages of free, df, top, vmstat, sar, upower, pactl, amixer, nmcli, ip, systemctl, journalctl, notify-send. SEE ALSO blocks → real sibling-negative pairs (the G4 fix the corpus never had). |
+| `training/mine_krunner_kde_config.py` (Agent 5) | 102 pairs from kglobalshortcutsrc, kxmlgui RC, recently-used.xbel, ksysguard XML, ps-derived running KDE apps. KRunner state file empty on this box (logged honestly). |
+| `training/mine_kde_help.py` (Agent 6) | 174 pairs from `--help` output of kdialog/krunner/kstart/dolphin/kate/konsole/notify-send + `/proc/mounts` + `/sys/class/power_supply/ADP1` + `/etc/systemd/system/<target>.target.wants/` (117 real service names). |
+
+### Concrete changes
+
+**The empty-arguments iceberg.** Investigation revealed
+`dataset/dispatch_pairs.jsonl` had 1564/1564 pairs with empty or wrong
+`target.arguments`. "Dim the screen" was labeled `direction:"up"`.
+1466/1564 (93.7%) routed to `kde_krunner_launch` because
+`dataset/apps/launch_pairs.jsonl` was concatenated in. The tokenizer
+corpus imbalance from L16 was a symptom; the supervision failure was
+the disease.
+
+**Multi-agent extraction.** 6 sub-agents in parallel: Agent 1 ranked
+per-tool variety and recommended a build order; Agents 2-6 each wrote
+one miner script. Agents 4 and 5 hit a sandbox `python3` restriction —
+their scripts were syntactically valid and run by the orchestrator
+post-handoff.
+
+### Final dataset stats (`dataset/dispatch_pairs_v4.jsonl`)
+
+- 776 pairs across 12 tools and 31 sources (was 1564 pairs, 2 sources, 93.7% one tool)
+- 4 tools meet floor of 80; 9 tools below floor (worst: linux_brightness_set 12, linux_disk_usage 13, kde_dialog_confirm 13)
+- Distribution went from 93.7% top tool → 26% top tool
+
+### Documentation
+- `docs/learnings.md` L17, L18, L19 added (empty-args iceberg / real-source ceiling / multi-agent robustness)
+- `CHANGELOG.md` Iteration #4 entry
+- `goals.md` iter #4 banner + new "argument extraction accuracy" KPI
+- `README.md` pointer to multi-source miners
+
+### Learnings
+- L17 — the empty-arguments iceberg: even perfect tokenizer + perfect
+  routing cannot produce `linux_volume_set({direction:"down", step:20})`
+  if every example said `arguments={}`. Arg-extraction is independently
+  more important than the cosine geometry the project was tracking.
+- L18 — real-source mining has a hard ceiling on a single machine: 1
+  backlight, 2 mountpoints, 4 power supplies, no `~/.bash_history`.
+  Reaching the floor of 80 per tool from real signal requires another
+  data source class or controlled paraphrasing of seed sentences.
+- L19 — multi-agent extraction is robust to partial sandbox failures:
+  agents WRITE scripts, host EXECUTES. Validate-only when execution is
+  blocked; don't retry into a wall.
+
+### Next session
+Iter #5: lift the 9 starved tools to floor=80 via (a) production audit
+trail mining, (b) GitHub issues for KDE projects, or (c) controlled
+seed-sentence paraphrasing. Build a held-out arg-test split to measure
+the new "argument extraction accuracy" KPI.
+
+---
+
 ## Session 5 — Run #4 + GPU bf16 fix + critique (2026-05-02)
 
 ### Goal

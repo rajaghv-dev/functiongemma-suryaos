@@ -73,7 +73,29 @@ from typing import Optional
 
 ROOT         = Path(__file__).resolve().parent.parent   # repo root
 TRAINING_DIR = Path(__file__).resolve().parent          # training/
-DATA_FILE    = ROOT / "dataset" / "dispatch_pairs.jsonl"
+def _default_data_file() -> Path:
+    """Pick the most appropriate dispatch_pairs file at startup.
+
+    Iter #4 introduced rebalanced datasets. Prefer them when present:
+
+      dispatch_pairs_v4.jsonl           — full real-source rebalanced (cap=200)
+      dispatch_pairs_v4_balanced30.jsonl— 30-target floor across 12 tools
+      dispatch_pairs_v4_balanced.jsonl  — tightly balanced (12 × 12 = 144)
+      dispatch_pairs.jsonl              — legacy iter #3 (1564, 93% one tool)
+
+    The trainer respects `--data PATH` if given. Without it, this picks v4
+    when available and warns once at startup so the user knows.
+    """
+    candidates = [
+        ROOT / "dataset" / "dispatch_pairs_v4.jsonl",
+        ROOT / "dataset" / "dispatch_pairs.jsonl",
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    return candidates[-1]  # legacy default even if missing — let mode_check error loudly
+
+DATA_FILE    = _default_data_file()
 MODEL_HF_DIR = TRAINING_DIR / "model_hf"               # HF safetensors after convert
 MODEL_LORA   = TRAINING_DIR / "model_lora"             # LoRA adapter after train
 MODEL_MERGED = TRAINING_DIR / "model_merged"           # merged weights after export
@@ -2329,6 +2351,14 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
+        "--data", type=Path, default=None,
+        help=("Path to a dispatch_pairs JSONL file. If omitted, prefers "
+              "dataset/dispatch_pairs_v4.jsonl when present (iter #4 rebalanced) "
+              "and falls back to dataset/dispatch_pairs.jsonl. Use "
+              "dispatch_pairs_v4_balanced30.jsonl for a 30-target floor or "
+              "dispatch_pairs_v4_balanced.jsonl for tightly-balanced 12×12."),
+    )
+    parser.add_argument(
         "--mode",
         required=True,
         choices=["setup", "check", "convert", "train", "export", "all"],
@@ -2369,6 +2399,18 @@ def main() -> int:
     )
 
     args = parser.parse_args()
+
+    # Honor --data override BEFORE dispatching to any mode_* function.
+    # Every mode references the module global DATA_FILE.
+    if args.data is not None:
+        globals()["DATA_FILE"] = args.data.resolve()
+        print(f"  [INFO] using --data override: {DATA_FILE}")
+    elif DATA_FILE.name == "dispatch_pairs_v4.jsonl":
+        print(f"  [INFO] auto-selected iter #4 dataset: {DATA_FILE.name}")
+        print(f"  [INFO]   override with --data <path>; alternatives:")
+        print(f"  [INFO]     dispatch_pairs_v4_balanced30.jsonl (30-floor)")
+        print(f"  [INFO]     dispatch_pairs_v4_balanced.jsonl   (12 × 12)")
+        print(f"  [INFO]     dispatch_pairs.jsonl               (legacy iter #3)")
 
     if args.mode == "setup":
         mode_setup()

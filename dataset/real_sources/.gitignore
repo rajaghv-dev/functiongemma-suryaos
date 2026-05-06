@@ -1,0 +1,6 @@
+# Mining artifacts that should not be checked in. The .jsonl files here ARE
+# the real-source pairs — keep them. Everything else is regenerable cache.
+
+kf5book_cache/
+issues_cache/
+*.cache

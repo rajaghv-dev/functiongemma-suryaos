@@ -1657,7 +1657,22 @@ def main() -> int:
         help="Nearest base-vocab neighbors to show per new token (default: 5). "
              "Set to 0 to skip the neighbor report entirely.",
     )
+    parser.add_argument(
+        "--corpus", type=Path, default=None,
+        help="Override corpus.txt path (default: dataset/tokenizer/corpus.txt). "
+             "Use to point at an iter-specific corpus file.",
+    )
+    parser.add_argument(
+        "--new-tokens", type=Path, default=None,
+        help="Override new_tokens.json path (default: dataset/tokenizer/new_tokens.json).",
+    )
     args = parser.parse_args()
+    if args.corpus is not None:
+        globals()["CORPUS_FILE"] = args.corpus.resolve()
+        print(f"  [INFO] using --corpus override: {CORPUS_FILE}")
+    if args.new_tokens is not None:
+        globals()["NEW_TOKENS_JSON"] = args.new_tokens.resolve()
+        print(f"  [INFO] using --new-tokens override: {NEW_TOKENS_JSON}")
 
     t_total = time.time()
 

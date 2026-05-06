@@ -55,9 +55,13 @@ random.
 |---|---|---|---|
 | [`dataset/tokenizer/new_tokens.json`](dataset/tokenizer/) | **108 tokens** | SentencePiece vocabulary | Ready (iter #3 — pruned from 319 after dropping already-single-token entries) |
 | [`dataset/tokenizer/corpus.txt`](dataset/tokenizer/) | **3579 sentences** | Token embeddings | Ready — curated content (no templates) |
-| [`dataset/dispatch_pairs.jsonl`](dataset/dispatch_pairs.jsonl) | 1564 pairs | Tool dispatch (LoRA) | Ready |
+| [`dataset/dispatch_pairs.jsonl`](dataset/dispatch_pairs.jsonl) | 1564 pairs | Tool dispatch (LoRA) | Superseded — 1564/1564 had empty/wrong `target.arguments` (see L17) |
+| [`dataset/dispatch_pairs_v4.jsonl`](dataset/dispatch_pairs_v4.jsonl) | **776 pairs** | Tool dispatch (LoRA) | **iter #4 — rebuilt from 31 real machine sources, 9/12 tools still below floor** |
 | [`dataset/apps/launch_pairs.jsonl`](dataset/apps/) | 1450 pairs | App-launch subset | Included in dispatch |
 | [`dataset/embed_pairs.jsonl`](dataset/embed_pairs.jsonl) | 151 pairs | all-minilm:22m embedder | Optional second stage |
+
+**Iter #4 introduces multi-source real-data miners** — see
+[`SESSIONS.md`](SESSIONS.md) Session 6 and `training/mine_*.py`.
 
 **v4 target: 2000+ examples** covering chain-of-task workflows
 (compile → test → commit → push). Current 1564 is a strong starting point;

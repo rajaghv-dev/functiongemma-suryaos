@@ -6,6 +6,84 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## Iteration #4 — function-calling dataset rebuild from real sources (2026-05-06)
+
+### Pivot
+Iter #4 was scoped as a tokenizer-corpus rebalance (cut mining 3000→500,
+expand contrast 32→300 per L16). While sourcing the new contrast lines
+the user surfaced a deeper bug: `dataset/dispatch_pairs.jsonl` had
+**1564/1564 pairs with empty or wrong `target.arguments`** ("dim the
+screen" labeled `direction:"up"`) and 1466/1564 (93.7%) routed to
+`kde_krunner_launch` because `dataset/apps/launch_pairs.jsonl` was
+concatenated in. Iter #4 pivoted to function-calling dataset
+reconstruction from real machine sources, minimize synthetic, multi-agent.
+
+### Added — 8 new scripts
+- `training/populate_arguments.py` — per-tool argument extractors
+  (UP_CUES/DOWN_CUES regex, KNOWN_SERVICES dict, app/title extraction,
+  dialog prompt synthesis). Resolved 1538/1564 of the existing pairs.
+- `training/build_real_dataset.py` — orchestrator. Loads
+  `dispatch_pairs.jsonl` + every `dataset/real_sources/*.jsonl`,
+  applies `populate_arguments(force=True)`, drops incomplete-arg rows,
+  dedupes by (tool, lower(query)), per-tool caps, writes
+  `dataset/dispatch_pairs_v4.jsonl`.
+- `training/mine_kde_machine.py` — 9 mines from the live KDE 6.6.4 box
+  (.desktop files, systemctl, qdbus6, /proc/meminfo,
+  /sys/class/power_supply, /sys/class/backlight, nmcli, pactl,
+  journalctl). 517 raw pairs. Honest [SKIP] for window-list (Wayland
+  blocks `loadDeclarativeScript`) and history (no `~/.bash_history`).
+- `training/mine_kf5book.py` — KF5 docs miner. **Honest 0 pairs** —
+  the kf5book repo covers KArchive/KAuth/KConfig/KI18n/KIdleTime/
+  KItemModels/Sonnet/ThreadWeaver, none mapping to our KRunner/KWin/
+  KNotifications/KMessageBox tools. Script ready for follow-up with
+  the right repos (plasma-workspace, frameworks/knotifications, etc.).
+- `training/mine_man_pages.py` — 35 real pairs from man pages of
+  free, df, top, vmstat, sar, upower, pactl, amixer, nmcli, ip,
+  systemctl, journalctl, notify-send. SEE ALSO blocks → real
+  sibling-negative pairs.
+- `training/mine_krunner_kde_config.py` — 102 real pairs from
+  kglobalshortcutsrc, kxmlgui RC files, recently-used.xbel, ksysguard
+  XML, ps-derived running KDE apps.
+- `training/mine_kde_help.py` — 174 real pairs from `--help` output of
+  kdialog/krunner/kstart/dolphin/kate/konsole/notify-send +
+  `/proc/mounts` + `/sys/class/power_supply/ADP1` +
+  `/etc/systemd/system/<target>.target.wants/` (117 real service names).
+
+### Added — 2 new tests
+- `tests/test_corpus_balance.py` — validates
+  `dataset/tokenizer/corpus.txt`. Reports per-tool count, position
+  diversity, contrastive count, co-occurrence, token coverage. Exits
+  non-zero on threshold failure.
+- `tests/test_dispatch_pairs.py` — validates
+  `dataset/dispatch_pairs*.jsonl`. Reports per-tool count,
+  query-phrasing diversity (lead-words, length stdev, bigram diversity),
+  arg-value coverage, source mix, schema consistency.
+
+### Final dataset (`dataset/dispatch_pairs_v4.jsonl`)
+- **776 pairs across 12 tools and 31 sources** (was 1564 pairs, 2 sources, 93.7% one tool)
+- Distribution: 93.7% top tool → 26% top tool
+- 4 tools meet floor of 80; **9 tools below floor** (linux_volume_set 31,
+  linux_network_status 24, linux_battery_status 23,
+  kde_notifications_send 22, linux_metrics_summary 20,
+  linux_memory_usage 18, kde_dialog_confirm 13, linux_disk_usage 13,
+  linux_brightness_set 12).
+
+### Multi-agent involvement
+6 sub-agents spawned in parallel. Agent 1 (results-analysis) read all
+docs and dispatch_pairs.jsonl, identified the empty-args iceberg,
+produced the build order. Agents 2-6 each wrote one miner. Agents 4
+and 5 hit a sandbox `python3` restriction; their scripts were
+syntactically valid and run by the orchestrator post-handoff (see L19).
+
+### Documentation
+- `docs/learnings.md` — L17 (empty-args iceberg), L18 (real-source
+  ceiling), L19 (multi-agent + sandbox pattern)
+- `goals.md` — iter #4 banner + new "argument extraction accuracy" KPI
+- `SESSIONS.md` — Session 6 entry
+- `README.md` — iter #4 pointer to multi-source miners
+
+---
+
 ## [Unreleased] — Run #4 + bug fixes for GPU training
 
 ### Fixed — BUG-006 (fp16 NaN explosion on RTX 30xx/40xx)
