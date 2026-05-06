@@ -1784,6 +1784,76 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
         log_path=MODEL_LORA / "training_log.jsonl",
     )
 
+    # ----- _PROBES_INTEGRATION -------------------------------------------------
+    # Wire training/probes.py — a richer per-epoch diagnostic suite (per-tool
+    # loss, confusion matrix, arg fidelity, schema compliance, first-token
+    # entropy, negative margin, source-overfit, arg-value diversity).
+    #
+    # If dataset/dispatch_pairs_v4_eval.jsonl is missing we WARN and skip;
+    # never crash the trainer because of a missing eval file.
+    probe_bank_callback = None
+    try:
+        from .probes import (                                    # type: ignore
+            ProbeBank, ProbeConfig, format_report,
+            metrics_to_jsonl, load_eval_pairs,
+        )
+    except ImportError:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        try:
+            from probes import (                                  # type: ignore
+                ProbeBank, ProbeConfig, format_report,
+                metrics_to_jsonl, load_eval_pairs,
+            )
+        except Exception as _e:
+            _warn(f"probes module unavailable ({_e}) — extended probes disabled")
+            ProbeBank = None  # type: ignore
+
+    if ProbeBank is not None:
+        eval_path = ROOT / "dataset" / "dispatch_pairs_v4_eval.jsonl"
+        eval_pairs = load_eval_pairs(eval_path)
+        if not eval_pairs:
+            _warn(f"[probes] eval file missing or empty: {eval_path} — skipping")
+        else:
+            try:
+                _bank = ProbeBank(
+                    eval_pairs=eval_pairs,
+                    tokenizer=tokenizer,
+                    config=ProbeConfig(
+                        max_new_tokens=64,
+                        do_sample=False,
+                        batch_size=4,
+                        run_every_n_epochs=1,
+                    ),
+                    formatter=_fmt_example,
+                    prompt_formatter=_fmt_prompt_only,
+                )
+                _ok(f"[probes] ProbeBank ready — {_bank.n_pairs} eval pairs")
+
+                _probes_jsonl = MODEL_LORA / "probes.jsonl"
+
+                class _ProbeBankCallback(_TrainerCallbackBase):
+                    """Runs the ProbeBank suite at epoch end and prints a report."""
+
+                    def __init__(self) -> None:
+                        self._every = 1
+
+                    def on_epoch_end(self, args, state, control,
+                                     model=None, **kwargs) -> None:
+                        if model is None:
+                            return
+                        epoch = int(state.epoch or 0)
+                        try:
+                            metrics = _bank.run(model, device=None, epoch=epoch)
+                            print(format_report(metrics))
+                            metrics_to_jsonl(metrics, _probes_jsonl)
+                        except Exception as e:
+                            _warn(f"[probes] run failed: {e}")
+
+                probe_bank_callback = _ProbeBankCallback()
+            except Exception as _e:
+                _warn(f"[probes] init failed ({_e}) — skipping extended probes")
+    # ----- end _PROBES_INTEGRATION --------------------------------------------
+
     # -----------------------------------------------------------------------
     # 6. Configure training
     # -----------------------------------------------------------------------
@@ -1952,13 +2022,17 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
     #   After all epochs:
     #     DispatchCallback.on_train_end → final probe
 
+    _all_callbacks = [dispatch_callback]
+    if probe_bank_callback is not None:
+        _all_callbacks.append(probe_bank_callback)
+
     try:
         trainer = SFTTrainer(
             model           = model,
             args            = training_args,
             train_dataset   = train_dataset,
             tokenizer       = tokenizer,
-            callbacks       = [dispatch_callback],
+            callbacks       = _all_callbacks,
         )
     except TypeError as e:
         _warn(f"SFTTrainer signature mismatch ({e}) — trying without tokenizer/callbacks arg")
@@ -1967,11 +2041,12 @@ def mode_train(epochs: int = 3, lr: float = 2e-4, batch_size: int = 0,
             args            = training_args,
             train_dataset   = train_dataset,
         )
-        # Register callback manually if SFTTrainer accepted it
-        try:
-            trainer.add_callback(dispatch_callback)
-        except Exception:
-            _warn("Could not register DispatchCallback — per-epoch probes disabled")
+        # Register callbacks manually if SFTTrainer accepted them
+        for _cb in _all_callbacks:
+            try:
+                trainer.add_callback(_cb)
+            except Exception:
+                _warn(f"Could not register {type(_cb).__name__} — its probes disabled")
 
     _ok("Starting training …")
     print(f"  {len(formatted)} examples × {epochs} epochs = ~{len(formatted)*epochs} steps total")
