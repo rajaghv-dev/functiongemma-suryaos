@@ -1,6 +1,12 @@
 __pycache__/
 *.pyc
 *.pyo
+
+# Python venvs created by training/bootstrap.sh (canonical and any
+# stranded/older-name variants — bootstrap warns on stranded ones).
+.fngemma*/
+.functiongemma*/
+
 model_hf/
 model_lora/
 model_merged/

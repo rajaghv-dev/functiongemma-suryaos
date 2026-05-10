@@ -145,13 +145,25 @@ else
     _PREFLIGHT_FAIL=1
 fi
 
-# 0.3 — Network reachability (probe pypi briefly; non-fatal)
+# 0.3 — Network reachability (probe pypi; non-fatal)
+#
+# We try IPv6 first (default in WSL2), then fall back to IPv4-only because
+# some routers / VPNs blackhole IPv6 to PyPI's CDN. A 3-second timeout has
+# been seen to false-negative on a cold DNS path — 10s is a more honest
+# upper bound while still bailing fast when truly offline.
 if command -v curl &>/dev/null; then
-    if curl -sf --max-time 3 https://pypi.org/simple/ -o /dev/null; then
+    _NET_OK=false
+    if curl -sfI --max-time 10 https://pypi.org/simple/ -o /dev/null 2>&1; then
+        _NET_OK=true
+    elif curl -sfI -4 --max-time 10 https://pypi.org/simple/ -o /dev/null 2>&1; then
+        _NET_OK=true
+    fi
+    if [ "$_NET_OK" = true ]; then
         echo "[bootstrap]   [OK]   Network: pypi.org reachable"
     else
-        echo "[bootstrap]   [WARN] Network: pypi.org NOT reachable (will fail at install)"
-        echo "[bootstrap]          Fix:  check connectivity, proxy, or VPN"
+        echo "[bootstrap]   [WARN] Network: could not reach pypi.org within 10s"
+        echo "[bootstrap]          (this can be a transient DNS/VPN hiccup; pip will retry)"
+        echo "[bootstrap]          Fix if pip install fails:  check connectivity, proxy, or VPN"
         _PREFLIGHT_WARN=1
     fi
 fi
@@ -166,6 +178,35 @@ if [ -z "${HF_TOKEN:-}" ] && [ -z "${HUGGINGFACE_HUB_TOKEN:-}" ] && \
     _PREFLIGHT_WARN=1
 else
     echo "[bootstrap]   [OK]   HF token present (env var or ~/.cache/huggingface/token)"
+fi
+
+# 0.4b — Stranded venv directories (older naming, abandoned attempts)
+#
+# The canonical venv name is .fngemma-suryaos (and optionally
+# .fngemma-suryaos-cpu). Any other directory under the repo root that looks
+# like a venv (.fngemma* / .functiongemma*) is from an older script revision
+# or an interrupted run, and will silently consume disk + confuse new users
+# who source the wrong activate. We surface them but never auto-delete.
+_STRANDED=()
+shopt -s nullglob
+for _candidate in "$REPO_ROOT"/.fngemma* "$REPO_ROOT"/.functiongemma*; do
+    case "$_candidate" in
+        "$VENV"|"$VENV-cpu") continue ;;
+    esac
+    [ -d "$_candidate" ] || continue
+    [ -f "$_candidate/pyvenv.cfg" ] || continue
+    _STRANDED+=("$_candidate")
+done
+shopt -u nullglob
+if [ "${#_STRANDED[@]}" -gt 0 ]; then
+    echo "[bootstrap]   [WARN] Stranded venv directory/directories detected:"
+    for _s in "${_STRANDED[@]}"; do
+        echo "[bootstrap]          - $_s"
+    done
+    echo "[bootstrap]          These are not used by the current pipeline."
+    echo "[bootstrap]          Safe to remove once you confirm:"
+    echo "[bootstrap]            rm -rf ${_STRANDED[*]}"
+    _PREFLIGHT_WARN=1
 fi
 
 # 0.5 — Docker for dashboard (non-fatal — script runs without it)
@@ -262,18 +303,62 @@ echo ""
 
 echo "[bootstrap] STEP 2: Setting up virtual environment ..."
 
-if [ ! -f "$VENV/bin/python3" ]; then
+# A "healthy" venv has a working python3, a working pip, and a writable
+# site-packages directory. The previous check ([ ! -f bin/python3 ]) only
+# saw the python symlink — it accepted half-created venvs where ensurepip
+# had silently failed, which caused a cryptic "bin/pip: No such file or
+# directory" the moment we tried to use pip in Step 3.
+_venv_healthy() {
+    local v="$1"
+    [ -x "$v/bin/python3" ]                                  || return 1
+    [ -x "$v/bin/pip" ]                                      || return 1
+    "$v/bin/pip" --version >/dev/null 2>&1                   || return 1
+    "$v/bin/python3" -c "import ensurepip" >/dev/null 2>&1   || return 1
+    return 0
+}
+
+if [ "$FORCE_REINSTALL" = true ] && [ -d "$VENV" ]; then
+    echo "[bootstrap]   --reinstall: removing existing venv at $VENV ..."
+    rm -rf "$VENV"
+fi
+
+if [ -d "$VENV" ] && ! _venv_healthy "$VENV"; then
+    echo "[bootstrap]   [WARN] Existing venv at $VENV is broken (missing pip / ensurepip)."
+    echo "[bootstrap]          This usually happens when a previous 'python3 -m venv' was"
+    echo "[bootstrap]          interrupted, or when python3-venv was missing at the time."
+    echo "[bootstrap]          Removing and recreating ..."
+    rm -rf "$VENV"
+fi
+
+if [ ! -d "$VENV" ]; then
     echo "[bootstrap]   Creating new venv at $VENV ..."
-    python3 -m venv "$VENV"
-    echo "[bootstrap]   Virtual environment created."
+    if ! python3 -m venv "$VENV"; then
+        echo "[bootstrap]   [FAIL] python3 -m venv failed."
+        echo "[bootstrap]          Fix:  sudo apt install python${PY_VER}-venv  (or python3-venv)"
+        exit 1
+    fi
+    if ! _venv_healthy "$VENV"; then
+        # Newly created but no pip → the venv module ran but ensurepip didn't.
+        # Try to recover by bootstrapping pip via get-pip.py.
+        echo "[bootstrap]   [WARN] Fresh venv has no working pip — attempting ensurepip recovery ..."
+        "$VENV/bin/python3" -m ensurepip --upgrade 2>/dev/null || true
+        if ! _venv_healthy "$VENV"; then
+            echo "[bootstrap]   [FAIL] Could not bootstrap pip in $VENV."
+            echo "[bootstrap]          Fix:  sudo apt install python${PY_VER}-venv  (or python3-venv)"
+            echo "[bootstrap]          Then re-run:  bash training/bootstrap.sh"
+            exit 1
+        fi
+    fi
+    echo "[bootstrap]   Virtual environment created and verified."
 else
-    echo "[bootstrap]   Existing venv found at $VENV — reusing."
+    echo "[bootstrap]   Existing venv found at $VENV — healthy, reusing."
 fi
 
 PIP="$VENV/bin/pip"
 PYTHON="$VENV/bin/python3"
 
 echo "[bootstrap]   Python: $($PYTHON --version)"
+echo "[bootstrap]   pip:    $($PIP --version | awk '{print $1, $2}')"
 echo ""
 
 # =============================================================================

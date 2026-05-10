@@ -629,6 +629,192 @@ review all benefit from narrow lines. There's no upside to width.
 
 ---
 
+## BUG-008 — Bootstrap reuses a half-built venv (May 2026) ✓ FIXED
+
+### Symptom
+
+Re-running `bash training/bootstrap.sh` produced:
+
+```
+[bootstrap] STEP 2: Setting up virtual environment ...
+[bootstrap]   Existing venv found at .fngemma-suryaos — reusing.
+[bootstrap]   Python: Python 3.12.3
+[bootstrap] STEP 3: Upgrading pip ...
+training/bootstrap.sh: line 289: .fngemma-suryaos/bin/pip: No such file or directory
+```
+
+Inspection of the venv showed only the python symlinks — no `pip`,
+no `activate`, no `lib/python3.12/site-packages/`:
+
+```
+$ ls .fngemma-suryaos/bin/
+python  python3  python3.12
+```
+
+### Root cause
+
+`python3 -m venv` runs in two phases — symlink setup, then `ensurepip`
+to bootstrap pip. A previous bootstrap attempt was killed (SIGTERM /
+ctrl-c / WSL restart) between those phases, leaving the symlinks but
+no pip. Bootstrap's reuse check was:
+
+```bash
+if [ ! -f "$VENV/bin/python3" ]; then
+    python3 -m venv "$VENV"
+else
+    echo "Existing venv found ... reusing."
+fi
+```
+
+Existence of `bin/python3` is necessary but not sufficient: it doesn't
+prove the venv is functional. Step 3 then immediately invoked
+`"$PIP" install --upgrade pip`, which exploded.
+
+### Mental model
+
+A health check must probe **capability**, not just existence. The
+analogy is checking that a car has wheels (it does) versus checking
+that the engine starts (it doesn't). Cheap-existence checks pass on
+half-built state; capability probes don't.
+
+### Fix
+
+Replace the existence check with a `_venv_healthy()` helper that
+verifies pip and ensurepip both work, and recreate the venv if it
+doesn't. Also extend `--reinstall` to rebuild the venv (previously
+it only force-reinstalled packages — useless when the venv itself
+was corrupt). Add an `ensurepip --upgrade` recovery path for the
+follow-on case where a fresh venv comes up without pip on systems
+missing `python3-venv`.
+
+```bash
+_venv_healthy() {
+    local v="$1"
+    [ -x "$v/bin/python3" ]                                  || return 1
+    [ -x "$v/bin/pip" ]                                      || return 1
+    "$v/bin/pip" --version >/dev/null 2>&1                   || return 1
+    "$v/bin/python3" -c "import ensurepip" >/dev/null 2>&1   || return 1
+    return 0
+}
+
+if [ "$FORCE_REINSTALL" = true ] && [ -d "$VENV" ]; then
+    rm -rf "$VENV"
+fi
+
+if [ -d "$VENV" ] && ! _venv_healthy "$VENV"; then
+    echo "[bootstrap]   [WARN] Existing venv at $VENV is broken — recreating ..."
+    rm -rf "$VENV"
+fi
+
+if [ ! -d "$VENV" ]; then
+    python3 -m venv "$VENV" || { echo "[FAIL] python3 -m venv failed"; exit 1; }
+    if ! _venv_healthy "$VENV"; then
+        "$VENV/bin/python3" -m ensurepip --upgrade 2>/dev/null || true
+        _venv_healthy "$VENV" || { echo "[FAIL] no pip — apt install python3-venv"; exit 1; }
+    fi
+fi
+```
+
+`train_all.sh` got a complementary post-bootstrap import probe that
+fails fast with per-package diagnostics if any of `torch`,
+`transformers`, `peft`, `trl`, `datasets`, or `sentencepiece` can't
+import — instead of letting `train_tokenizer.py` die with a cryptic
+ImportError 30 seconds later.
+
+### Validation
+
+```bash
+# Reproduce the broken state
+mkdir -p .fngemma-suryaos/bin
+ln -s /usr/bin/python3 .fngemma-suryaos/bin/python3
+
+# Re-run bootstrap
+bash training/bootstrap.sh --no-dashboard
+# → "[WARN] Existing venv at .fngemma-suryaos is broken ... Removing and recreating ..."
+# → ends in [OK] PyTorch ... + working pip
+```
+
+### Lesson
+
+**Existence checks pass on half-built state; capability probes don't.**
+This is the same class of bug as a service health-check that returns
+200 when the underlying database is down. Whenever you write a
+"reuse if exists" branch, the check needs to verify the thing actually
+works, or your "idempotent re-run" turns into a guaranteed failure.
+
+Companion lesson for orchestration: if you're going to detect a broken
+state, also self-heal it. A script that detects then bails forces the
+user to know the recovery command; one that detects-and-fixes lets
+re-running be the recovery command.
+
+---
+
+## BUG-009 — pypi reachability pre-flight false-negative (May 2026) ✓ FIXED
+
+### Symptom
+
+```
+[bootstrap]   [WARN] Network: pypi.org NOT reachable (will fail at install)
+[bootstrap]          Fix:  check connectivity, proxy, or VPN
+```
+
+…immediately followed by a successful pip install of 600 MB of torch
+wheels in the next step. `curl -sI https://pypi.org/simple/` from the
+same shell returned HTTP 200 in well under a second on retry.
+
+### Root cause
+
+```bash
+curl -sf --max-time 3 https://pypi.org/simple/ -o /dev/null
+```
+
+3 seconds is enough for warm DNS + TCP + TLS to a CDN that's already
+in the resolver cache, but not enough on a cold start path — especially
+on WSL2 where IPv6 is preferred and some VPNs blackhole IPv6 to PyPI's
+CDN, forcing a fallback to IPv4 mid-handshake. The "WILL fail at
+install" wording then made a transient warning sound terminal.
+
+### Mental model
+
+A pre-flight network check has to be calibrated for the **slowest
+plausible reachable case**, not the fastest typical case. If your
+timeout is shorter than a normal cold-start, you'll spend the script's
+budget on false alarms while users learn to ignore the warning.
+
+### Fix
+
+Bump the timeout to 10 s, add an IPv4-only retry, and reword:
+
+```bash
+if curl -sfI --max-time 10 https://pypi.org/simple/ -o /dev/null 2>&1; then
+    _NET_OK=true
+elif curl -sfI -4 --max-time 10 https://pypi.org/simple/ -o /dev/null 2>&1; then
+    _NET_OK=true
+fi
+if [ "$_NET_OK" = true ]; then
+    echo "[OK]   Network: pypi.org reachable"
+else
+    echo "[WARN] Network: could not reach pypi.org within 10s"
+    echo "       (transient DNS/VPN hiccup possible; pip will retry)"
+fi
+```
+
+### Validation
+
+Run from a cold shell on a machine that prefers IPv6 to PyPI; check
+that the warning no longer fires. If it does fire, it should also
+fire on a manual `curl -sf --max-time 10 https://pypi.org/simple/`.
+
+### Lesson
+
+**Pre-flight timeouts must be longer than your warning text suggests.**
+A 3-second probe with "WILL fail" wording is a contradiction: 3 s is
+too short to tell you anything definitive, but the wording forces the
+user to treat it as definitive. Either give the probe enough budget
+to be meaningful or downgrade the wording to match its reliability.
+
+---
+
 ## Open bugs / known issues
 
 These are caught but not yet fixed. Tracked here so we don't forget.

@@ -7,6 +7,91 @@ postmortems live in `docs/learnings.md`; bug-by-bug analysis lives in
 
 ---
 
+## Session 7 — Pipeline script hardening for no-agent runs (2026-05-10)
+
+### Goal
+Run the iter #4 dataset through the training pipeline. The first attempt
+surfaced two class-of-failure orchestration bugs (broken-venv half-state,
+pypi reachability false negative). Pivoted to hardening
+`bootstrap.sh` + `train_all.sh` so a clone-and-run user can execute the
+entire pipeline without an agent-in-the-loop, then resumed the training
+run with the fixes in place.
+
+### What shipped
+
+| File | Change |
+|---|---|
+| `training/bootstrap.sh` | `_venv_healthy()` probe (`pip --version` + `import ensurepip` must both succeed). Broken venvs auto-deleted and recreated. `--reinstall` now also rebuilds the venv (was: only force-reinstalled packages). pypi reachability: 3s → 10s + IPv4 fallback + softer wording. New pre-flight scan for stranded `.fngemma*`/`.functiongemma*` venvs other than the canonical one (warn, never auto-delete). |
+| `training/train_all.sh` | Pre-flight dataset gate: 4 required files (`new_tokens.json`, `corpus.txt`, `dispatch_pairs_v4_train.jsonl`, `dispatch_pairs_v4_eval.jsonl`) checked before bootstrap downloads 600 MB. Post-bootstrap import probe (`torch, transformers, peft, trl, datasets, sentencepiece`) with per-package diagnostic. `_tokenizer_complete()` requires both `tokenizer.json` AND `embed_init.pt` (was: dir existence — partial dirs would silently slip through). New `--clean` flag wipes `tokenizer_extended/`+`model_lora/`. `--skip-tokenizer` no longer silently honors a partial dir. |
+| `docs/bug-fixes.md` | BUG-008 (venv reuse check too lenient) + BUG-009 (pypi reachability false negative). |
+
+### Concrete changes
+
+**The half-built venv.** A previous `python3 -m venv` had been killed
+between the symlink phase and the ensurepip phase, leaving
+`.fngemma-suryaos/bin/` with only python symlinks — no `pip`, no
+`activate`, no `lib/site-packages/`. Bootstrap's `[ -f bin/python3 ]`
+reuse check accepted this, then died at Step 3 with `bin/pip: No such
+file or directory`. The fix replaces the check with a capability probe
+and adds an `ensurepip --upgrade` recovery path for systems where
+`python3-venv` is missing.
+
+**Pypi false negative.** The 3-second timeout fired on a cold-start DNS
+path even though pypi was reachable in under 1 second on retry. Bumped
+to 10 s and added an IPv4-only retry fallback (some VPNs blackhole IPv6
+to PyPI's CDN). Reworded "WILL fail at install" → "could not reach
+within 10s" so transient hiccups stop reading as terminal failures.
+
+**No-agent pre-flight.** `train_all.sh` now fails fast with copy-paste
+recovery commands when any of the four dataset prerequisites are
+missing or empty, before the 600 MB bootstrap download. After
+bootstrap, it does a real import probe — if `torch` / `transformers` /
+`peft` / `trl` / `datasets` / `sentencepiece` fail to import, the
+script prints which one broke and the exact recovery command, instead
+of letting `train_tokenizer.py` die with a cryptic `ImportError` half a
+minute later.
+
+### Dataset state (audit, no changes shipped)
+
+Canonical iter #4 data from Session 6 is intact and on the critical
+path:
+
+- `dispatch_pairs_v4_train.jsonl` — 1,448 pairs
+- `dispatch_pairs_v4_eval.jsonl` — 162 pairs
+- `dataset/tokenizer/new_tokens.json` — 108 tokens
+- `dataset/tokenizer/corpus.txt` — 3,579 sentences
+
+Stale/optional artefacts identified (not deleted yet): legacy
+`dispatch_pairs.jsonl` (iter #3, 93.7% one tool, empty args), unused
+`embed_pairs.jsonl`, zero-output mines (`mine_history.jsonl`,
+`mine_window_list.jsonl`, `kf5_pairs.jsonl`),
+`dispatch_pairs_v4_with_negatives.jsonl` (produced but not yet
+re-integrated into the pipeline).
+
+### Learnings
+
+- Health checks must probe **capability**, not **existence**. A
+  symlink in `bin/` doesn't mean the venv works.
+- "Idempotent on success" isn't enough — orchestration scripts must
+  also be **idempotent on partial failure**, i.e. re-running heals.
+- A 3-second network timeout in pre-flight is a classic false
+  negative; the fix isn't longer waits everywhere, it's giving the
+  user enough information to ignore a benign warning.
+- Failing fast with a copy-paste recovery command beats failing slow
+  with a cryptic Python traceback every time.
+
+### Next session
+
+Read final `training/model_lora/probes.jsonl` once the in-progress
+Run #5 (iter #4 dataset + all script fixes applied) finishes. Update
+`goals.md` with the new 9-row probe table. Decide whether iter #4
+clears the cross-domain target (< 0.40) or only matches Run #3
+baseline (0.62). If accuracy hits goals, ship the legacy file
+cleanup (`dispatch_pairs.jsonl`, `embed_pairs.jsonl`, the zero-output
+mines).
+
+---
+
 ## Session 6 — Iter #4 function-calling dataset rebuild (2026-05-06)
 
 ### Goal

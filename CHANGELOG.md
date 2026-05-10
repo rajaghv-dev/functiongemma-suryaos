@@ -6,6 +6,54 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## Iteration #4.1 — pipeline script hardening for no-agent runs (2026-05-10)
+
+### Pivot
+Started the actual training run for the iter #4 dataset rebuild and hit
+two orchestration bugs (a broken-venv half-state and a pypi reachability
+false negative). Pivoted to hardening `bootstrap.sh` + `train_all.sh` so
+the pipeline can be run by a clone-and-run user with no agent-in-the-
+loop. No dataset changes; iter #4 data shipped in the previous entry is
+intact.
+
+### Changed
+- `training/bootstrap.sh`:
+  - Replaced `[ -f bin/python3 ]` venv reuse check with `_venv_healthy`
+    capability probe (`pip --version` + `import ensurepip` must both
+    succeed). Broken venvs auto-deleted and recreated, with an
+    `ensurepip --upgrade` recovery path for systems where `python3-venv`
+    is missing.
+  - `--reinstall` now also rebuilds the venv (was: only force-
+    reinstalled packages, useless when the venv itself was corrupt).
+  - pypi reachability: 3 s → 10 s timeout, IPv4 fallback (VPNs that
+    blackhole IPv6 to PyPI's CDN no longer false-negative), softer
+    wording ("could not reach within 10 s" rather than "WILL fail").
+  - New pre-flight scan for stranded `.fngemma*` / `.functiongemma*`
+    venv directories other than the canonical one (warn, never auto-
+    delete).
+- `training/train_all.sh`:
+  - New pre-flight: validates the four required dataset files exist
+    before bootstrap downloads 600 MB
+    (`dataset/tokenizer/new_tokens.json`,
+    `dataset/tokenizer/corpus.txt`,
+    `dataset/dispatch_pairs_v4_train.jsonl`,
+    `dataset/dispatch_pairs_v4_eval.jsonl`).
+  - Post-bootstrap import probe (`torch, transformers, peft, trl,
+    datasets, sentencepiece`) with per-package diagnostic on failure.
+  - `_tokenizer_complete()` helper requires `tokenizer.json` AND
+    `embed_init.pt` (was: dir existence only — a half-written run would
+    silently feed garbage embeddings into LoRA).
+  - New `--clean` flag wipes `tokenizer_extended/` + `model_lora/`.
+  - `--skip-tokenizer` no longer silently honors a partial dir; falls
+    back to running with a clear note.
+
+### Added — docs
+- `docs/bug-fixes.md` BUG-008 (venv reuse check too lenient) + BUG-009
+  (pypi reachability check false-negative).
+- `SESSIONS.md` Session 7 entry with the full diagnosis + fix narrative.
+
+---
+
 ## Iteration #4 — function-calling dataset rebuild from real sources (2026-05-06)
 
 ### Pivot
