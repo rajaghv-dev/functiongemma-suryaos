@@ -44,6 +44,7 @@ def _normalise_direction(raw: str) -> str | None:
         return "down"
     return None
 
+
 # Tool catalog declared by tools/list. Single tool today; structure
 # leaves room for additions without restructuring the dispatcher.
 TOOLS = [
@@ -71,17 +72,17 @@ TOOLS = [
 ]
 
 
-def write_msg(payload):
+def write_msg(payload: dict) -> None:
     """Emit one line of JSON to stdout and flush."""
     sys.stdout.write(json.dumps(payload) + "\n")
     sys.stdout.flush()
 
 
-def reply(req_id, result):
+def reply(req_id, result: dict) -> None:
     write_msg({"jsonrpc": "2.0", "id": req_id, "result": result})
 
 
-def reply_error(req_id, code, message):
+def reply_error(req_id, code: int, message: str) -> None:
     write_msg({"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}})
 
 
@@ -98,7 +99,8 @@ def run_pactl(direction, step):
         return False, (e.stderr or str(e)).strip()
 
 
-def handle_request(req):
+def handle_request(req: dict) -> None:
+    """Route a single JSON-RPC request to the volume_change handler."""
     method = req.get("method")
     req_id = req.get("id")
 
@@ -154,7 +156,8 @@ def handle_request(req):
         reply_error(req_id, -32601, f"method not found: {method!r}")
 
 
-def main():
+def main() -> None:
+    """Read JSON-RPC messages from stdin line-by-line and dispatch them."""
     for line in sys.stdin:
         line = line.strip()
         if not line:

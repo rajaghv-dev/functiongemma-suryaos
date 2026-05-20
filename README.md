@@ -100,8 +100,12 @@ See [`dataset/apps/README.md`](dataset/apps/README.md).
 │
 ├── dataset/                           ← all training data
 │   ├── README.md                      ← dataset spec + how to grow
-│   ├── dispatch_pairs.jsonl           ← functiongemma LoRA training (1564 pairs)
+│   ├── dispatch_pairs.jsonl           ← legacy iter #3 dataset (superseded by v4)
+│   ├── dispatch_pairs_v4.jsonl        ← iter #4 balanced dataset (real sources)
+│   ├── dispatch_pairs_v4_train.jsonl  ← stratified train split (90%)
+│   ├── dispatch_pairs_v4_eval.jsonl   ← held-out eval split (10%)
 │   ├── embed_pairs.jsonl              ← embedder fine-tune (optional)
+│   ├── real_sources/                  ← raw JSONL fragments from each miner
 │   ├── tokenizer/                     ← tokenizer extension dataset
 │   │   ├── README.md
 │   │   ├── new_tokens.json            ← 108 tokens (iter #3 — pruned)
@@ -147,12 +151,23 @@ See [`dataset/apps/README.md`](dataset/apps/README.md).
 │   ├── fts.py                         ← retrieval index
 │   └── graph.py                       ← dependency graph
 │
+├── tests/                             ← dataset + training validation
+│   ├── test_corpus_balance.py         ← corpus quality checks (7 assertions)
+│   ├── test_dispatch_pairs.py         ← dispatch dataset checks (8 assertions)
+│   └── test_training_compat.py        ← training environment compatibility
+│
 └── training/                          ← training pipeline
     ├── bootstrap.sh                   ← one-shot env + Grafana setup
+    ├── train_all.sh                   ← end-to-end pipeline orchestrator
     ├── build_tokenizer_dataset.py     ← curated corpus generator (no templates)
+    ├── build_real_dataset.py          ← combine real-source miners into v4 dataset
+    ├── split_train_eval.py            ← stratified train/eval split
+    ├── add_hard_negatives.py          ← augment pairs with cross-domain negatives
+    ├── populate_arguments.py          ← extract argument values from user queries
     ├── train_tokenizer.py             ← extend tokenizer + warm embeddings
     ├── analyze_embeddings.py          ← post-training NN/cluster/probe analysis
     ├── finetune.py                    ← convert / train / export (LoRA)
+    ├── probes.py                      ← per-epoch eval probe bank (8 metrics)
     ├── metrics.py                     ← Pushgateway client (Prometheus)
     ├── requirements.txt               ← Python deps (PyTorch installed by bootstrap)
     └── observability/                 ← Grafana + Loki + Prometheus stack

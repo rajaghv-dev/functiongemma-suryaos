@@ -66,7 +66,7 @@ import socket
 import sys
 import time
 from datetime import datetime
-from typing import Optional
+from typing import Optional  # kept for Python < 3.10 compat
 
 # ---------------------------------------------------------------------------
 # Try to import prometheus_client. If unavailable, we run in no-op mode so

@@ -147,7 +147,6 @@ def cap_per_tool(pairs: list[dict], cap: int, *, seed: int) -> list[dict]:
 
         sources = list(by_src.keys())
         rnd.shuffle(sources)
-        i = 0
         picked: list[dict] = []
         while len(picked) < cap:
             progress = False
@@ -159,7 +158,6 @@ def cap_per_tool(pairs: list[dict], cap: int, *, seed: int) -> list[dict]:
                         break
             if not progress:
                 break
-            i += 1
         kept.extend(picked)
         _info(f"capped {tool}: {len(ps)} → {len(picked)} (sources: {len(sources)})")
     return kept

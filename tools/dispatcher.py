@@ -65,19 +65,28 @@ TOOLS = [
 # ---------------------------------------------------------------------------
 
 def write_msg(payload: dict) -> None:
+    """Emit one JSON-RPC line to stdout and flush immediately."""
     sys.stdout.write(json.dumps(payload) + "\n")
     sys.stdout.flush()
 
+
 def reply(req_id, result: dict) -> None:
+    """Send a successful JSON-RPC response."""
     write_msg({"jsonrpc": "2.0", "id": req_id, "result": result})
 
+
 def reply_error(req_id, code: int, message: str) -> None:
+    """Send a JSON-RPC error response."""
     write_msg({"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}})
 
+
 def ok_result(text: str) -> dict:
+    """Build a successful MCP tool-call result payload."""
     return {"content": [{"type": "text", "text": text}], "isError": False}
 
+
 def err_result(text: str) -> dict:
+    """Build a failed MCP tool-call result payload."""
     return {"content": [{"type": "text", "text": text}], "isError": True}
 
 # ---------------------------------------------------------------------------
@@ -166,7 +175,7 @@ def handle_dispatch(args: dict) -> tuple[bool, str]:
     tool_args: dict = {}
     if tool_name == "linux.service.status":
         # Extract service name: "is bluetooth running" → bluetooth
-        import re
+        import re  # noqa: PLC0415
         words = re.findall(r'\b\w+\b', query.lower())
         known = {"ollama","bluetooth","networkmanager","sshd","ssh","cups",
                  "pipewire","pulseaudio","docker","ufw","apache2","nginx"}
@@ -178,7 +187,9 @@ def handle_dispatch(args: dict) -> tuple[bool, str]:
             tool_args["name"] = "ollama"  # safe default
 
     elif tool_name == "kde.krunner.launch":
-        import re, shutil
+        import re
+        import shutil
+        import subprocess as _sp
         # Extract app name: "open dolphin" → dolphin, "launch kate" → kate
         m = re.search(r'\b(?:open|launch|start|run)\s+(\w+)', query.lower())
         app = m.group(1) if m else query.split()[-1]
@@ -187,12 +198,10 @@ def handle_dispatch(args: dict) -> tuple[bool, str]:
         # Launch via nohup and return immediately instead of going through MCP.
         for launcher in ("kstart6", "kstart5", "kstart"):
             if shutil.which(launcher):
-                import subprocess as _sp
                 _sp.Popen([launcher, "--windowclass", app, app],
                           stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
                 return True, f"Launched {app!r}."
         if shutil.which(app):
-            import subprocess as _sp
             _sp.Popen([app], stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
             return True, f"Launched {app!r}."
         return False, f"Cannot launch {app!r}: not found"
@@ -201,7 +210,7 @@ def handle_dispatch(args: dict) -> tuple[bool, str]:
         tool_args["path"] = "/"
 
     elif tool_name == "linux.volume.set":
-        import re
+        import re  # noqa: PLC0415
         direction = "down"
         if re.search(r'\b(up|louder|raise|increase|higher|more)\b', query.lower()):
             direction = "up"
@@ -211,7 +220,7 @@ def handle_dispatch(args: dict) -> tuple[bool, str]:
             tool_args["step"] = int(m.group(1))
 
     elif tool_name == "linux.brightness.set":
-        import re
+        import re  # noqa: PLC0415
         direction = "down"
         if re.search(r'\b(up|brighter|raise|increase|higher|more)\b', query.lower()):
             direction = "up"
@@ -233,6 +242,7 @@ def handle_dispatch(args: dict) -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 
 def handle_request(req: dict) -> None:
+    """Route a single JSON-RPC request to the appropriate handler."""
     method = req.get("method")
     req_id = req.get("id")
 
@@ -274,6 +284,7 @@ def handle_request(req: dict) -> None:
 
 
 def main() -> None:
+    """Read JSON-RPC messages from stdin line-by-line and dispatch them."""
     for line in sys.stdin:
         line = line.strip()
         if not line:

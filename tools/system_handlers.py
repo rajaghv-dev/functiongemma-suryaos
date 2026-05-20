@@ -267,9 +267,10 @@ def handle_brightness_set(args: dict) -> tuple[bool, str]:
 
 
 def handle_network_status(_args: dict) -> tuple[bool, str]:
-    # Show active connections with type and device — e.g.:
-    #   "MyWifi:wifi:connected:wlo1"
-    # -t = terse (colon-delimited), -f = fields to show
+    """Report active network/wifi connections via nmcli.
+
+    Shows NAME, TYPE, STATE, DEVICE in terse colon-delimited format.
+    """
     ok, text = _run(["nmcli", "-t", "-f", "NAME,TYPE,STATE,DEVICE", "connection", "show", "--active"])
     if ok and not text:
         text = "No active connections."
@@ -277,7 +278,10 @@ def handle_network_status(_args: dict) -> tuple[bool, str]:
 
 
 def handle_battery_status(_args: dict) -> tuple[bool, str]:
-    # Prefer acpi (concise), fall back to upower (verbose).
+    """Report battery level and charging state.
+
+    Prefers acpi (concise output); falls back to upower when acpi is absent.
+    """
     if shutil.which("acpi"):
         return _run(["acpi", "-b"])
     return _run(["upower", "-i", "/org/freedesktop/UPower/devices/battery_BAT0"])
@@ -339,6 +343,12 @@ def handle_disk_usage(args: dict) -> tuple[bool, str]:
 
 
 def handle_service_status(args: dict) -> tuple[bool, str]:
+    """Check whether a systemd service is active or inactive.
+
+    Returns the service state string (active, inactive, failed, etc.).
+    Exit code 3 from systemctl is-active (inactive) is treated as a valid
+    answer, not an error.
+    """
     name = (args.get("name") or "").strip()
     if not name:
         return False, "service name must be non-empty"
@@ -359,6 +369,11 @@ def handle_service_status(args: dict) -> tuple[bool, str]:
 
 
 def handle_krunner_launch(args: dict) -> tuple[bool, str]:
+    """Launch an application on the KDE desktop via kstart6/kstart5/kstart.
+
+    Uses Popen (fire-and-forget) so the MCP call returns immediately even
+    for slow-starting apps. Falls back to a bare exec if kstart is absent.
+    """
     app = (args.get("app") or "").strip()
     if not app:
         return False, "app must be non-empty"
@@ -381,6 +396,10 @@ def handle_krunner_launch(args: dict) -> tuple[bool, str]:
 
 
 def handle_window_focus(args: dict) -> tuple[bool, str]:
+    """Raise a window to the front by matching a substring of its title.
+
+    Uses wmctrl -a for a case-insensitive partial title match.
+    """
     title = (args.get("title") or "").strip()
     if not title:
         return False, "title must be non-empty"
@@ -718,18 +737,6 @@ def _resolve_disk_args(args: dict) -> dict:
     return {**args, "path": path}
 
 
-# ---------------------------------------------------------------------------
-# Bluetooth args injection for service_status
-# ---------------------------------------------------------------------------
-
-def _maybe_inject_bluetooth(raw_name: str, args: dict) -> dict:
-    """When model calls bluetooth_status or similar, inject name=bluetooth."""
-    if "bluetooth" in raw_name.lower() or "bt" in raw_name.lower():
-        if not args.get("name"):
-            return {**args, "name": "bluetooth"}
-    return args
-
-
 # Map tool name → handler function.
 HANDLERS = {
     "brightness_set":      handle_brightness_set,
@@ -751,6 +758,7 @@ HANDLERS = {
 # ---------------------------------------------------------------------------
 
 def handle_request(req: dict) -> None:
+    """Route a single JSON-RPC request to the appropriate tool handler."""
     method = req.get("method")
     req_id = req.get("id")
 
@@ -811,6 +819,7 @@ def handle_request(req: dict) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    """Read JSON-RPC messages from stdin line-by-line and dispatch them."""
     for line in sys.stdin:
         line = line.strip()
         if not line:

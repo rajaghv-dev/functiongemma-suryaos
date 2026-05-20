@@ -98,9 +98,9 @@ def paraphrase_example(example: str, tool_name: str, n: int = 20) -> list[str]:
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read())
         text = data.get("response", "")
-        lines = [l.strip() for l in text.splitlines() if l.strip()]
+        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
         # Filter out lines that are too long or too short
-        return [l for l in lines if 5 < len(l) < 120][:n]
+        return [ln for ln in lines if 5 < len(ln) < 120][:n]
     except Exception as e:
         print(f"  ⚠ paraphrase failed for {example!r}: {e}", file=sys.stderr)
         return []

@@ -106,7 +106,7 @@ def load_lines(path: Path) -> list[str]:
                 except Exception:
                     continue
         return out
-    return [l for l in path.read_text().splitlines() if l.strip()]
+    return [ln for ln in path.read_text().splitlines() if ln.strip()]
 
 
 def load_new_tokens() -> list[str]:
